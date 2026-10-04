@@ -1,0 +1,32 @@
+{
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "src/**",
+      "e2e/**",
+      "*.mjs",
+      "*.ts",
+      "*.json",
+      "*.css",
+      "!package-lock.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 92
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  }
+}
