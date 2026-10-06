@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/pages/placeholder-page";
-import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { getBusinessContext } from "@/server/modules/business/context";
+import { gstinStateWarning } from "@/server/modules/business/validation";
 
 export default async function DashboardPage({
   searchParams,
@@ -7,7 +7,11 @@ export default async function DashboardPage({
   searchParams: Promise<{ logout?: string }>;
 }) {
   const { logout } = await searchParams;
-  const user = await requireAuthenticatedUser();
+  const context = await getBusinessContext();
+  if (context.status !== "ready") return null;
+  const gstinWarning = context.business.state_code
+    ? gstinStateWarning(context.business.gstin, context.business.state_code)
+    : null;
   return (
     <section>
       {logout === "failed" ? (
@@ -22,9 +26,19 @@ export default async function DashboardPage({
         <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[#183d35]">
           Welcome to Webameen
         </h1>
-        <p className="mt-2 text-sm text-[#376a5c]">Signed in as {user.email}</p>
+        <p className="mt-4 text-sm text-[#376a5c]">
+          Business: <strong>{context.business.display_name}</strong>
+        </p>
+        <p className="mt-2 text-sm text-[#376a5c]">Signed in as {context.user.email}</p>
       </div>
-      <PlaceholderPage title="Dashboard" />
+      {gstinWarning ? (
+        <p
+          className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          role="status"
+        >
+          {gstinWarning}
+        </p>
+      ) : null}
     </section>
   );
 }

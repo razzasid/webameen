@@ -72,3 +72,11 @@ Before each future workflow is enabled, add its command-level and concurrency te
 - The local database remains running at `127.0.0.1:54322`, database/user/password `postgres`. No production resources were provisioned.
 
 This verifies the foundation, not future authenticated command wrappers, customer token entry points or concurrent command execution. Those interfaces have not been implemented and require their own workflow tests before exposure. No specification changes or application-feature implementation were made.
+
+## Business setup milestone
+
+`20261007120000_business_bootstrap.sql` adds one fixed business-creation command. The public wrapper is callable only by `authenticated`; the transaction function runs as `webameen_executor`, which still has no login or RLS bypass. It checks the JWT subject, serializes creation per user, verifies that user's email, inserts the business and owner membership together, and returns the existing business on retry. The database keeps the one-business-per-user restriction.
+
+Supabase owns the `auth` schema and its `auth.users` RLS. The migration gives the executor inherited `authenticated` schema access for `auth.uid()`; it does not let `authenticated` assume the executor. A private, no-argument, read-only helper owned by the local migration role checks only the current JWT subject's provider verification field. That helper can bypass provider-table RLS but cannot write or read application tenant tables. Business inserts remain under forced application RLS.
+
+`supabase/tests/business_bootstrap.sql` uses disposable provider fixtures in a rolled-back transaction to check verification, owner linkage, retries, disabled memberships, and cross-business isolation. The foundation test remains unchanged.

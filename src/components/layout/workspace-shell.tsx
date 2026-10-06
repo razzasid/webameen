@@ -4,9 +4,11 @@ import { logoutAction } from "@/server/modules/identity/actions";
 export function WorkspaceShell({
   children,
   email,
+  businessName,
 }: Readonly<{
   children: React.ReactNode;
   email: string;
+  businessName: string;
 }>) {
   return (
     <div className="min-h-screen md:flex">
@@ -15,7 +17,7 @@ export function WorkspaceShell({
         <header className="flex h-[68px] items-center justify-between border-b border-[var(--line)] bg-white/90 px-5 md:px-9">
           <div className="min-w-0">
             <p className="truncate text-xs text-[var(--muted)]">Workspace</p>
-            <p className="truncate text-sm font-semibold">Your business</p>
+            <p className="truncate text-sm font-semibold">{businessName}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:block">

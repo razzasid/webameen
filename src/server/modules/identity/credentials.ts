@@ -22,8 +22,20 @@ export const signupCredentialsSchema = z.object({
 
 export type AuthActionState = {
   error?: string;
+  fieldErrors?: Partial<Record<"email" | "password", string>>;
   notice?: string;
 };
+
+export function credentialFieldErrors(error: z.ZodError): AuthActionState["fieldErrors"] {
+  const fieldErrors: NonNullable<AuthActionState["fieldErrors"]> = {};
+  for (const issue of error.issues) {
+    const field = issue.path[0];
+    if ((field === "email" || field === "password") && !fieldErrors[field]) {
+      fieldErrors[field] = issue.message;
+    }
+  }
+  return fieldErrors;
+}
 
 export function readCredentials(formData: FormData) {
   return {

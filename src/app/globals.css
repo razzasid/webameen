@@ -45,3 +45,12 @@ a {
   color: var(--brand-dark);
   background: #c8e4db;
 }
+
+.business-gstin-field {
+  display: none;
+}
+
+.business-setup-form:has(input[name="gstRegistered"][value="yes"]:checked)
+  .business-gstin-field {
+  display: block;
+}

@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from "@/config/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   type AuthActionState,
+  credentialFieldErrors,
   loginCredentialsSchema,
   readCredentials,
   safeLoginError,
@@ -19,9 +20,7 @@ export async function loginAction(
 ): Promise<AuthActionState> {
   const credentials = loginCredentialsSchema.safeParse(readCredentials(formData));
   if (!credentials.success) {
-    return {
-      error: credentials.error.issues[0]?.message ?? "Check the form and try again.",
-    };
+    return { fieldErrors: credentialFieldErrors(credentials.error) };
   }
   if (!isSupabaseConfigured()) {
     return {
@@ -50,9 +49,7 @@ export async function signupAction(
 ): Promise<AuthActionState> {
   const credentials = signupCredentialsSchema.safeParse(readCredentials(formData));
   if (!credentials.success) {
-    return {
-      error: credentials.error.issues[0]?.message ?? "Check the form and try again.",
-    };
+    return { fieldErrors: credentialFieldErrors(credentials.error) };
   }
   if (!isSupabaseConfigured()) {
     return {

@@ -6,6 +6,14 @@ test("workspace navigation opens every foundation placeholder", async ({ page })
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page).toHaveURL(/\/onboarding\/business$/);
+  await page.getByLabel("Business name").fill("Navigation Test Business");
+  await page.getByLabel("Contact email").fill(email);
+  await page.getByLabel("Contact phone").fill("9876543210");
+  await page.getByLabel("Business address").fill("Test address, Bengaluru");
+  await page.getByLabel("State or territory").selectOption("29");
+  await page.getByLabel("No", { exact: true }).check();
+  await page.getByRole("button", { name: "Create business" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
   await page.reload();
@@ -22,7 +30,7 @@ test("workspace navigation opens every foundation placeholder", async ({ page })
     { label: "Invoices", path: "/invoices", heading: "Invoices" },
     { label: "Payments", path: "/payments", heading: "Payments" },
     { label: "Settings", path: "/settings", heading: "Settings" },
-    { label: "Dashboard", path: "/dashboard", heading: "Dashboard" },
+    { label: "Dashboard", path: "/dashboard", heading: "Welcome to Webameen" },
   ];
 
   for (const destination of destinations) {
@@ -68,7 +76,7 @@ test("login errors are safe and logout invalidates the current session", async (
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/onboarding\/business$/);
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/dashboard");
@@ -77,6 +85,6 @@ test("login errors are safe and logout invalidates the current session", async (
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page).toHaveURL(/\/onboarding\/business$/);
+  await expect(page.getByRole("heading", { name: "Set up your business" })).toBeVisible();
 });
