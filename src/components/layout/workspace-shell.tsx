@@ -1,10 +1,12 @@
-import Link from "next/link";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { logoutAction } from "@/server/modules/identity/actions";
 
 export function WorkspaceShell({
   children,
+  email,
 }: Readonly<{
   children: React.ReactNode;
+  email: string;
 }>) {
   return (
     <div className="min-h-screen md:flex">
@@ -16,18 +18,17 @@ export function WorkspaceShell({
             <p className="truncate text-sm font-semibold">Your business</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]"
-              href="/login"
-            >
-              Log in
-            </Link>
-            <Link
-              className="rounded-xl bg-[var(--brand)] px-3.5 py-2 text-sm !text-white hover:bg-[var(--brand-dark)]"
-              href="/signup"
-            >
-              Sign up
-            </Link>
+            <span className="hidden max-w-56 truncate text-sm text-[var(--muted)] sm:block">
+              {email}
+            </span>
+            <form action={logoutAction}>
+              <button
+                className="rounded-xl border border-[var(--line)] bg-white px-3.5 py-2 text-sm font-medium hover:bg-[var(--paper)]"
+                type="submit"
+              >
+                Log out
+              </button>
+            </form>
           </div>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-5 py-8 md:px-9 md:py-10">

@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { redirectAuthenticatedUser } from "@/server/modules/identity/session";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await redirectAuthenticatedUser();
+
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
       <div className="w-full max-w-[460px]">

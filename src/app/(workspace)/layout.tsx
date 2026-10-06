@@ -1,9 +1,11 @@
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
+import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 
-export default function WorkspaceLayout({
+export default async function WorkspaceLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <WorkspaceShell>{children}</WorkspaceShell>;
+  const user = await requireAuthenticatedUser();
+  return <WorkspaceShell email={user.email ?? ""}>{children}</WorkspaceShell>;
 }

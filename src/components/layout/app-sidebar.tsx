@@ -28,9 +28,7 @@ export function AppSidebar() {
             W
           </span>
           <span>
-            <span className="block text-[17px] font-semibold tracking-tight">
-              webameen
-            </span>
+            <span className="block text-[17px] font-semibold tracking-tight">webameen</span>
             <span className="block text-[10px] uppercase tracking-[0.16em] text-white/55">
               Business workspace
             </span>
@@ -66,10 +64,7 @@ export function AppSidebar() {
               href={item.href}
               key={item.href}
             >
-              <span
-                aria-hidden="true"
-                className="w-5 text-center text-base leading-none"
-              >
+              <span aria-hidden="true" className="w-5 text-center text-base leading-none">
                 {item.icon}
               </span>
               <span className="whitespace-nowrap">{item.label}</span>
@@ -82,8 +77,7 @@ export function AppSidebar() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-xs font-medium text-white/90">Foundation stage</p>
           <p className="mt-1.5 text-xs leading-5 text-white/55">
-            Navigation is ready. Business workflows will be added after this
-            milestone.
+            Navigation is ready. Business workflows will be added after this milestone.
           </p>
         </div>
       </div>
