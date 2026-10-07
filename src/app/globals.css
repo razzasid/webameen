@@ -54,3 +54,11 @@ a {
   .business-gstin-field {
   display: block;
 }
+
+.customer-gstin-field {
+  display: none;
+}
+
+form:has(input[name="gstinApplicable"][value="yes"]:checked) .customer-gstin-field {
+  display: block;
+}
