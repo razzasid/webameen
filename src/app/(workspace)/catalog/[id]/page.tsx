@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { CatalogPublicationForm } from "@/components/catalog/catalog-publication-form";
+import { getBusinessContext } from "@/server/modules/business/context";
+import { setCatalogItemPublicationAction } from "@/server/modules/catalog/actions";
 import { getCatalogItem } from "@/server/modules/catalog/queries";
 import { formatPaise } from "@/server/modules/catalog/validation";
 
@@ -9,6 +12,7 @@ export default async function CatalogItemPage({
 }) {
   const { id } = await params;
   const item = await getCatalogItem(id);
+  const context = await getBusinessContext();
   const category =
     item.default_gst_category === "no_gst"
       ? "No GST"
@@ -42,6 +46,31 @@ export default async function CatalogItemPage({
         <p className="mt-5 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
           This item is archived and is not shown in the active catalog list.
         </p>
+      ) : null}
+      {!item.archived_at && context.status === "ready" ? (
+        <aside className="mt-6 max-w-3xl rounded-2xl border border-[var(--line)] bg-[var(--mint)] p-5">
+          <h2 className="text-sm font-semibold">
+            {item.is_published ? "Published" : "Private draft"}
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {item.is_published
+              ? "Customers can view this item. Saved changes also update the public listing."
+              : "Publish this item when it is ready for customers."}
+          </p>
+          {item.is_published ? (
+            <Link
+              href={`/c/${context.business.public_catalog_slug}/${item.id}`}
+              className="mt-3 inline-block text-sm font-medium text-[var(--brand)] underline"
+            >
+              View public item
+            </Link>
+          ) : null}
+          <CatalogPublicationForm
+            key={String(item.is_published)}
+            published={item.is_published}
+            action={setCatalogItemPublicationAction.bind(null, item.id, !item.is_published)}
+          />
+        </aside>
       ) : null}
       <dl className="mt-6 grid max-w-3xl gap-4 rounded-2xl border border-[var(--line)] bg-white p-5 sm:grid-cols-2">
         <Detail label="Unit label" value={item.unit_label || "Not set"} />

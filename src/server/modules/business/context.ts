@@ -22,7 +22,7 @@ export const getBusinessContext = cache(async function getBusinessContext() {
 
   const businessResult = await supabase
     .from("businesses")
-    .select("id, display_name, state_code, gstin")
+    .select("id, display_name, state_code, gstin, public_catalog_slug")
     .eq("id", membership.business_id)
     .maybeSingle();
   if (businessResult.error || !businessResult.data) {

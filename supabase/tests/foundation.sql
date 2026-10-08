@@ -25,6 +25,7 @@ CREATE TEMP TABLE expected_columns(table_name text, column_name text, data_type 
 INSERT INTO expected_columns VALUES
 ('businesses','id','uuid',true,'gen_random_uuid()'),
 ('businesses','display_name','text',true,NULL),
+('businesses','public_catalog_slug','text',true,'(''catalog-''::text || (gen_random_uuid())::text)'),
 ('businesses','contact_email','text',false,NULL),
 ('businesses','contact_phone','text',false,NULL),
 ('businesses','postal_address','text',false,NULL),
@@ -73,6 +74,7 @@ INSERT INTO expected_columns VALUES
 ('catalog_items','id','uuid',true,'gen_random_uuid()'),
 ('catalog_items','business_id','uuid',true,NULL),
 ('catalog_items','kind','text',true,NULL),
+('catalog_items','is_published','boolean',true,'false'),
 ('catalog_items','name','text',true,NULL),
 ('catalog_items','description','text',false,NULL),
 ('catalog_items','unit_label','text',false,NULL),
@@ -349,7 +351,8 @@ SELECT pg_temp.assert_ok(NOT EXISTS(
  JOIN pg_attribute a ON a.attrelid=('public.'||e.table_name)::regclass AND a.attname=e.column_name
  LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
  WHERE pg_get_expr(d.adbin,d.adrelid) IS DISTINCT FROM
-   CASE WHEN e.data_type='text' AND e.default_expr IS NOT NULL THEN e.default_expr||'::text' ELSE e.default_expr END
+   CASE WHEN e.table_name='businesses' AND e.column_name='public_catalog_slug' THEN e.default_expr
+     WHEN e.data_type='text' AND e.default_expr IS NOT NULL THEN e.default_expr||'::text' ELSE e.default_expr END
 ), 'Every approved default, including absence of a default, matches');
 SELECT pg_temp.assert_ok(NOT EXISTS(
  SELECT FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace ns ON ns.oid=c.relnamespace
@@ -380,12 +383,12 @@ SELECT pg_temp.assert_ok(NOT EXISTS(
  AND NOT(c.relrowsecurity AND c.relforcerowsecurity)
 ), 'ENABLE and FORCE RLS on every application table');
 SELECT pg_temp.assert_ok(NOT EXISTS(
- SELECT FROM pg_roles WHERE rolname IN ('webameen_executor','webameen_quote_broker','webameen_invoice_broker')
+ SELECT FROM pg_roles WHERE rolname IN ('webameen_executor','webameen_quote_broker','webameen_invoice_broker','webameen_catalog_reader')
  AND (rolcanlogin OR rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb)
 ), 'Internal execution roles cannot log in or bypass RLS');
 SELECT pg_temp.assert_ok(NOT EXISTS(
  SELECT FROM pg_auth_members am JOIN pg_roles parent ON parent.oid=am.roleid JOIN pg_roles child ON child.oid=am.member
- WHERE parent.rolname IN ('webameen_executor','webameen_quote_broker','webameen_invoice_broker')
+ WHERE parent.rolname IN ('webameen_executor','webameen_quote_broker','webameen_invoice_broker','webameen_catalog_reader')
  AND child.rolname IN ('authenticated','anon','authenticator','service_role')
 ), 'No runtime login inherits internal execution identities');
 SELECT pg_temp.assert_ok(NOT EXISTS(

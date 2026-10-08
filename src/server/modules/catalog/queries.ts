@@ -66,14 +66,17 @@ export async function listCatalogItems(search = "", requestedPage = 1) {
   return { items: (data ?? []) as CatalogItem[], page, total, totalPages };
 }
 
-export async function getCatalogItem(id: string): Promise<CatalogItem> {
+export async function getCatalogItem(
+  id: string,
+): Promise<CatalogItem & { is_published: boolean }> {
   const context = await getBusinessContext();
   if (context.status !== "ready") notFound();
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("get_catalog_item", {
-    p_catalog_item_id: id,
-  });
-  if (error) throw new Error("Could not load this catalog item.");
-  if (!data?.[0]) notFound();
-  return data[0] as CatalogItem;
+  const [item, publication] = await Promise.all([
+    supabase.rpc("get_catalog_item", { p_catalog_item_id: id }),
+    supabase.from("catalog_items").select("is_published").eq("id", id).maybeSingle(),
+  ]);
+  if (item.error || publication.error) throw new Error("Could not load this catalog item.");
+  if (!item.data?.[0] || !publication.data) notFound();
+  return { ...(item.data[0] as CatalogItem), is_published: publication.data.is_published };
 }

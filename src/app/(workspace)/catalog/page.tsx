@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getBusinessContext } from "@/server/modules/business/context";
 import { CATALOG_PER_PAGE, listCatalogItems } from "@/server/modules/catalog/queries";
 import { formatPaise } from "@/server/modules/catalog/validation";
 
@@ -12,6 +13,7 @@ export default async function CatalogPage({
   const requestedPage =
     typeof pageParam === "string" && /^\d{1,6}$/.test(pageParam) ? Number(pageParam) : 1;
   const { items, page, total, totalPages } = await listCatalogItems(search, requestedPage);
+  const context = await getBusinessContext();
   const pageHref = (target: number) => {
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -38,6 +40,24 @@ export default async function CatalogPage({
           Add item
         </Link>
       </div>
+
+      {context.status === "ready" ? (
+        <aside className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--mint)] p-4 text-sm">
+          <p className="font-semibold">Your public catalog</p>
+          <p className="mt-1 text-[var(--muted)]">
+            Share this link with customers. Only published, active items appear.
+          </p>
+          <Link
+            href={`/c/${context.business.public_catalog_slug}`}
+            className="mt-3 inline-block break-all font-medium text-[var(--brand)] underline"
+          >
+            Open public catalog
+          </Link>
+          <p className="mt-1 break-all text-xs text-[var(--muted)]">
+            /c/{context.business.public_catalog_slug}
+          </p>
+        </aside>
+      ) : null}
 
       <form action="/catalog" method="get" className="mt-6 flex max-w-2xl gap-2">
         <label className="sr-only" htmlFor="catalog-search">

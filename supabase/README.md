@@ -79,4 +79,12 @@ This verifies the foundation, not future authenticated command wrappers, custome
 
 Supabase owns the `auth` schema and its `auth.users` RLS. The migration gives the executor inherited `authenticated` schema access for `auth.uid()`; it does not let `authenticated` assume the executor. A private, no-argument, read-only helper owned by the local migration role checks only the current JWT subject's provider verification field. That helper can bypass provider-table RLS but cannot write or read application tenant tables. Business inserts remain under forced application RLS.
 
-`supabase/tests/business_bootstrap.sql` uses disposable provider fixtures in a rolled-back transaction to check verification, owner linkage, retries, disabled memberships, and cross-business isolation. The foundation test remains unchanged.
+`supabase/tests/business_bootstrap.sql` uses disposable provider fixtures in a rolled-back transaction to check verification, owner linkage, retries, disabled memberships, and cross-business isolation.
+
+## Public catalog milestone
+
+`20261008155240_public_catalog.sql` assigns every existing and new business an immutable, unique `public_catalog_slug`. The public URL is `/c/<slug>` and product details are at `/c/<slug>/<item-id>`. Owners can open the public link from `/catalog`, then publish or unpublish individual items from the protected item detail page. Existing and new items default to private; only explicitly published, unarchived products and services appear. Saved edits to published items update the public listing.
+
+Public RPCs expose business name, slug, item count, and an explicit item projection (name, description, kind, unit, exact paise price, and GST category/rate). They use a private function owned by `webameen_catalog_reader`, a role with no login, write access, or RLS bypass. Its column grants exclude private business fields, user IDs, and audit data; forced RLS excludes unpublished and archived items. Both list and detail reads join the requested slug to the item's business. Anonymous and authenticated visitors can call the same public reads without gaining base-table access. Owner publication uses the existing executor and active owner membership rules.
+
+`supabase/tests/public_catalog.sql` verifies guest access, safe projections, publication changes, archive/draft exclusion, URL stability, exact prices, and tenant isolation. The foundation inventory includes the two new fields and the restricted reader role. All fixtures roll back.

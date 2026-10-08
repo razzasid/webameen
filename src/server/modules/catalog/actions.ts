@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getBusinessContext } from "@/server/modules/business/context";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 import {
   type CatalogActionState,
@@ -32,6 +33,7 @@ async function saveCatalogItem(id: string | null, formData: FormData) {
     };
   }
 
+  const context = await getBusinessContext();
   const supabase = await createSupabaseServerClient();
   const gstRate = parsed.data.gstCategory === "taxable" ? parsed.data.gstRate : null;
   if (gstRate) {
@@ -87,7 +89,35 @@ async function saveCatalogItem(id: string | null, formData: FormData) {
   }
   revalidatePath("/catalog");
   revalidatePath(`/catalog/${data}`);
+  if (context.status === "ready") {
+    revalidatePath(`/c/${context.business.public_catalog_slug}`);
+    revalidatePath(`/c/${context.business.public_catalog_slug}/${data}`);
+  }
   redirect(`/catalog/${data}`);
+}
+
+export async function setCatalogItemPublicationAction(
+  id: string,
+  published: boolean,
+  _previousState: { error?: string },
+  _formData: FormData,
+): Promise<{ error?: string }> {
+  const context = await getBusinessContext();
+  if (context.status !== "ready") return { error: "Business access is unavailable." };
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.rpc("set_catalog_item_published", {
+      p_item_id: id,
+      p_published: published,
+    });
+    if (error) return { error: "We couldn't change publication. Please try again." };
+  } catch {
+    return { error: "Publication is temporarily unavailable. Please try again." };
+  }
+  revalidatePath(`/catalog/${id}`);
+  revalidatePath(`/c/${context.business.public_catalog_slug}`);
+  revalidatePath(`/c/${context.business.public_catalog_slug}/${id}`);
+  return {};
 }
 
 export async function createCatalogItemAction(
