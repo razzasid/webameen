@@ -108,6 +108,7 @@ export function BusinessSetupForm({ action }: Props) {
         State or territory <span aria-hidden="true">*</span>
         <select
           className={inputClass}
+          key={state.values?.stateCode ?? ""}
           name="stateCode"
           defaultValue={state.values?.stateCode ?? ""}
           aria-invalid={Boolean(fieldError("stateCode"))}

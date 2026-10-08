@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: "⌂" },
   { href: "/customers", label: "Customers", icon: "◎" },
-  { href: "/products", label: "Products & services", icon: "◇" },
+  { href: "/catalog", label: "Products & services", icon: "◇" },
   { href: "/quotations", label: "Quotations", icon: "▤" },
   { href: "/invoices", label: "Invoices", icon: "▧" },
   { href: "/payments", label: "Payments", icon: "↗" },
@@ -50,7 +50,7 @@ export function AppSidebar() {
         className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:space-y-1 md:px-3 md:py-2"
       >
         {navigation.map((item) => {
-          const active = pathname === item.href;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link

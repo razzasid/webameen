@@ -1,12 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("workspace navigation opens every foundation placeholder", async ({ page }) => {
+test("workspace navigation opens the catalog alongside existing workspace pages", async ({
+  page,
+}) => {
   const email = `nav-${Date.now()}@example.com`;
   await page.goto("/signup");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/onboarding\/business$/);
+  // Account creation and the dashboard-to-onboarding redirect can exceed 5s in dev.
+  await expect(page).toHaveURL(/\/onboarding\/business$/, { timeout: 20_000 });
   await page.getByLabel("Business name").fill("Navigation Test Business");
   await page.getByLabel("Contact email").fill(email);
   await page.getByLabel("Contact phone").fill("9876543210");
@@ -23,8 +26,8 @@ test("workspace navigation opens every foundation placeholder", async ({ page })
     { label: "Customers", path: "/customers", heading: "Customers" },
     {
       label: "Products & services",
-      path: "/products",
-      heading: "Products & Services",
+      path: "/catalog",
+      heading: "Products & services",
     },
     { label: "Quotations", path: "/quotations", heading: "Quotations" },
     { label: "Invoices", path: "/invoices", heading: "Invoices" },
@@ -76,7 +79,7 @@ test("login errors are safe and logout invalidates the current session", async (
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/onboarding\/business$/);
+  await expect(page).toHaveURL(/\/onboarding\/business$/, { timeout: 20_000 });
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/dashboard");

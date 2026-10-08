@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFieldErrors } from "@/components/forms/use-field-errors";
 import { indianStates } from "@/server/modules/business/states";
 import type {
@@ -22,11 +22,32 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
   const [state, formAction, pending] = useActionState(action, {
     values: initial as CustomerActionState["values"],
   });
+  const [values, setValues] = useState<Record<CustomerField, string>>(() => ({
+    displayName: initial?.displayName ?? "",
+    contactName: initial?.contactName ?? "",
+    email: initial?.email ?? "",
+    phone: initial?.phone ?? "",
+    billingAddress: initial?.billingAddress ?? "",
+    stateCode: initial?.stateCode ?? "",
+    gstinApplicable: initial?.gstinApplicable ?? "no",
+    gstin: initial?.gstin ?? "",
+  }));
   const { dismissField, fieldError, generalError } = useFieldErrors<CustomerField>(state);
-  const value = (key: CustomerField) => state.values?.[key] ?? initial?.[key] ?? "";
+  const setValue = (key: CustomerField, value: string) => {
+    setValues((current) => ({ ...current, [key]: value }));
+  };
 
   return (
-    <form action={formAction} className="mt-7 max-w-3xl space-y-5" noValidate>
+    <form
+      action={formAction}
+      onReset={(event) => {
+        // Returning validation errors still completes a React form action and
+        // requests a native reset. Keep the draft; successful saves redirect.
+        event.preventDefault();
+      }}
+      className="mt-7 max-w-3xl space-y-5"
+      noValidate
+    >
       {generalError ? (
         <p
           role="alert"
@@ -46,7 +67,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
           id="displayName"
           className={inputClass}
           name="displayName"
-          defaultValue={value("displayName")}
+          value={values.displayName}
+          onChange={(event) => setValue("displayName", event.target.value)}
           autoComplete="organization"
           required
         />
@@ -61,7 +83,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
           id="contactName"
           className={inputClass}
           name="contactName"
-          defaultValue={value("contactName")}
+          value={values.contactName}
+          onChange={(event) => setValue("contactName", event.target.value)}
           autoComplete="name"
         />
       </Field>
@@ -77,7 +100,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
             className={inputClass}
             name="email"
             type="email"
-            defaultValue={value("email")}
+            value={values.email}
+            onChange={(event) => setValue("email", event.target.value)}
             autoComplete="email"
           />
         </Field>
@@ -92,7 +116,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
             className={inputClass}
             name="phone"
             type="tel"
-            defaultValue={value("phone")}
+            value={values.phone}
+            onChange={(event) => setValue("phone", event.target.value)}
             autoComplete="tel"
           />
         </Field>
@@ -108,7 +133,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
           className={inputClass}
           name="billingAddress"
           rows={3}
-          defaultValue={value("billingAddress")}
+          value={values.billingAddress}
+          onChange={(event) => setValue("billingAddress", event.target.value)}
         />
       </Field>
       <Field
@@ -122,7 +148,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
           id="stateCode"
           className={inputClass}
           name="stateCode"
-          defaultValue={value("stateCode")}
+          value={values.stateCode}
+          onChange={(event) => setValue("stateCode", event.target.value)}
           required
         >
           <option value="">Select a state or territory</option>
@@ -147,11 +174,11 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
                 type="radio"
                 name="gstinApplicable"
                 value={answer}
-                defaultChecked={
-                  value("gstinApplicable") === answer ||
-                  (!value("gstinApplicable") && answer === "no")
-                }
-                onChange={() => dismissField("gstinApplicable")}
+                checked={values.gstinApplicable === answer}
+                onChange={() => {
+                  setValue("gstinApplicable", answer);
+                  dismissField("gstinApplicable");
+                }}
                 required
               />{" "}
               {label}
@@ -173,7 +200,8 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
             id="gstin"
             className={inputClass}
             name="gstin"
-            defaultValue={value("gstin")}
+            value={values.gstin}
+            onChange={(event) => setValue("gstin", event.target.value)}
             autoCapitalize="characters"
             maxLength={15}
           />
