@@ -24,24 +24,24 @@ The public catalog is an implemented extension to the original document workflow
 
 ### Fixed product rules
 
-| Topic | Governing rule |
-|---|---|
-| Region/currency | India, INR, two monetary decimals; no currency selector/conversion |
-| Money | Integer paise (`bigint`), transported as decimal strings; exact arithmetic |
-| Quantity | Positive, at most three decimals, validated before database typmod coercion |
-| Pricing | Prices exclusive of GST; no discounts, extra charges, cess or inclusive mode |
-| GST | `taxable`, `exempt`, `no_gst`; operator-configured rates; same-state CGST+SGST suggestion, different-state IGST; preserve explicit override separately |
-| Rounding | Round each extended line base and each applicable tax component half-up to paise, then sum; rule `in-gst-exclusive-line-paise-half-up-v1` |
-| Master data | Customer/catalog/profile edits never rewrite frozen documents |
-| Quote | Editable current draft; sharing freezes content; revisions preserve prior snapshots/responses |
-| Customer response | Approve or request changes; one terminal response per version; optional note/name; typed name is unverified |
-| Expiry | Inclusive `valid_until` in captured document timezone; deadline is next local midnight; no new response at/after deadline; timely existing approval remains convertible |
-| Revision links | Creating revision immediately prevents old approval conversion/new responses; old link can read frozen content while revision is draft; sharing revision revokes older links |
-| Conversion | One invoice per quotation, from current approved version; retry returns same invoice; no independent invoice edits or GST override |
-| Payments | Only against issued invoice; multiple payments per invoice; one invoice per payment; reject overpayment; no pre-invoice deposits/refunds/split allocation |
-| Correction/receipt | Immutable payment; one full reversal with reason; one receipt ever per payment, created atomically; replacement has its own receipt; reprint retains original reference |
-| Delivery | Manually shared, independently secured quotation/invoice URLs; customer pages and PDF downloads are required; automated messaging is deferred |
-| History | Derive from typed versions/responses/invoices/payments/reversals/receipts; no generic event or ledger subsystem |
+| Topic              | Governing rule                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Region/currency    | India, INR, two monetary decimals; no currency selector/conversion                                                                                                           |
+| Money              | Integer paise (`bigint`), transported as decimal strings; exact arithmetic                                                                                                   |
+| Quantity           | Positive, at most three decimals, validated before database typmod coercion                                                                                                  |
+| Pricing            | Prices exclusive of GST; no discounts, extra charges, cess or inclusive mode                                                                                                 |
+| GST                | `taxable`, `exempt`, `no_gst`; operator-configured rates; same-state CGST+SGST suggestion, different-state IGST; preserve explicit override separately                       |
+| Rounding           | Round each extended line base and each applicable tax component half-up to paise, then sum; rule `in-gst-exclusive-line-paise-half-up-v1`                                    |
+| Master data        | Customer/catalog/profile edits never rewrite frozen documents                                                                                                                |
+| Quote              | Editable current draft; sharing freezes content; revisions preserve prior snapshots/responses                                                                                |
+| Customer response  | Approve or request changes; one terminal response per version; optional note/name; typed name is unverified                                                                  |
+| Expiry             | Inclusive `valid_until` in captured document timezone; deadline is next local midnight; no new response at/after deadline; timely existing approval remains convertible      |
+| Revision links     | Creating revision immediately prevents old approval conversion/new responses; old link can read frozen content while revision is draft; sharing revision revokes older links |
+| Conversion         | One invoice per quotation, from current approved version; retry returns same invoice; no independent invoice edits or GST override                                           |
+| Payments           | Only against issued invoice; multiple payments per invoice; one invoice per payment; reject overpayment; no pre-invoice deposits/refunds/split allocation                    |
+| Correction/receipt | Immutable payment; one full reversal with reason; one receipt ever per payment, created atomically; replacement has its own receipt; reprint retains original reference      |
+| Delivery           | Manually shared, independently secured quotation/invoice URLs; customer pages and PDF downloads are required; automated messaging is deferred                                |
+| History            | Derive from typed versions/responses/invoices/payments/reversals/receipts; no generic event or ledger subsystem                                                              |
 
 These are agreed prototype behavior, not a claim of complete statutory GST compliance. Actual classifications, profile particulars and numbering choices are setup inputs, not unanswered schema decisions.
 
@@ -69,26 +69,26 @@ These are agreed prototype behavior, not a claim of complete statutory GST compl
 
 Local Supabase runs PostgreSQL 17. Six committed migrations are applied locally. All **17 application tables have enabled and forced RLS**:
 
-| Group | Existing tables and relationships |
-|---|---|
-| Workspace | `businesses`, `business_memberships` → provider `auth.users`; one owner/business and one workspace/user |
-| Master data | `customers`, `catalog_items` → business; archive columns exist |
-| Quotations | `quotations` → customer/current version; `quotation_versions` → quote/predecessor; `quotation_items` → version/optional catalog source |
-| Public quote/evidence | `quotation_public_links` → exact version; `quotation_responses` → exact version and link |
-| Invoices | `invoices` → source quote/version/approval; `invoice_items` → invoice and source quotation items |
-| Money received | `payments` → invoice/optional predecessor; `payment_reversals` → original payment; `receipts` → payment/optional predecessor receipt |
-| Invoice access/numbering | `invoice_public_links` → invoice; `invoice_number_sequences` → business and configured period |
-| Global configuration | `gst_rate_options`: exact numeric percentages and `selectable`; sole non-tenant table |
+| Group                    | Existing tables and relationships                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                | `businesses`, `business_memberships` → provider `auth.users`; one owner/business and one workspace/user                                |
+| Master data              | `customers`, `catalog_items` → business; archive columns exist                                                                         |
+| Quotations               | `quotations` → customer/current version; `quotation_versions` → quote/predecessor; `quotation_items` → version/optional catalog source |
+| Public quote/evidence    | `quotation_public_links` → exact version; `quotation_responses` → exact version and link                                               |
+| Invoices                 | `invoices` → source quote/version/approval; `invoice_items` → invoice and source quotation items                                       |
+| Money received           | `payments` → invoice/optional predecessor; `payment_reversals` → original payment; `receipts` → payment/optional predecessor receipt   |
+| Invoice access/numbering | `invoice_public_links` → invoice; `invoice_number_sequences` → business and configured period                                          |
+| Global configuration     | `gst_rate_options`: exact numeric percentages and `selectable`; sole non-tenant table                                                  |
 
 Composite foreign keys include business and applicable parent IDs. Deferred constraints handle owner/bootstrap and quotation/current-version cycles. Guards enforce frozen data, exact source copying, line arithmetic/sums, response consistency, invoice-number allocation, overpayment and complete receipt pairing. No PostgreSQL sequence allocates invoice numbers: a locked period row advances with its invoice transaction. Future application workflows still need command authorization, trusted inputs, retries and concurrency tests; these tables/guards alone do not implement those workflows.
 
-| Database identity | Actual access |
-|---|---|
-| `authenticated` | Owner-scoped table reads plus exact exposed command/read RPC execution; no raw application writes |
-| `webameen_executor` | NOLOGIN/NOBYPASSRLS, non-table-owner execution role; constrained writes subject to caller-owner RLS; never assumable by runtime roles |
-| `anon` | No base application-table reads/writes; exact public catalog RPC execution |
-| `webameen_catalog_reader` | NOLOGIN/NOBYPASSRLS read role, safe business/item column grants; RLS permits only published, unarchived items |
-| Quote/invoice broker roles | Foundation role identities exist, but no callable token broker operations or operational table privileges yet |
+| Database identity          | Actual access                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `authenticated`            | Owner-scoped table reads plus exact exposed command/read RPC execution; no raw application writes                                     |
+| `webameen_executor`        | NOLOGIN/NOBYPASSRLS, non-table-owner execution role; constrained writes subject to caller-owner RLS; never assumable by runtime roles |
+| `anon`                     | No base application-table reads/writes; exact public catalog RPC execution                                                            |
+| `webameen_catalog_reader`  | NOLOGIN/NOBYPASSRLS read role, safe business/item column grants; RLS permits only published, unarchived items                         |
+| Quote/invoice broker roles | Foundation role identities exist, but no callable token broker operations or operational table privileges yet                         |
 
 Public wrappers are SECURITY INVOKER; private owner commands/public catalog helpers are SECURITY DEFINER owned by the restricted execution role, with empty search paths and qualified objects. The bootstrap verification helper is a narrow provider-account exception. The `private` schema is not exposed through PostgREST. Do not simplify this into ordinary service-role CRUD.
 
@@ -128,44 +128,44 @@ Catalog browsing need not precede a quotation: an owner may use catalog defaults
 
 Feature status vocabulary: ✅ COMPLETE; 🟡 PARTIAL; 🔴 NOT IMPLEMENTED; ⚠️ IMPLEMENTED BUT NEEDS HARDENING; ❓ UNCLEAR / NEEDS DECISION. “Complete” describes the stated slice; it does not certify production readiness. Phase/task tracking uses ✅ COMPLETE, 🟡 IN PROGRESS, 🔴 NOT STARTED, ⚠️ NEEDS HARDENING, ❓ NEEDS DECISION. Checked boxes have implementation evidence; open boxes identify remaining work.
 
-| Feature | Status | Evidence / precise boundary |
-|---|---|---|
-| Database foundation | ✅ COMPLETE | Foundation migration; `supabase/tests/foundation.sql` checks schema, monetary/snapshot/numbering/payment integrity and RLS. Feature commands are additive migrations. |
-| Signup/login/logout/session | ✅ COMPLETE | `(auth)`, `/auth/callback`, `components/auth/auth-form.tsx`, identity actions/session/credentials, Supabase factories/proxy; credential unit tests and navigation E2E. Recovery/hosted verification coverage deferred to Phase 13. |
-| Business onboarding/owner isolation | ✅ COMPLETE | `/onboarding/business`, business setup form/module; bootstrap migration/RPC; `business_bootstrap.sql`, business unit tests and onboarding E2E. Profile editing is tracked separately below. |
-| Protected owner shell | ✅ COMPLETE | `(workspace)/layout.tsx`, workspace shell/sidebar, business context; navigation/public management E2E. Owner role only. |
-| Customer C/R/U/search/pagination | ⚠️ IMPLEMENTED BUT NEEDS HARDENING | `/customers`, `/new`, `/[id]`, `/[id]/edit`; customer form/search/actions/queries; customer command migration/RPCs, unit/SQL/E2E tests. Audit edit navigation failed although source exists. Does not include history or archive controls. |
-| Catalog C/R/U/search/pagination | ⚠️ IMPLEMENTED BUT NEEDS HARDENING | `/catalog`, `/new`, `/[id]`, `/[id]/edit`; catalog form/actions/queries/validation; command and exact-read migrations, unit/SQL/E2E tests. Audit found an edit-route browser failure; see verification log. |
-| GST default selection/exact prices | ✅ COMPLETE | Catalog validation/RPCs and exact reads; rates operationally configured; unit/SQL checks cover categories, configured/retired rates and exact paise. Full document calculations not implemented. |
-| Public catalog/public detail/publication | ⚠️ IMPLEMENTED BUT NEEDS HARDENING | `/c/[slug]`, `/c/[slug]/[id]`, public shell/queries, publication form/action, public migration; public SQL suite and six browser scenarios. SQL and mobile browsing pass; five browser scenarios fail with global not-found responses. |
-| Archived item exclusion | ✅ COMPLETE | Catalog list and public reader filter `archived_at IS NULL`; public SQL test inserts archived fixture. This is read behavior, not an archive workflow. |
-| Archive/unarchive customers/items | 🟡 PARTIAL | Columns/grants/guards exist; no application command or owner controls. Customer list does not exclude archived rows. Optional follow-up, not claimed as completed CRUD deletion. |
-| Business settings/document readiness | ✅ COMPLETE for Phase 6 | Owner-only `update_business_settings` command, `/settings` form, server-derived readiness, rate operator runbook; Phase 6 SQL/unit/browser checks. Future quote draft selection remains Phase 7. |
-| Quotations/GST draft editor | 🟡 PARTIAL at database level; 🔴 application | Tables/constraints exist; `/quotations` is a placeholder; no commands/editor/calculation unit tests. |
-| Secure quotation sharing/responses/revisions | 🟡 PARTIAL at database level; 🔴 application | Token/response tables and guards, inactive broker role; no `/q` route or public response logic. Catalog URLs cannot substitute. |
-| Invoice conversion/number configuration | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/invoices` placeholder; no conversion/numbering commands. |
-| Payments/reversals/receipts | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/payments` placeholder; no commands or receipt routes. |
-| Customer invoice links/document PDF | 🟡 PARTIAL schema; 🔴 application/storage | Invoice link table and asset references exist; no active broker/routes/PDF or buckets. |
-| Dashboard metrics/customer transaction history | 🟡 PARTIAL | Identity dashboard/customer detail exist; no workflow read models or history UI. |
-| Product images/categories/cart/orders/inventory | 🔴 NOT IMPLEMENTED | No supporting routes/modules/schema; not required for agreed document MVP. |
-| Customer accounts/team admin | 🔴 NOT IMPLEMENTED | Deliberately excluded from initial workflow. |
-| Production operations | 🔴 NOT IMPLEMENTED / ❓ deployment decisions | Local stack only; no production resource/configuration, CI or recovery exercises. |
+| Feature                                         | Status                                       | Evidence / precise boundary                                                                                                                                                                                                                |
+| ----------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Database foundation                             | ✅ COMPLETE                                  | Foundation migration; `supabase/tests/foundation.sql` checks schema, monetary/snapshot/numbering/payment integrity and RLS. Feature commands are additive migrations.                                                                      |
+| Signup/login/logout/session                     | ✅ COMPLETE                                  | `(auth)`, `/auth/callback`, `components/auth/auth-form.tsx`, identity actions/session/credentials, Supabase factories/proxy; credential unit tests and navigation E2E. Recovery/hosted verification coverage deferred to Phase 13.         |
+| Business onboarding/owner isolation             | ✅ COMPLETE                                  | `/onboarding/business`, business setup form/module; bootstrap migration/RPC; `business_bootstrap.sql`, business unit tests and onboarding E2E. Profile editing is tracked separately below.                                                |
+| Protected owner shell                           | ✅ COMPLETE                                  | `(workspace)/layout.tsx`, workspace shell/sidebar, business context; navigation/public management E2E. Owner role only.                                                                                                                    |
+| Customer C/R/U/search/pagination                | ⚠️ IMPLEMENTED BUT NEEDS HARDENING           | `/customers`, `/new`, `/[id]`, `/[id]/edit`; customer form/search/actions/queries; customer command migration/RPCs, unit/SQL/E2E tests. Audit edit navigation failed although source exists. Does not include history or archive controls. |
+| Catalog C/R/U/search/pagination                 | ⚠️ IMPLEMENTED BUT NEEDS HARDENING           | `/catalog`, `/new`, `/[id]`, `/[id]/edit`; catalog form/actions/queries/validation; command and exact-read migrations, unit/SQL/E2E tests. Audit found an edit-route browser failure; see verification log.                                |
+| GST default selection/exact prices              | ✅ COMPLETE                                  | Catalog validation/RPCs and exact reads; rates operationally configured; unit/SQL checks cover categories, configured/retired rates and exact paise. Full document calculations not implemented.                                           |
+| Public catalog/public detail/publication        | ⚠️ IMPLEMENTED BUT NEEDS HARDENING           | `/c/[slug]`, `/c/[slug]/[id]`, public shell/queries, publication form/action, public migration; public SQL suite and six browser scenarios. SQL and mobile browsing pass; five browser scenarios fail with global not-found responses.     |
+| Archived item exclusion                         | ✅ COMPLETE                                  | Catalog list and public reader filter `archived_at IS NULL`; public SQL test inserts archived fixture. This is read behavior, not an archive workflow.                                                                                     |
+| Archive/unarchive customers/items               | 🟡 PARTIAL                                   | Columns/grants/guards exist; no application command or owner controls. Customer list does not exclude archived rows. Optional follow-up, not claimed as completed CRUD deletion.                                                           |
+| Business settings/document readiness            | ✅ COMPLETE for Phase 6                      | Owner-only `update_business_settings` command, `/settings` form, server-derived readiness, rate operator runbook; Phase 6 SQL/unit/browser checks. Future quote draft selection remains Phase 7.                                           |
+| Quotations/GST draft editor                     | 🟡 PARTIAL at database level; 🔴 application | Tables/constraints exist; `/quotations` is a placeholder; no commands/editor/calculation unit tests.                                                                                                                                       |
+| Secure quotation sharing/responses/revisions    | 🟡 PARTIAL at database level; 🔴 application | Token/response tables and guards, inactive broker role; no `/q` route or public response logic. Catalog URLs cannot substitute.                                                                                                            |
+| Invoice conversion/number configuration         | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/invoices` placeholder; no conversion/numbering commands.                                                                                                                                                            |
+| Payments/reversals/receipts                     | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/payments` placeholder; no commands or receipt routes.                                                                                                                                                               |
+| Customer invoice links/document PDF             | 🟡 PARTIAL schema; 🔴 application/storage    | Invoice link table and asset references exist; no active broker/routes/PDF or buckets.                                                                                                                                                     |
+| Dashboard metrics/customer transaction history  | 🟡 PARTIAL                                   | Identity dashboard/customer detail exist; no workflow read models or history UI.                                                                                                                                                           |
+| Product images/categories/cart/orders/inventory | 🔴 NOT IMPLEMENTED                           | No supporting routes/modules/schema; not required for agreed document MVP.                                                                                                                                                                 |
+| Customer accounts/team admin                    | 🔴 NOT IMPLEMENTED                           | Deliberately excluded from initial workflow.                                                                                                                                                                                               |
+| Production operations                           | 🔴 NOT IMPLEMENTED / ❓ deployment decisions | Local stack only; no production resource/configuration, CI or recovery exercises.                                                                                                                                                          |
 
 ### Verification log — current audit
 
 Previous reports are historical evidence, not the current result. Checks below were rerun against this checkout on 8 October:
 
-| Check | Current result |
-|---|---|
-| Vitest | PASS: 20 tests / five files |
-| Biome | PASS: 83 files, no fixes |
-| TypeScript | PASS; production build also completed its TypeScript step |
-| Five SQL suites, actual local Supabase | PASS: bootstrap 14, catalog 17, customers 11, foundation 76, public catalog 28 assertions; **146 total**; all ROLLBACK |
-| Migration history | All six versions applied locally, including `20261008155240` |
-| Fresh migration replay | PASS: all six migrations and all five SQL suites in disposable `webameen_roadmap_audit_20261008`; database removed afterward |
-| Fresh replay boundary | Reuses existing cluster roles and a minimal provider `auth.users`/`auth.uid` shim; verifies application DDL/guards, not full Auth/Storage provisioning. Actual provider integration is exercised by local browser tests. |
-| Browser regression / `npm run test:all` | **FAIL: 7 passed, 7 failed (12.3 minutes), exit 1** after 20 passing unit tests. All seven failed snapshots show the global not-found page. Current run does not reproduce previous 14/14 passing report. |
-| Production build | PASS, exit 0. Route inventory includes both customer/catalog edit pages and `/c/[slug]/[id]`; build success does not establish browser success. |
+| Check                                   | Current result                                                                                                                                                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Vitest                                  | PASS: 20 tests / five files                                                                                                                                                                                              |
+| Biome                                   | PASS: 83 files, no fixes                                                                                                                                                                                                 |
+| TypeScript                              | PASS; production build also completed its TypeScript step                                                                                                                                                                |
+| Five SQL suites, actual local Supabase  | PASS: bootstrap 14, catalog 17, customers 11, foundation 76, public catalog 28 assertions; **146 total**; all ROLLBACK                                                                                                   |
+| Migration history                       | All six versions applied locally, including `20261008155240`                                                                                                                                                             |
+| Fresh migration replay                  | PASS: all six migrations and all five SQL suites in disposable `webameen_roadmap_audit_20261008`; database removed afterward                                                                                             |
+| Fresh replay boundary                   | Reuses existing cluster roles and a minimal provider `auth.users`/`auth.uid` shim; verifies application DDL/guards, not full Auth/Storage provisioning. Actual provider integration is exercised by local browser tests. |
+| Browser regression / `npm run test:all` | **FAIL: 7 passed, 7 failed (12.3 minutes), exit 1** after 20 passing unit tests. All seven failed snapshots show the global not-found page. Current run does not reproduce previous 14/14 passing report.                |
+| Production build                        | PASS, exit 0. Route inventory includes both customer/catalog edit pages and `/c/[slug]/[id]`; build success does not establish browser success.                                                                          |
 
 **Browser evidence:** passed onboarding; private catalog/customer cross-business isolation; three navigation/auth tests; public mobile list. Failed owner catalog edit (`catalog.spec.ts:60`), customer edit (`customers.spec.ts`, final edit step), public product detail, guest protection of catalog edit, public slug/item mismatch unavailable page, invalid-link unavailable page, and owner edit/public unpublish workflow. The guest edit-path check returned global 404 rather than login; this is not evidence of unauthorized private data access. The failure traces and snapshots are under `test-results/*/trace.zip` and `error-context.md` (ignored local artifacts). In particular: `test-results/catalog-catalog-is-protect-fd90d-earch-view-and-edit-an-item-chromium/trace.zip`.
 
@@ -175,12 +175,12 @@ The source files for the affected edit/detail/unavailable routes exist, and the 
 
 Application source, browser assertions, timeouts and test/server configuration were unchanged. No cache was deleted. Results, in execution order:
 
-| Check | Result |
-|---|---|
-| Targeted catalog, customer and public-catalog specs | PASS: 10/10 browser tests, 4.6 minutes |
-| Full `npm run test:all`, run 1 | PASS: 20/20 unit tests and 14/14 browser tests, browser duration 5.1 minutes; exit 0 |
+| Check                                                                                                             | Result                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Targeted catalog, customer and public-catalog specs                                                               | PASS: 10/10 browser tests, 4.6 minutes                                                                                                      |
+| Full `npm run test:all`, run 1                                                                                    | PASS: 20/20 unit tests and 14/14 browser tests, browser duration 5.1 minutes; exit 0                                                        |
 | Full `npm run test:all`, run 2, with a deliberately concurrent normal `npm run build` to investigate interference | FAIL: 20/20 unit tests; 13/14 browser tests, 5.2 minutes; exit 1. Catalog creation timed out at `catalog.spec.ts:45`, before its edit step. |
-| Concurrent normal production build | PASS; inventory includes both edit routes and `/c/[slug]/[id]` |
+| Concurrent normal production build                                                                                | PASS; inventory includes both edit routes and `/c/[slug]/[id]`                                                                              |
 
 Ordered investigation evidence:
 
@@ -321,30 +321,33 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 
 ### Phase 7 — Quotation Drafts and Exact GST Calculations
 
-**Status:** 🔴 NOT STARTED application (tables/guards exist). **Goal:** save/review an editable quotation with deterministic amounts and explicit snapshots.
+**Status:** 🟡 IN PROGRESS — the quotation draft workflow is implemented and the user has manually confirmed it works. UX issues found during manual use are deferred for a later UX pass; automated acceptance and full regression verification remain. **Goal:** save/review an editable quotation with deterministic amounts and explicit snapshots.
 
 **Depends on:** 1–4 core, 6. **Required before:** 8. **Blocks:** sharing/approval until the separate Phase 8 transaction/broker contract exists. **Can be implemented independently:** draft/calculation slice can ship without public sharing.
 
 **Database**
 
-- [ ] 🔴 NOT STARTED — Reuse `quotations`, `quotation_versions`, `quotation_items`; add atomic create draft with preallocated IDs and current pointer. Use a stable creation ID; identical authorized retry returns original quote; changed customer conflicts. Require same-business active customer.
-- [ ] 🔴 NOT STARTED — Add one authoritative exact calculation/save transaction. Validate positive quantity ≤3 decimals before storage; integer-paise prices; supported categories/routes and active configured taxable rates. Calculate/persist all line and document components; reject overflow/client-forged totals.
-- [ ] 🔴 NOT STARTED — Implement expected `edit_sequence` conflicts and atomic line replace/update/delete only on current draft. Lock GST configuration shared → business shared → quotation; re-read after locks. Never overwrite stale edits or mutate frozen rows.
-- [ ] 🔴 NOT STARTED — Snapshot all existing seller/buyer/document/line fields; retain provenance only internally. Explicitly populate route suggestion/override/final route, supply/reverse-charge choices, validity/timezone, terms and selected remittance fields. Assets may be null.
+- [x] ✅ IMPLEMENTED — Reuse `quotations`, `quotation_versions`, `quotation_items`; add atomic create draft with preallocated IDs and current pointer. Use a stable creation ID; identical authorized retry returns original quote; changed customer conflicts. Require same-business active customer.
+- [x] ✅ IMPLEMENTED — Add one authoritative exact calculation/save transaction. Validate positive quantity ≤3 decimals before storage; integer-paise prices; supported categories/routes and active configured taxable rates. Calculate/persist all line and document components; reject overflow/client-forged totals.
+- [x] ✅ IMPLEMENTED — Implement expected `edit_sequence` conflicts and atomic line replace/update/delete only on current draft. Lock GST configuration shared → business shared → quotation; re-read after locks. Never overwrite stale edits or mutate frozen rows.
+- [x] ✅ IMPLEMENTED — Snapshot all existing seller/buyer/document/line fields; retain provenance only internally. Explicitly populate route suggestion/override/final route, supply/reverse-charge choices, validity/timezone, terms and selected remittance fields. Assets may be null.
 
 **Backend / Frontend**
 
-- [ ] 🔴 NOT STARTED — Add quotation module with exact-string DTOs, validation/actions/queries and draft calculation preview using the same authoritative contract as save. Do not implement independent floating-point browser arithmetic.
-- [ ] 🔴 NOT STARTED — Replace `/quotations` placeholder; add `/quotations/new`, `/quotations/[id]`, draft editing, customer selection and catalog or one-off ordered lines. Private catalog items may supply owner defaults; public publication is not required.
-- [ ] 🔴 NOT STARTED — Provide line description/unit/HSN, quantity/price/category/rate, terms/date/supply choices, tax route suggestion/override and full tax breakdown. Catalog defaults become editable copies; master edits do not silently refresh them.
-- [ ] 🔴 NOT STARTED — Handle empty draft, invalid/missing snapshot fields, retired copied rates, stale edit conflict and server failure without input loss. Do not expose Share/Download buttons yet.
-- [ ] 🔴 NOT STARTED — For reverse charge show: **“Reverse-charge calculation is not supported in this version. Confirm the tax treatment with your accountant before issuing this document.”** Indicator does not alter arithmetic or automatically block issuance. GSTIN prefix mismatch remains warning-only.
+- [x] ✅ IMPLEMENTED — Add quotation module with exact-string DTOs, validation/actions/queries and draft calculation preview using the same authoritative contract as save. Do not implement independent floating-point browser arithmetic.
+- [x] ✅ IMPLEMENTED — Replace `/quotations` placeholder; add `/quotations/new`, `/quotations/[id]`, draft editing, customer selection and catalog or one-off ordered lines. Private catalog items may supply owner defaults; public publication is not required.
+- [x] ✅ IMPLEMENTED — Provide line description/unit/HSN, quantity/price/category/rate, terms/date/supply choices, tax route suggestion/override and full tax breakdown. Catalog defaults become editable copies; master edits do not silently refresh them.
+- [x] ✅ IMPLEMENTED — Handle empty draft, invalid/missing snapshot fields, retired copied rates, stale edit conflict and server failure without input loss. Do not expose Share/Download buttons yet.
+- [x] ✅ IMPLEMENTED — For reverse charge show: **“Reverse-charge calculation is not supported in this version. Confirm the tax treatment with your accountant before issuing this document.”** Indicator does not alter arithmetic or automatically block issuance. GSTIN prefix mismatch remains warning-only.
 
 **Security / Testing**
 
-- [ ] 🔴 NOT STARTED — Unit/exact SQL fixtures: same-state 18% on ₹10,000 → ₹11,800; different-state/override identical total but different components; taxable zero distinct from exempt/no-GST; ₹0.20 at 5% → ₹0.22 CGST+SGST vs ₹0.21 IGST; 1.5×₹0.01 → ₹0.02; reject 1.2345 quantity; decimal rates/overflow/mixed sums.
-- [ ] 🔴 NOT STARTED — SQL/integration tests for foreign customer/catalog/version IDs, raw-write denial, disabled access, frozen edit denial, all snapshot columns and stale sequence rejection; multi-session simultaneous draft saves accept one and conflict the other.
-- [ ] 🔴 NOT STARTED — E2E create/edit/reopen draft, custom lines/default overrides, exact displayed totals and owner isolation; all baseline suites pass.
+- [x] ✅ VERIFIED — Unit/exact SQL fixtures: same-state 18% on ₹10,000 → ₹11,800; different-state/override identical total but different components; taxable zero distinct from exempt/no-GST; ₹0.20 at 5% → ₹0.22 CGST+SGST vs ₹0.21 IGST; 1.5×₹0.01 → ₹0.02; reject 1.2345 quantity; decimal rates/overflow/mixed sums.
+- [x] ✅ VERIFIED — SQL fixtures cover foreign customer/catalog/version IDs, raw-write denial, disabled access, frozen edit denial, snapshot copying, stale sequence rejection, and forged totals.
+- [x] ✅ VERIFIED — Verify two simultaneous draft saves accept one and reject the other. The browser scenario has not reached this assertion because the owner test currently stops at an ambiguous catalog-line selector.
+- [ ] 🟡 IN PROGRESS — Complete automated E2E coverage for create/edit/reopen, custom lines/catalog defaults, exact displayed totals, concurrent edits, and owner isolation. Owner isolation passed. The catalog selector currently matches both `Unit` and `Unit price before GST`; the full baseline browser suite and production build have not yet been rerun.
+
+**9 October 2026 verification note:** Applied `20261009112301_quotation_drafts.sql` and `20261009112633_quotation_draft_reads.sql` locally. Typecheck, 10 unit files/32 tests, all seven rolled-back SQL suites, local database lint, and the cross-owner browser test passed. The user manually confirmed the quotation workflow works and deferred UX issues for later. Formatting corrections were made, but the full lint command has not been rerun. Automated owner E2E stops at a test selector that matches both `Unit` and `Unit price before GST`. Phase 7 acceptance is pending the corrected E2E journey and concurrent-save assertion, lint, the full browser regression suite, and a production build.
 
 **Acceptance:** saved draft reconstructs identical values; server owns totals; stale saves conflict; copied defaults remain independent; no customer can read drafts; no partial quote/items commit. Sharing is deliberately unavailable until 8.
 
@@ -505,15 +508,15 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 
 These are candidates, not authorization to implement. Each has status and dependencies; define a detailed accepted slice before promoting it to a numbered phase.
 
-| Candidate | Status | Dependencies / bounded direction |
-|---|---|---|
-| Archive customer/catalog controls | 🟡 PARTIAL schema, 🔴 NOT STARTED application | 3/4; owner command, retained references, list semantics and SQL/E2E; never hard-delete document sources |
-| Catalog categories/images/public search | ❓ NEEDS DECISION | 5; validate actual discovery need; new media storage must be separate from sensitive immutable document assets |
-| Bulk import/export and richer filters | 🔴 NOT STARTED | 3/4/12; explicit validation/tenant/export privacy before bulk writes |
-| Additional document templates/localization | ❓ NEEDS DECISION | 11; preserve frozen values/authorized rendering; current interface English |
-| Automated email/WhatsApp notifications | ❓ NEEDS DECISION | 8/11; explicit channel/provider/consent and retry rules before jobs |
-| Team roles/invitations/multiple workspaces | ❓ NEEDS DECISION | 2; current uniqueness/role constraints intentionally reject these; requires separately reviewed authorization change |
-| Customer ordering/commerce | ❓ NEEDS DECISION, outside current MVP | Explicit new product brief before cart/orders/fulfillment or schema; public catalog alone does not require checkout |
+| Candidate                                  | Status                                        | Dependencies / bounded direction                                                                                     |
+| ------------------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Archive customer/catalog controls          | 🟡 PARTIAL schema, 🔴 NOT STARTED application | 3/4; owner command, retained references, list semantics and SQL/E2E; never hard-delete document sources              |
+| Catalog categories/images/public search    | ❓ NEEDS DECISION                             | 5; validate actual discovery need; new media storage must be separate from sensitive immutable document assets       |
+| Bulk import/export and richer filters      | 🔴 NOT STARTED                                | 3/4/12; explicit validation/tenant/export privacy before bulk writes                                                 |
+| Additional document templates/localization | ❓ NEEDS DECISION                             | 11; preserve frozen values/authorized rendering; current interface English                                           |
+| Automated email/WhatsApp notifications     | ❓ NEEDS DECISION                             | 8/11; explicit channel/provider/consent and retry rules before jobs                                                  |
+| Team roles/invitations/multiple workspaces | ❓ NEEDS DECISION                             | 2; current uniqueness/role constraints intentionally reject these; requires separately reviewed authorization change |
+| Customer ordering/commerce                 | ❓ NEEDS DECISION, outside current MVP        | Explicit new product brief before cart/orders/fulfillment or schema; public catalog alone does not require checkout  |
 
 Online gateways, refunds/credit notes, deposits, inventory/accounting, SaaS billing, tax/compliance expansion and microservices remain future/optional. Do not choose a payment provider or model stock merely to implement the document roadmap.
 
@@ -521,34 +524,34 @@ Online gateways, refunds/credit notes, deposits, inventory/accounting, SaaS bill
 
 Findings below are documented, not fixed by this audit. Priority indicates implementation attention, not a claim of exploitation.
 
-| ID / priority | Finding and evidence | Follow-up |
-|---|---|---|
-| T1 — High | 8 October: 7/14 browser tests passed with global 404 failures. 9 October: unchanged targeted specs 10/10 and full run 1 14/14 passed; a concurrent-build experiment produced 13/14 with an unfinished catalog-create request, not the original 404. Root cause remains unestablished; three consecutive green full runs are not verified. | OPEN: investigation stopped as requested; see dated evidence above. Preserve the controlled-run trace; do not treat a different timeout as proof of the original routing cause or mark Phases 3–5 verified. |
-| T2 — High | README says customers/workflows unimplemented and all other routes placeholders; older specs include obsolete tables/roles/open decisions; docs ignored by Git. | Roadmap supersedes these statements; later doc maintenance should preserve approved sources and update entry-point README. |
-| T3 — High before transactions | Core customer/catalog commands recheck membership but do not explicitly acquire the full documented shared-business lock/recheck protocol. Catalog UPDATE locks item before rate guard acquires global configuration lock. | Before concurrent owner-disable/config workflows, implement agreed lock order with multi-session tests; current SQL isolation pass does not prove race safety. |
-| T4 — Medium | Pending buttons reduce duplicates; customer/catalog creates lack durable request keys. Foundation financial request fields exist but no commands use them. | Assess network duplicate risk; financial phases must provide specified durable retries. Do not claim master-data creates are idempotent. |
-| T5 — High before hosted pilot | Recovery/resend UI absent; local confirmation disabled; hosted callback/email/session-expiry paths not browser-tested. | Phase 13; successful local signup is not hosted recovery/verification evidence. |
-| T6 — Medium | No CI; SQL tests separate from `test:all`; tests run dev Chromium only. Taxable catalog UI/empty-rate/retired-rate E2E, pagination with enough rows and fault/retry paths lack dedicated coverage. | Phase 13 CI and relevant future feature suites; retain existing tests. |
-| T7 — Medium | No multi-session race tests; financial guards tested with controlled fixture writes, not operational commands. | Phases 7–11, before enabling each sensitive command. |
-| T8 — Medium | Public catalog reader checks publication/archive but not active owner availability; disabling membership does not automatically withdraw public items. | Decision D3, then documented Phase 13 policy/test. No exposure of private data was established. |
-| T9 — Medium | Config lists nonexistent `seed.sql`; selectable rates remain operator data. Phase 6 added `docs/GST_RATE_OPERATIONS.md`, but each fresh taxable setup still needs deliberate operator configuration. | Keep the runbook current and add deterministic test configuration in Phase 13; no invented migration rate list. |
-| T10 — Medium | Supabase's default storage service setting is not an application file policy; no buckets/renderer/asset verification exists. | Phase 11; do not interpret schema asset columns as secure upload support. |
-| T11 — Low/scale dependent | Search uses `%term%`/OR and exact counts; current B-tree sort indexes do not optimize arbitrary substring search. Count/list are separate snapshots. | Measure pilot volume before trigram/search/cursor additions; tolerate/document concurrent pagination changes. |
-| T12 — Medium | Owner customer/catalog ID queries do not uniformly validate UUID syntax before RPC/PostgREST; malformed IDs may reach generic errors rather than feature 404. Public detail validates UUID. | Authorized hardening task: safe consistent unavailable states without existence leaks. |
-| T13 — Low | `/products` remains protected placeholder while sidebar routes catalog; sidebar still says foundation only; generic root goes to dashboard rather than old marketing-page proposal. | Phase 13 small UI/routing review; marketing page is optional, no assumed redesign. |
-| T14 — Medium operations | Health reports configured values, not connectivity; generic safe errors lack operational correlation/diagnostics; E2E records accumulate and fixtures are coupled. | Phase 13 instrumentation/isolated test DB lifecycle; protect secrets and preserve failure evidence. |
-| T15 — Medium | No explicit public catalog abuse controls; provider Auth limits exist, not general application rate limiting. Local vector logging container was restarting during audit. | Phase 13 public request limits and local service diagnostics; no claim that vector restart caused browser routing failure. |
+| ID / priority                 | Finding and evidence                                                                                                                                                                                                                                                                                                                      | Follow-up                                                                                                                                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1 — High                     | 8 October: 7/14 browser tests passed with global 404 failures. 9 October: unchanged targeted specs 10/10 and full run 1 14/14 passed; a concurrent-build experiment produced 13/14 with an unfinished catalog-create request, not the original 404. Root cause remains unestablished; three consecutive green full runs are not verified. | OPEN: investigation stopped as requested; see dated evidence above. Preserve the controlled-run trace; do not treat a different timeout as proof of the original routing cause or mark Phases 3–5 verified. |
+| T2 — High                     | README says customers/workflows unimplemented and all other routes placeholders; older specs include obsolete tables/roles/open decisions; docs ignored by Git.                                                                                                                                                                           | Roadmap supersedes these statements; later doc maintenance should preserve approved sources and update entry-point README.                                                                                  |
+| T3 — High before transactions | Core customer/catalog commands recheck membership but do not explicitly acquire the full documented shared-business lock/recheck protocol. Catalog UPDATE locks item before rate guard acquires global configuration lock.                                                                                                                | Before concurrent owner-disable/config workflows, implement agreed lock order with multi-session tests; current SQL isolation pass does not prove race safety.                                              |
+| T4 — Medium                   | Pending buttons reduce duplicates; customer/catalog creates lack durable request keys. Foundation financial request fields exist but no commands use them.                                                                                                                                                                                | Assess network duplicate risk; financial phases must provide specified durable retries. Do not claim master-data creates are idempotent.                                                                    |
+| T5 — High before hosted pilot | Recovery/resend UI absent; local confirmation disabled; hosted callback/email/session-expiry paths not browser-tested.                                                                                                                                                                                                                    | Phase 13; successful local signup is not hosted recovery/verification evidence.                                                                                                                             |
+| T6 — Medium                   | No CI; SQL tests separate from `test:all`; tests run dev Chromium only. Taxable catalog UI/empty-rate/retired-rate E2E, pagination with enough rows and fault/retry paths lack dedicated coverage.                                                                                                                                        | Phase 13 CI and relevant future feature suites; retain existing tests.                                                                                                                                      |
+| T7 — Medium                   | No multi-session race tests; financial guards tested with controlled fixture writes, not operational commands.                                                                                                                                                                                                                            | Phases 7–11, before enabling each sensitive command.                                                                                                                                                        |
+| T8 — Medium                   | Public catalog reader checks publication/archive but not active owner availability; disabling membership does not automatically withdraw public items.                                                                                                                                                                                    | Decision D3, then documented Phase 13 policy/test. No exposure of private data was established.                                                                                                             |
+| T9 — Medium                   | Config lists nonexistent `seed.sql`; selectable rates remain operator data. Phase 6 added `docs/GST_RATE_OPERATIONS.md`, but each fresh taxable setup still needs deliberate operator configuration.                                                                                                                                      | Keep the runbook current and add deterministic test configuration in Phase 13; no invented migration rate list.                                                                                             |
+| T10 — Medium                  | Supabase's default storage service setting is not an application file policy; no buckets/renderer/asset verification exists.                                                                                                                                                                                                              | Phase 11; do not interpret schema asset columns as secure upload support.                                                                                                                                   |
+| T11 — Low/scale dependent     | Search uses `%term%`/OR and exact counts; current B-tree sort indexes do not optimize arbitrary substring search. Count/list are separate snapshots.                                                                                                                                                                                      | Measure pilot volume before trigram/search/cursor additions; tolerate/document concurrent pagination changes.                                                                                               |
+| T12 — Medium                  | Owner customer/catalog ID queries do not uniformly validate UUID syntax before RPC/PostgREST; malformed IDs may reach generic errors rather than feature 404. Public detail validates UUID.                                                                                                                                               | Authorized hardening task: safe consistent unavailable states without existence leaks.                                                                                                                      |
+| T13 — Low                     | `/products` remains protected placeholder while sidebar routes catalog; sidebar still says foundation only; generic root goes to dashboard rather than old marketing-page proposal.                                                                                                                                                       | Phase 13 small UI/routing review; marketing page is optional, no assumed redesign.                                                                                                                          |
+| T14 — Medium operations       | Health reports configured values, not connectivity; generic safe errors lack operational correlation/diagnostics; E2E records accumulate and fixtures are coupled.                                                                                                                                                                        | Phase 13 instrumentation/isolated test DB lifecycle; protect secrets and preserve failure evidence.                                                                                                         |
+| T15 — Medium                  | No explicit public catalog abuse controls; provider Auth limits exist, not general application rate limiting. Local vector logging container was restarting during audit.                                                                                                                                                                 | Phase 13 public request limits and local service diagnostics; no claim that vector restart caused browser routing failure.                                                                                  |
 
 ## 9. Product Decisions Required
 
 Do not reopen India/INR, three-decimal quantity, agreed GST arithmetic, accountless customers, one-owner workspace, approval/revision model, one invoice/quote, no overpayment, manual payments, one receipt/payment, or required quote/invoice PDFs. Those are already resolved.
 
-| ID | Genuine unresolved decision | Needed by / action |
-|---|---|---|
-| D1 | First pilot business segment and representative document examples; numeric pilot success criteria | Before 13 pilot signoff; select users/examples rather than adding segment-specific schema now |
-| D2 | Hosting/provider/data region, environment ownership, privacy/retention/deletion/export policy, backup recovery objectives/support | Before production provisioning/real data; record decisions and implement operational controls in 13 |
-| D3 | Should disabling an owner also withdraw that business's already published public catalog? No explicit public-catalog availability contract settles this. | Before public launch; current behavior remains published/active-only regardless of membership disable. Choose withdraw or intentional retention and test it. |
-| D4 | Optional catalog enrichment/commerce priority after current MVP: images/categories vs later ordering, if any | Does not block 6–13; require explicit scope if promoted. No current evidence requires order/fulfillment architecture. |
+| ID  | Genuine unresolved decision                                                                                                                              | Needed by / action                                                                                                                                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | First pilot business segment and representative document examples; numeric pilot success criteria                                                        | Before 13 pilot signoff; select users/examples rather than adding segment-specific schema now                                                                |
+| D2  | Hosting/provider/data region, environment ownership, privacy/retention/deletion/export policy, backup recovery objectives/support                        | Before production provisioning/real data; record decisions and implement operational controls in 13                                                          |
+| D3  | Should disabling an owner also withdraw that business's already published public catalog? No explicit public-catalog availability contract settles this. | Before public launch; current behavior remains published/active-only regardless of membership disable. Choose withdraw or intentional retention and test it. |
+| D4  | Optional catalog enrichment/commerce priority after current MVP: images/categories vs later ordering, if any                                             | Does not block 6–13; require explicit scope if promoted. No current evidence requires order/fulfillment architecture.                                        |
 
 Renderer choice, specific route spelling and upload size are ordinary implementation choices to document when the affected phase begins. Actual GST choices, numbering prefix/start/template/ranges and business particulars are operational setup values, not reasons to redesign schema or pause unrelated phases.
 

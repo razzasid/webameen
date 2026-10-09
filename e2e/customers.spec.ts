@@ -67,11 +67,15 @@ test("customers are session protected and an authenticated owner can create, fin
   await page.getByRole("link", { name: /Northwind Parts/ }).click();
   await expect(page).toHaveURL(customerUrl);
   await page.getByRole("link", { name: "Edit customer" }).click();
+  await expect(page.getByRole("heading", { name: "Edit customer" })).toBeVisible({
+    timeout: 20_000,
+  });
   await page.getByLabel("Customer name").fill("Northwind Parts Updated");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Northwind Parts Updated" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(customerUrl, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Northwind Parts Updated" })).toBeVisible({
+    timeout: 20_000,
+  });
 });
 
 test("changing a customer URL ID cannot expose another business record", async ({
@@ -80,6 +84,9 @@ test("changing a customer URL ID cannot expose another business record", async (
   const pageA = await browser.newPage();
   await createWorkspace(pageA, "customer-a");
   await pageA.goto("/customers/new");
+  await expect(pageA.getByRole("heading", { name: "Add customer" })).toBeVisible({
+    timeout: 20_000,
+  });
   await pageA.getByLabel("Customer name").fill("Private A Customer");
   await pageA.getByLabel("State or territory").selectOption("29");
   await pageA.getByRole("button", { name: "Create customer" }).click();

@@ -57,10 +57,14 @@ test("catalog is protected and an owner can create, search, view, and edit an it
   await page.getByRole("link", { name: /Monthly bookkeeping/ }).click();
   await expect(page).toHaveURL(itemUrl);
   await page.getByRole("link", { name: "Edit item" }).click();
+  await expect(page.getByRole("heading", { name: "Edit catalog item" })).toBeVisible({
+    timeout: 20_000,
+  });
   await page.getByLabel("Name").fill("Monthly bookkeeping updated");
   await page.getByLabel("Default unit price (₹)").fill("2000.01");
   await page.getByLabel("HSN / SAC").fill("998222");
   await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(itemUrl, { timeout: 20_000 });
   await expect(
     page.getByRole("heading", { name: "Monthly bookkeeping updated" }),
   ).toBeVisible();

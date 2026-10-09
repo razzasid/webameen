@@ -19,10 +19,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    // Next.js recommends production mode for E2E so tests exercise the same
+    // complete route manifest and server-action behavior as a deployment.
+    command: `npm run build && npm run start -- --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,
     env: { NEXT_DIST_DIR: ".next-playwright" },
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
   },
 });
