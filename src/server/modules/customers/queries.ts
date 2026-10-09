@@ -3,6 +3,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessContext } from "@/server/modules/business/context";
+import { isUuid } from "@/server/shared/uuid";
 
 export type Customer = {
   id: string;
@@ -66,6 +67,7 @@ export async function listCustomers(search = "", requestedPage = 1) {
 }
 
 export async function getCustomer(id: string): Promise<Customer> {
+  if (!isUuid(id)) notFound();
   const context = await getBusinessContext();
   if (context.status !== "ready") notFound();
   const supabase = await createSupabaseServerClient();

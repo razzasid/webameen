@@ -3,6 +3,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessContext } from "@/server/modules/business/context";
+import { isUuid } from "@/server/shared/uuid";
 
 export type CatalogItem = {
   id: string;
@@ -69,6 +70,7 @@ export async function listCatalogItems(search = "", requestedPage = 1) {
 export async function getCatalogItem(
   id: string,
 ): Promise<CatalogItem & { is_published: boolean }> {
+  if (!isUuid(id)) notFound();
   const context = await getBusinessContext();
   if (context.status !== "ready") notFound();
   const supabase = await createSupabaseServerClient();

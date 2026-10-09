@@ -1,6 +1,6 @@
 # Webameen
 
-Webameen is a modular-monolith web application foundation for a small-business documentation workspace. It includes Supabase email/password authentication, first-business onboarding and a protected application shell. Customer, quotation, invoice, payment and approval workflows remain unimplemented.
+Webameen is a modular-monolith workspace for small businesses. Owners use Supabase authentication to manage a business, its customers and product/service catalog. Each business can publish a catalog that customers can browse without an account. Quotation, invoice, payment and receipt workflows remain planned work; check the [project roadmap](docs/PROJECT_ROADMAP.md) for verified status and implementation order. The [database specification](docs/16-prototype-database-spec.md) describes the implemented schema and approved document contracts.
 
 ## Requirements
 
@@ -10,14 +10,14 @@ Webameen is a modular-monolith web application foundation for a small-business d
 
 ## Local setup
 
-1. Install dependencies with **npm install**.
+1. Install dependencies with **npm ci**.
 2. Copy **.env.example** to **.env.local**.
 3. Start local Supabase with **npm run db:start**.
 4. Run **npm run db:status** and copy the local API URL and publishable key into **.env.local**.
 5. Start the web app with **npm run dev**.
 6. Open http://127.0.0.1:3000 and create an account, then set up your business.
 
-The root page redirects to the protected dashboard. Login and sign-up use Supabase Auth. A signed-in user without a business is sent to `/onboarding/business`. Setup creates one business and its owner membership in one database transaction; the dashboard then shows its name and the authenticated email. The other sidebar routes remain placeholders and are also protected. Local Supabase email confirmation is disabled for convenient development; a hosted project should require email confirmation and allow `APP_URL/auth/callback` as a redirect URL.
+The root page redirects to the protected dashboard. Login and sign-up use Supabase Auth. A signed-in user without a business is sent to `/onboarding/business`. Setup creates one business and its owner membership in one database transaction. Owners can create, search, view and edit customers and catalog items. Published items appear on the business's public catalog page, which guests can open without logging in. Local Supabase email confirmation is disabled for convenient development; hosted deployments should configure confirmation and allow `APP_URL/auth/callback` as a redirect URL.
 
 ## Useful commands
 
@@ -36,7 +36,7 @@ The root page redirects to the protected dashboard. Login and sign-up use Supaba
 | npm run db:stop | Stop local Supabase services |
 | npm run db:status | Show local Supabase service status |
 
-Local Supabase services use Docker on Windows. No production Supabase project is configured. The approved database foundation migration is in `supabase/migrations`; application business workflows are not implemented.
+Local Supabase services use Docker on Windows. No production Supabase project is configured. Schema changes are tracked in `supabase/migrations`; quotation and financial workflows are planned work and are not yet available in the application.
 
 ## Environment
 
@@ -57,8 +57,9 @@ Set the URL and publishable key together. APP_URL is the application origin used
 - **src/server/modules/identity** contains auth actions, input validation and verified user lookup.
 - **src/server/modules/business** contains onboarding validation, state choices, the creation action and owner-scoped business lookup.
 - **src/server** contains server-only application modules and error types.
-- **e2e** contains Playwright navigation tests.
-- **supabase/migrations** contains the approved database foundation and the narrow business bootstrap command. `supabase/tests/foundation.sql` verifies the original schema/RLS; `supabase/tests/business_bootstrap.sql` verifies onboarding and isolation.
+- **e2e** contains Playwright browser tests; `src/**/*.test.ts` contains unit tests.
+- **supabase/migrations** contains schema and database commands; **supabase/tests** contains SQL security and behavior checks.
+- **docs/PROJECT_ROADMAP.md** tracks current and future implementation status.
 - **biome.json** configures linting and formatting.
 
 ## Architecture guardrails
@@ -67,7 +68,8 @@ Set the URL and publishable key together. APP_URL is the application origin used
 - Keep business rules in server-side application modules.
 - Use server actions for first-party private UI operations and narrow route handlers only where needed.
 - Keep database access behind server modules and enforce business membership and RLS.
-- Do not add production database resources, financial workflows, calculations, team roles, or integrations as part of these foundation milestones.
+- Do not expose owner/customer private data through public catalog reads.
+- Do not treat local GST-rate fixtures as production configuration or legal advice.
 
 ## Business setup verification
 
@@ -82,4 +84,4 @@ npm run typecheck
 npm run lint
 ```
 
-Both SQL test scripts roll back their fixtures. Business creation uses the signed-in user's JWT through a fixed Supabase RPC, an internal executor subject to RLS, and an unexposed helper that reads only the current provider account's email-confirmation field. No service-role key is needed.
+The SQL suites roll back their fixtures. Business creation uses the signed-in user's JWT through a fixed Supabase RPC, an internal executor subject to RLS, and an unexposed helper that reads only the current provider account's email-confirmation field. No service-role key is needed.

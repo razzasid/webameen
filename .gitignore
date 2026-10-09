@@ -8,7 +8,9 @@ coverage/
 debug.log
 playwright-report/
 test-results/
-docs
+docs/*
+!docs/PROJECT_ROADMAP.md
+!docs/16-prototype-database-spec.md
 
 # Local environment values
 .env
