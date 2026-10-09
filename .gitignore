@@ -11,6 +11,7 @@ test-results/
 docs/*
 !docs/PROJECT_ROADMAP.md
 !docs/16-prototype-database-spec.md
+!docs/GST_RATE_OPERATIONS.md
 
 # Local environment values
 .env

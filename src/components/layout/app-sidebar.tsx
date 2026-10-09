@@ -17,7 +17,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-full flex-col border-b border-white/10 bg-[#122b28] text-white md:min-h-screen md:w-[252px] md:border-b-0 md:border-r">
+    <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-[#122b28] text-white md:h-full md:w-[252px] md:overflow-y-auto md:border-b-0 md:border-r">
       <div className="flex items-center justify-between px-5 py-5 md:px-6 md:py-7">
         <Link
           aria-label="Webameen home"

@@ -1,6 +1,6 @@
 # Webameen — Master Development Roadmap
 
-Audit date: **8 October 2026**. Repository: **D:\webameen**. Audited commit: **d89fb74** (`feat: Implement public catalog feature with item listing and detail views`). The working tree was clean before audit verification generated Next.js type references. This task changes documentation only.
+Audit baseline: **8 October 2026**, commit **d89fb74** (`feat: Implement public catalog feature with item listing and detail views`). Phase 6 implementation updated **9 October 2026** in **D:\webameen**. The baseline audit was documentation only; the Phase 6 update below records application and database changes.
 
 This is the source of truth for implementation order, scope, progress and acceptance. Phase numbers in this file are stable: **“Implement Phase 6” means Business Document Setup below**, not Phase 6 in an older document. Do not renumber phases after work begins; add amendments and update task status.
 
@@ -112,7 +112,7 @@ Local Storage is enabled with a 50 MiB service limit, but **zero buckets exist**
 
 ### Owner — available now
 
-Signup/login → business setup → protected dashboard → create/search/view/edit customers → create/search/view/edit product/service defaults → open stable public catalog → publish/unpublish items and share URL manually. Saved edits to published items update their public representation. Dashboard currently shows business/account identity and GSTIN-state warning, without financial summaries.
+Signup/login → business setup → protected dashboard → edit business document settings and review readiness → create/search/view/edit customers → create/search/view/edit product/service defaults → open stable public catalog → publish/unpublish items and share URL manually. Saved edits to published items update their public representation. Dashboard currently shows business/account identity and GSTIN-state warning, without financial summaries.
 
 ### Customer — available now
 
@@ -130,9 +130,9 @@ Feature status vocabulary: ✅ COMPLETE; 🟡 PARTIAL; 🔴 NOT IMPLEMENTED; ⚠
 
 | Feature | Status | Evidence / precise boundary |
 |---|---|---|
-| Database foundation | ✅ COMPLETE | Foundation migration; `supabase/tests/foundation.sql` checks schema, monetary/snapshot/numbering/payment integrity and RLS. Future commands remain absent. |
+| Database foundation | ✅ COMPLETE | Foundation migration; `supabase/tests/foundation.sql` checks schema, monetary/snapshot/numbering/payment integrity and RLS. Feature commands are additive migrations. |
 | Signup/login/logout/session | ✅ COMPLETE | `(auth)`, `/auth/callback`, `components/auth/auth-form.tsx`, identity actions/session/credentials, Supabase factories/proxy; credential unit tests and navigation E2E. Recovery/hosted verification coverage deferred to Phase 13. |
-| Business onboarding/owner isolation | ✅ COMPLETE | `/onboarding/business`, business setup form/module; bootstrap migration/RPC; `business_bootstrap.sql`, business unit tests and onboarding E2E. Profile editing is absent. |
+| Business onboarding/owner isolation | ✅ COMPLETE | `/onboarding/business`, business setup form/module; bootstrap migration/RPC; `business_bootstrap.sql`, business unit tests and onboarding E2E. Profile editing is tracked separately below. |
 | Protected owner shell | ✅ COMPLETE | `(workspace)/layout.tsx`, workspace shell/sidebar, business context; navigation/public management E2E. Owner role only. |
 | Customer C/R/U/search/pagination | ⚠️ IMPLEMENTED BUT NEEDS HARDENING | `/customers`, `/new`, `/[id]`, `/[id]/edit`; customer form/search/actions/queries; customer command migration/RPCs, unit/SQL/E2E tests. Audit edit navigation failed although source exists. Does not include history or archive controls. |
 | Catalog C/R/U/search/pagination | ⚠️ IMPLEMENTED BUT NEEDS HARDENING | `/catalog`, `/new`, `/[id]`, `/[id]/edit`; catalog form/actions/queries/validation; command and exact-read migrations, unit/SQL/E2E tests. Audit found an edit-route browser failure; see verification log. |
@@ -140,7 +140,7 @@ Feature status vocabulary: ✅ COMPLETE; 🟡 PARTIAL; 🔴 NOT IMPLEMENTED; ⚠
 | Public catalog/public detail/publication | ⚠️ IMPLEMENTED BUT NEEDS HARDENING | `/c/[slug]`, `/c/[slug]/[id]`, public shell/queries, publication form/action, public migration; public SQL suite and six browser scenarios. SQL and mobile browsing pass; five browser scenarios fail with global not-found responses. |
 | Archived item exclusion | ✅ COMPLETE | Catalog list and public reader filter `archived_at IS NULL`; public SQL test inserts archived fixture. This is read behavior, not an archive workflow. |
 | Archive/unarchive customers/items | 🟡 PARTIAL | Columns/grants/guards exist; no application command or owner controls. Customer list does not exclude archived rows. Optional follow-up, not claimed as completed CRUD deletion. |
-| Business settings/document readiness | 🟡 PARTIAL | Profile fields and update grants exist; only onboarding UI works; `/settings` is a placeholder. |
+| Business settings/document readiness | ✅ COMPLETE for Phase 6 | Owner-only `update_business_settings` command, `/settings` form, server-derived readiness, rate operator runbook; Phase 6 SQL/unit/browser checks. Future quote draft selection remains Phase 7. |
 | Quotations/GST draft editor | 🟡 PARTIAL at database level; 🔴 application | Tables/constraints exist; `/quotations` is a placeholder; no commands/editor/calculation unit tests. |
 | Secure quotation sharing/responses/revisions | 🟡 PARTIAL at database level; 🔴 application | Token/response tables and guards, inactive broker role; no `/q` route or public response logic. Catalog URLs cannot substitute. |
 | Invoice conversion/number configuration | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/invoices` placeholder; no conversion/numbering commands. |
@@ -293,27 +293,29 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 
 ### Phase 6 — Business Document Setup
 
-**Status:** 🔴 NOT STARTED (profile schema/onboarding reused). **Goal:** let owners review/edit the text and tax particulars that future documents copy, and identify incomplete setup.
+**Status:** ✅ COMPLETE (9 October 2026; the full-run customer browser failure remains under Phase 3 hardening). **Goal:** let owners review/edit the text and tax particulars that future documents copy, and identify incomplete setup.
 
 **Depends on:** 1, 2. **Required before:** 7 draft identity defaults and 8 share readiness. **Blocks:** sharing incomplete seller particulars; does not require images or invoice numbering. **Can be implemented independently:** yes, before quotation code.
 
 **Database**
 
-- [ ] 🔴 NOT STARTED — Add one fixed profile/settings command using existing `businesses` columns: display/contact/address, state, registration/GSTIN, default terms, timezone and optional bank/UPI/payment instructions. Derive business/actor; validate text, IANA zone, conditional GSTIN and key/hash pairing already enforced. Never accept country/currency/slug/membership changes.
-- [ ] 🔴 NOT STARTED — Acquire shared business advisory lock and recheck active owner; limit UPDATE fields; keep runtime raw writes denied. Add a command migration without recreating profile tables or changing frozen documents.
-- [ ] 🔴 NOT STARTED — Document operator rate configuration/retirement and local 5/18/40 setup separately from migrations; no owner rate-master screen or automatic legal-rate seed.
+- [x] ✅ COMPLETE — Fixed `update_business_settings` command reuses `businesses` text columns; actor/business come from `auth.uid()`. SQL validates trimmed/nullable text, state, basic GSTIN shape, conditional GSTIN and PostgreSQL-listed time zone. Existing asset key/hash constraints stay in place; command has no asset, country, currency, slug or membership parameters (`20261009104916_business_document_setup.sql`).
+- [x] ✅ COMPLETE — Shared business advisory lock followed by active-owner recheck; restricted executor and existing forced RLS; fixed update column list, no raw authenticated writes or document mutation (`business_document_setup.sql`).
+- [x] ✅ COMPLETE — `docs/GST_RATE_OPERATIONS.md` documents trusted operator configuration/retirement and optional local 5/18/40 examples outside migrations. No owner rate-master UI or automatic legal-rate seed.
 
 **Backend / Frontend**
 
-- [ ] 🔴 NOT STARTED — Add business settings query/validation/action following current modules; reuse `/settings` with a document-setup section. Display India/INR as fixed.
-- [ ] 🔴 NOT STARTED — Edit existing text fields, normalize optional blanks and show errors/pending/success while preserving input. Leave logo/signature fields untouched until 11.
-- [ ] 🔴 NOT STARTED — Add a server-derived readiness summary: required seller identity/address/state/registration/GSTIN, missing rate configuration for taxable documents, and document-timezone information. Customer/line readiness will be evaluated in 7–8.
-- [ ] 🔴 NOT STARTED — Show GSTIN prefix mismatch as review warning; ensure bank/UPI/terms are included in future drafts only by explicit document selection, with no live-master fallback.
+- [x] ✅ COMPLETE — Business settings query/validation/Server Action follow current modules; `/settings` shows document setup and fixed India/INR.
+- [x] ✅ COMPLETE — Form edits approved text fields, normalizes optional blanks, displays field/general errors and pending/saved states, preserves entries; logo/signature untouched.
+- [x] ✅ COMPLETE — Server-derived readiness lists missing seller name/address/state/registration/conditional GSTIN, missing selectable rate configuration for taxable documents, and the document time zone. Customer/line readiness remains Phase 7–8.
+- [x] ✅ COMPLETE for Phase 6 — Prefix mismatch is a review warning. Optional bank/UPI/terms are private profile defaults only; no document-draft code exists yet. Phase 7 must add explicit selection and frozen copying without live-master fallback.
 
 **Security / Testing**
 
-- [ ] 🔴 NOT STARTED — SQL tests: own update, foreign/disabled/guest denial, immutable country/currency/slug, no raw writes, invalid input rejection and existing snapshot retention.
-- [ ] 🔴 NOT STARTED — Unit tests for normalization/readiness/GST declaration; E2E settings persist after reload, invalid input recovery and guest/foreign access denial; rerun existing regression suites.
+- [x] ✅ COMPLETE — `supabase/tests/business_document_setup.sql` checks owner/foreign/disabled/guest, restricted executor/grants, fixed region/slug, raw-write denial, invalid input and unchanged existing document fields. Existing foundation tests cover frozen snapshot immutability.
+- [x] ✅ COMPLETE — Unit tests cover normalization/readiness/GST declaration; two settings browser journeys cover persistence, field-error recovery, guest redirect and owner separation. Typecheck, lint, nine unit files/28 tests, all six SQL suites, local DB lint, targeted browser tests and production build passed. Full browser run: **15/16 passed**, with the existing customer cross-business test failing on customer creation at `/customers/new`; Phase 6 browser tests passed. See verification note below.
+
+**9 October 2026 verification note:** Applied the Phase 6 migration with `supabase migration up --local` without resetting the local database. `npm run typecheck`, `npm run lint`, `npm run test` (9 files, 28 tests), all six rolled-back SQL suites, `supabase db lint --local --schema public,private --level error --fail-on error`, targeted `business-settings.spec.ts` (2/2), and `npm run build` passed. A full `npm run test:e2e` run passed 15/16; `customers.spec.ts` cross-business case remained on `/customers/new` after submission, with the captured page showing a required customer-name error. The isolated retry passed 1/1, so the full-run failure is intermittent and remains under earlier customer hardening. A fresh full-stack migration replay was not run against a separate disposable database; the local existing database and migration history were verified.
 
 **Acceptance:** owner can save/reopen authorized text settings; missing prerequisites are actionable; secrets/private remittance settings never enter the public catalog; old documents remain unchanged; no storage/invoice workflow is required to complete this phase.
 
@@ -529,7 +531,7 @@ Findings below are documented, not fixed by this audit. Priority indicates imple
 | T6 — Medium | No CI; SQL tests separate from `test:all`; tests run dev Chromium only. Taxable catalog UI/empty-rate/retired-rate E2E, pagination with enough rows and fault/retry paths lack dedicated coverage. | Phase 13 CI and relevant future feature suites; retain existing tests. |
 | T7 — Medium | No multi-session race tests; financial guards tested with controlled fixture writes, not operational commands. | Phases 7–11, before enabling each sensitive command. |
 | T8 — Medium | Public catalog reader checks publication/archive but not active owner availability; disabling membership does not automatically withdraw public items. | Decision D3, then documented Phase 13 policy/test. No exposure of private data was established. |
-| T9 — Medium | Config lists nonexistent `seed.sql`; 5/18/40 only local operational data. Fresh taxable setup needs deliberate configuration; no operator/runbook UI. | Phase 6/13 operational runbook and deterministic test configuration; no invented migration rate list. |
+| T9 — Medium | Config lists nonexistent `seed.sql`; selectable rates remain operator data. Phase 6 added `docs/GST_RATE_OPERATIONS.md`, but each fresh taxable setup still needs deliberate operator configuration. | Keep the runbook current and add deterministic test configuration in Phase 13; no invented migration rate list. |
 | T10 — Medium | Supabase's default storage service setting is not an application file policy; no buckets/renderer/asset verification exists. | Phase 11; do not interpret schema asset columns as secure upload support. |
 | T11 — Low/scale dependent | Search uses `%term%`/OR and exact counts; current B-tree sort indexes do not optimize arbitrary substring search. Count/list are separate snapshots. | Measure pilot volume before trigram/search/cursor additions; tolerate/document concurrent pagination changes. |
 | T12 — Medium | Owner customer/catalog ID queries do not uniformly validate UUID syntax before RPC/PostgREST; malformed IDs may reach generic errors rather than feature 404. Public detail validates UUID. | Authorized hardening task: safe consistent unavailable states without existence leaks. |
@@ -605,7 +607,7 @@ Discover Supabase CLI commands with installed `--help` before use. Verify migrat
 13. Keep MVP scope under control: no orders, images/categories, gateways, stock, teams, generic events/counters/jobs or broad compliance engine without explicit scope.
 14. Keep normal owner queries on user-session clients. Isolate future document service credentials to exact restricted brokers; never browser exposure or general CRUD.
 15. Respect configuration-before-use gates without turning warning-only GSTIN/reverse-charge choices into new blockers. Null optional assets do not require storage provisioning.
-16. Preserve user changes and failure evidence; do not commit/deploy/provision production during an audit. This audit authorizes documentation only.
+16. Preserve user changes and failure evidence; do not commit/deploy/provision production during an audit. The 8 October baseline audit authorized documentation only; later explicit phase requests authorize their named implementation scope.
 
 ### Future phase execution record
 
