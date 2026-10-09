@@ -141,8 +141,8 @@ Feature status vocabulary: ✅ COMPLETE; 🟡 PARTIAL; 🔴 NOT IMPLEMENTED; ⚠
 | Archived item exclusion                         | ✅ COMPLETE                                  | Catalog list and public reader filter `archived_at IS NULL`; public SQL test inserts archived fixture. This is read behavior, not an archive workflow.                                                                                     |
 | Archive/unarchive customers/items               | 🟡 PARTIAL                                   | Columns/grants/guards exist; no application command or owner controls. Customer list does not exclude archived rows. Optional follow-up, not claimed as completed CRUD deletion.                                                           |
 | Business settings/document readiness            | ✅ COMPLETE for Phase 6                      | Owner-only `update_business_settings` command, `/settings` form, server-derived readiness, rate operator runbook; Phase 6 SQL/unit/browser checks. Future quote draft selection remains Phase 7.                                           |
-| Quotations/GST draft editor                     | 🟡 PARTIAL at database level; 🔴 application | Tables/constraints exist; `/quotations` is a placeholder; no commands/editor/calculation unit tests.                                                                                                                                       |
-| Secure quotation sharing/responses/revisions    | 🟡 PARTIAL at database level; 🔴 application | Token/response tables and guards, inactive broker role; no `/q` route or public response logic. Catalog URLs cannot substitute.                                                                                                            |
+| Quotations/GST draft editor                     | ✅ COMPLETE for Phase 7                       | Owner draft create/edit, authoritative saved calculations, concurrency check and tenant-scoped reads are implemented. Sharing and frozen-version actions are tracked in Phase 8.                                                         |
+| Secure quotation sharing/responses/revisions    | 🟡 PARTIAL                                     | Atomic owner share/revision/rotation/revoke commands, isolated quote broker, frozen public read page and history UI exist. Customer response writes are blocked by an existing trigger's broader `SELECT *` reads.                         |
 | Invoice conversion/number configuration         | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/invoices` placeholder; no conversion/numbering commands.                                                                                                                                                            |
 | Payments/reversals/receipts                     | 🟡 PARTIAL at database level; 🔴 application | Schema/guards exist; `/payments` placeholder; no commands or receipt routes.                                                                                                                                                               |
 | Customer invoice links/document PDF             | 🟡 PARTIAL schema; 🔴 application/storage    | Invoice link table and asset references exist; no active broker/routes/PDF or buckets.                                                                                                                                                     |
@@ -321,7 +321,7 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 
 ### Phase 7 — Quotation Drafts and Exact GST Calculations
 
-**Status:** 🟡 IN PROGRESS — the quotation draft workflow is implemented and the user has manually confirmed it works. UX issues found during manual use are deferred for a later UX pass; automated acceptance and full regression verification remain. **Goal:** save/review an editable quotation with deterministic amounts and explicit snapshots.
+**Status:** ✅ COMPLETE — the user manually confirmed the quotation draft workflow works; type, lint, unit, SQL and full browser verification also pass. UX issues from manual use are deferred for a later UX pass. **Goal:** save/review an editable quotation with deterministic amounts and explicit snapshots.
 
 **Depends on:** 1–4 core, 6. **Required before:** 8. **Blocks:** sharing/approval until the separate Phase 8 transaction/broker contract exists. **Can be implemented independently:** draft/calculation slice can ship without public sharing.
 
@@ -337,48 +337,51 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 - [x] ✅ IMPLEMENTED — Add quotation module with exact-string DTOs, validation/actions/queries and draft calculation preview using the same authoritative contract as save. Do not implement independent floating-point browser arithmetic.
 - [x] ✅ IMPLEMENTED — Replace `/quotations` placeholder; add `/quotations/new`, `/quotations/[id]`, draft editing, customer selection and catalog or one-off ordered lines. Private catalog items may supply owner defaults; public publication is not required.
 - [x] ✅ IMPLEMENTED — Provide line description/unit/HSN, quantity/price/category/rate, terms/date/supply choices, tax route suggestion/override and full tax breakdown. Catalog defaults become editable copies; master edits do not silently refresh them.
-- [x] ✅ IMPLEMENTED — Handle empty draft, invalid/missing snapshot fields, retired copied rates, stale edit conflict and server failure without input loss. Do not expose Share/Download buttons yet.
+- [x] ✅ IMPLEMENTED — Handle empty draft, invalid/missing snapshot fields, retired copied rates, stale edit conflict and server failure without input loss. Sharing is implemented in Phase 8; quotation PDF download remains in Phase 11.
 - [x] ✅ IMPLEMENTED — For reverse charge show: **“Reverse-charge calculation is not supported in this version. Confirm the tax treatment with your accountant before issuing this document.”** Indicator does not alter arithmetic or automatically block issuance. GSTIN prefix mismatch remains warning-only.
 
 **Security / Testing**
 
 - [x] ✅ VERIFIED — Unit/exact SQL fixtures: same-state 18% on ₹10,000 → ₹11,800; different-state/override identical total but different components; taxable zero distinct from exempt/no-GST; ₹0.20 at 5% → ₹0.22 CGST+SGST vs ₹0.21 IGST; 1.5×₹0.01 → ₹0.02; reject 1.2345 quantity; decimal rates/overflow/mixed sums.
 - [x] ✅ VERIFIED — SQL fixtures cover foreign customer/catalog/version IDs, raw-write denial, disabled access, frozen edit denial, snapshot copying, stale sequence rejection, and forged totals.
-- [x] ✅ VERIFIED — Verify two simultaneous draft saves accept one and reject the other. The browser scenario has not reached this assertion because the owner test currently stops at an ambiguous catalog-line selector.
-- [ ] 🟡 IN PROGRESS — Complete automated E2E coverage for create/edit/reopen, custom lines/catalog defaults, exact displayed totals, concurrent edits, and owner isolation. Owner isolation passed. The catalog selector currently matches both `Unit` and `Unit price before GST`; the full baseline browser suite and production build have not yet been rerun.
+- [x] ✅ VERIFIED — Two simultaneous draft saves accept one and reject the stale one.
+- [x] ✅ VERIFIED — E2E covers create/edit/reopen, custom lines/catalog defaults, exact displayed totals, concurrent edits and owner isolation.
 
-**9 October 2026 verification note:** Applied `20261009112301_quotation_drafts.sql` and `20261009112633_quotation_draft_reads.sql` locally. Typecheck, 10 unit files/32 tests, all seven rolled-back SQL suites, local database lint, and the cross-owner browser test passed. The user manually confirmed the quotation workflow works and deferred UX issues for later. Formatting corrections were made, but the full lint command has not been rerun. Automated owner E2E stops at a test selector that matches both `Unit` and `Unit price before GST`. Phase 7 acceptance is pending the corrected E2E journey and concurrent-save assertion, lint, the full browser regression suite, and a production build.
+**10 October 2026 verification note:** The user manually confirmed the workflow and deferred UX polish. The full project verification now passes: 36 unit tests, eight rollback-only SQL suites, type checking, lint, production-mode browser suite (19 tests) and its production build. The quotation E2E now reaches and passes the simultaneous stale-save check and owner-isolation journey.
 
 **Acceptance:** saved draft reconstructs identical values; server owns totals; stale saves conflict; copied defaults remain independent; no customer can read drafts; no partial quote/items commit. Sharing is deliberately unavailable until 8.
 
 ### Phase 8 — Quotation Sharing, Customer Response and Revisions
 
-**Status:** 🔴 NOT STARTED application/brokers. **Goal:** accountless customers review exact offered terms and the owner safely handles acceptance/change requests.
+**Status:** 🟡 PARTIAL — owner sharing/revisions and public frozen reads implemented; customer responses blocked. **Goal:** accountless customers review exact offered terms and the owner safely handles acceptance/change requests.
 
 **Depends on:** 7, 6. **Required before:** 9, quotation part of 11, 12. **Blocks:** conversion without current recorded approval. **Can be implemented independently:** yes, no invoice/payment/PDF dependency; PDF is delivered in 11.
 
 **Database**
 
-- [ ] 🔴 NOT STARTED — Add atomic share/freeze/link, rotate/revoke, create-revision and public read/respond commands using existing tables/guards. Share validates full candidate snapshot, nonempty lines/current rates/deadline and asset references; commits current version/link and previous-link revocations together.
-- [ ] 🔴 NOT STARTED — Activate only `webameen_quote_broker` permissions/policies required for memberships (availability only), quote/version/items/link and responses. Private SECURITY DEFINER functions use broker role/fixed path; exposed invoker wrappers execute only through isolated server service credential. Ordinary owner operations keep user sessions.
-- [ ] 🔴 NOT STARTED — Token lookup determines business/quote/version; hold shared business and quotation row locks, then recheck token, revocation/access expiry/current pointer and actual post-lock time. Insert response and state transition atomically.
-- [ ] 🔴 NOT STARTED — Enforce first response/identical retry, including matching original link; conflicting kind/note/name conflicts. Rotated link reads existing outcome but cannot reattribute evidence. Superseded/revoked/access-expired link never yields successful response retry.
-- [ ] 🔴 NOT STARTED — Revision copies historical fields/items unchanged, including retired rates needing review; immediately supersedes predecessor and invalidates old conversion/respondability. Same predecessor retry returns same successor; invoice presence prohibits revision.
+- [x] ✅ COMPLETE — Add atomic owner share/freeze/link, rotate/revoke, and create-revision commands using the approved tables. Sharing validates the frozen snapshot, lines, current rates, deadline and asset references; the transaction freezes the version, replaces an older active link and records the new link together.
+- [x] ✅ COMPLETE — Activate the isolated `webameen_quote_broker` role, forced-RLS policies, and exact public wrapper permissions. Normal owner operations use the authenticated session; public reads use only the server-side broker key.
+- [x] ✅ COMPLETE — Token lookup resolves the business/quote/version; the broker locks the shared business and quote, then rechecks access and current version before returning the frozen allow-list.
+- [ ] 🟡 BLOCKED — Response functions validate token/state/deadline and attempt the response plus state transition atomically. Commit currently fails because the existing `guard_response` and deferred quotation-integrity trigger use `SELECT *`, which requires columns excluded from the broker’s approved narrow grants. An attempted change to those foundational integrity triggers was rejected by automatic review due the broad data-integrity impact. Do not broaden grants or change those triggers without resolving this blocker.
+- [ ] 🔴 NOT STARTED — Verify first-response/identical retry, matching original link, conflict behavior and concurrent approval/revision/share/revoke races. The database write path must work first.
+- [x] ✅ COMPLETE — Revision copies frozen document fields/items, immediately supersedes the predecessor, returns the same successor for retries and rejects revisions after invoice issuance.
 
 **Backend / Frontend / Security**
 
-- [ ] 🔴 NOT STARTED — Generate 32 cryptographic random bytes server-side, SHA-256 hash only to persistence, stable share/rotation request key; return raw URL once after commit. Retry returns recorded link/state, never a new unmatched secret; lost URL requires explicit fresh-key rotation.
-- [ ] 🔴 NOT STARTED — Add owner review/share/revoke/rotate/revise/version-history UI and minimal customer `/q/[token]` page/actions. Show frozen content, optional name/note and response/status; no login required, owner private notes/provenance excluded.
-- [ ] 🔴 NOT STARTED — Distinguish response deadline from access cutoff: expired-response document may still read; old link while revision draft shows read-only revision-in-preparation; sharing revision makes old links unavailable. Timely approval remains historical and convertible if current.
-- [ ] 🔴 NOT STARTED — Add bounded public inputs, read/respond rate limits, safe unavailable/conflict states, token-redacted logs and no-store handling for private bearer pages. No arbitrary token context/session setting, broad raw rows or generic owner state-change endpoint.
+- [x] ✅ COMPLETE — Generate 32 cryptographic random bytes server-side, persist only SHA-256 hash, use stable request keys, reveal the raw URL once after commit and require explicit rotation to recover a lost URL.
+- [x] ✅ COMPLETE — Add owner share/revoke/rotate/revise/version-history UI and the accountless `/q/[token]` read page. The page excludes owner-private notes, catalog provenance, membership data and token hashes. Response controls are present but cannot complete until the database blocker is resolved.
+- [x] ✅ COMPLETE — Keep response deadlines separate from link access cutoffs: expired-response documents remain readable, old links show a read-only revision-in-preparation state, and sharing the revision revokes older links.
+- [ ] 🟡 PARTIAL — Add bounded inputs, safe unavailable responses, token hashing and no-store/no-referrer headers. The current rate limiter is per-process only and must be replaced with a shared production limiter before a multi-instance deployment.
 
 **Testing**
 
-- [ ] 🔴 NOT STARTED — SQL authorization/projection/broker-grant tests for malformed/revoked/expired/wrong-scope tokens, disabled business, foreign IDs, no draft/private data, first response and all retry/rotation rules.
-- [ ] 🔴 NOT STARTED — Multi-session races: response vs revision/share/revoke, two different responses, concurrent share retries; checks must use post-lock wall clock.
-- [ ] 🔴 NOT STARTED — E2E owner share → guest approve; guest changes → owner revision/new link → guest reapprove; stale links fail; validation preserves input; never offer nonfunctional PDF download before 11.
+- [x] ✅ COMPLETE — SQL checks verify owner sharing, isolated broker grants, allow-listed public reads, unknown-token behavior, link rotation/revocation, revision snapshot copying, share retry idempotency and stale-link denial.
+- [ ] 🔴 NOT STARTED — SQL authorization/expiry/disabled-business and concurrent response/revision/share/revoke checks. Response writes remain blocked.
+- [x] ✅ VERIFIED — Browser journey covers owner share → accountless guest reads → owner creates/shares revision → old URL fails and new version opens. Customer approval/change-request submission was not exercised because its database transaction is blocked.
 
 **Acceptance:** customer needs no account; approved terms match the exact immutable version; one response is retained; new revision requires approval again; old/private/foreign access is blocked; repeated requests create no duplicate links/versions/evidence or silently rotate newer links.
+
+**10 October 2026 verification note:** The Phase 8 additive migration is applied to local Supabase. TypeScript, lint, unit tests (36), the focused sharing/revision browser journey, and rollback-only Phase 8 SQL tests passed. The response submission path remains blocked at transaction commit: foundation trigger functions query full quotation/version rows, while the broker deliberately has only the narrower grants approved in the database spec. A trigger rewrite was rejected by automatic review because it changes integrity enforcement broadly. Phase 8 acceptance is not complete pending an approved safe resolution. No PDF, invoice conversion, payments, or customer account was added.
 
 ### Phase 9 — Numbered Invoice Conversion
 

@@ -1,6 +1,6 @@
 # Webameen
 
-Webameen is a modular-monolith workspace for small businesses. Owners use Supabase authentication to manage a business, its customers and product/service catalog. Each business can publish a catalog that customers can browse without an account. Quotation, invoice, payment and receipt workflows remain planned work; check the [project roadmap](docs/PROJECT_ROADMAP.md) for verified status and implementation order. The [database specification](docs/16-prototype-database-spec.md) describes the implemented schema and approved document contracts.
+Webameen is a modular-monolith workspace for small businesses. Owners use Supabase authentication to manage a business, customers, products/services, and quotation drafts. Owners can share immutable quotation versions with accountless customers, and manage revisions and links. Invoice, payment, and receipt workflows are later phases; check the [project roadmap](docs/PROJECT_ROADMAP.md) for verified status and implementation order. The [database specification](docs/16-prototype-database-spec.md) describes the approved database and document contracts.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ Webameen is a modular-monolith workspace for small businesses. Owners use Supaba
 1. Install dependencies with **npm ci**.
 2. Copy **.env.example** to **.env.local**.
 3. Start local Supabase with **npm run db:start**.
-4. Run **npm run db:status** and copy the local API URL and publishable key into **.env.local**.
+4. Run **npm run db:status** and copy the local API URL and publishable key into **.env.local**. The public quotation page also needs the local **SECRET_KEY** value under `SUPABASE_QUOTE_BROKER_KEY`.
 5. Start the web app with **npm run dev**.
 6. Open http://127.0.0.1:3000 and create an account, then set up your business.
 
@@ -36,7 +36,7 @@ The root page redirects to the protected dashboard. Login and sign-up use Supaba
 | npm run db:stop | Stop local Supabase services |
 | npm run db:status | Show local Supabase service status |
 
-Local Supabase services use Docker on Windows. No production Supabase project is configured. Schema changes are tracked in `supabase/migrations`; quotation and financial workflows are planned work and are not yet available in the application.
+Local Supabase services use Docker on Windows. No production Supabase project is configured. Schema changes are tracked in `supabase/migrations`; invoice, payment, and receipt workflows remain later phases. Quotation response submission is still incomplete; see the roadmap for the database-trigger blocker.
 
 ## Environment
 
@@ -45,8 +45,9 @@ Local Supabase services use Docker on Windows. No production Supabase project is
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - APP_URL
+- SUPABASE_QUOTE_BROKER_KEY (server-only, needed for public quotation links)
 
-Set the URL and publishable key together. APP_URL is the application origin used to build the confirmation callback; set it to the production HTTPS origin for hosted deployments. Do not put a Supabase secret/service-role key in a NEXT_PUBLIC_ variable or in a browser module.
+Set the URL and publishable key together. APP_URL is the application origin used to build the confirmation callback; set it to the production HTTPS origin for hosted deployments. For local development, the local Supabase status output includes `SECRET_KEY`; put it in `SUPABASE_QUOTE_BROKER_KEY`. Hosted deployments should use a server-side Supabase secret key for this value. It is used only by the isolated quotation token broker; never put it in a `NEXT_PUBLIC_` variable, browser module, or ordinary owner data-access client.
 
 ## Project organization
 

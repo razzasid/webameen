@@ -44,6 +44,14 @@ export const publicEnvironment = parsePublicEnvironment({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 });
 
+const serverEnvironmentSchema = z.object({
+  SUPABASE_QUOTE_BROKER_KEY: optionalKey,
+});
+
+export const serverEnvironment = serverEnvironmentSchema.parse({
+  SUPABASE_QUOTE_BROKER_KEY: process.env.SUPABASE_QUOTE_BROKER_KEY,
+});
+
 export function isSupabaseConfigured(): boolean {
   return Boolean(
     publicEnvironment.NEXT_PUBLIC_SUPABASE_URL &&

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 import { isUuid } from "@/server/shared/uuid";
+import { createQuotationToken } from "./token";
 import {
   type QuoteCalculation,
   quoteLinesSchema,
@@ -127,4 +128,138 @@ export async function editQuotationDraftAction(
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${quoteId}`);
   redirect(`/quotations/${quoteId}?saved=1`);
+}
+
+export type QuotationWorkflowActionState = {
+  error?: string;
+  message?: string;
+  rawToken?: string;
+};
+
+export async function shareQuotationAction(
+  _previous: QuotationWorkflowActionState,
+  formData: FormData,
+): Promise<QuotationWorkflowActionState> {
+  await requireAuthenticatedUser();
+  const quotationId = String(formData.get("quotationId") ?? "");
+  const versionId = String(formData.get("versionId") ?? "");
+  const requestKey = String(formData.get("requestKey") ?? "");
+  if (![quotationId, versionId, requestKey].every(isUuid))
+    return { error: "Reload the quotation and try again." };
+
+  const { token, tokenHashHex } = createQuotationToken();
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("share_quotation_draft", {
+      p_quotation_id: quotationId,
+      p_version_id: versionId,
+      p_creation_request_key: requestKey,
+      p_token_hash_hex: tokenHashHex,
+      p_access_expires_at: null,
+    });
+    if (error) return { error: safeWorkflowError(error.code) };
+    const result = data as { created?: boolean };
+    if (!result.created)
+      return {
+        message:
+          "This share attempt already completed. Its link cannot be recovered; rotate it to create a new link.",
+      };
+    return {
+      rawToken: token,
+      message: "Quotation shared. Copy this link now; Webameen cannot show it again.",
+    };
+  } catch {
+    return { error: "Quotation sharing is temporarily unavailable. Please try again." };
+  }
+}
+
+export async function rotateQuotationLinkAction(
+  _previous: QuotationWorkflowActionState,
+  formData: FormData,
+): Promise<QuotationWorkflowActionState> {
+  await requireAuthenticatedUser();
+  const quotationId = String(formData.get("quotationId") ?? "");
+  const versionId = String(formData.get("versionId") ?? "");
+  const requestKey = String(formData.get("requestKey") ?? "");
+  if (![quotationId, versionId, requestKey].every(isUuid))
+    return { error: "Reload the quotation and try again." };
+  const { token, tokenHashHex } = createQuotationToken();
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("rotate_quotation_link", {
+      p_quotation_id: quotationId,
+      p_version_id: versionId,
+      p_creation_request_key: requestKey,
+      p_token_hash_hex: tokenHashHex,
+      p_access_expires_at: null,
+    });
+    if (error) return { error: safeWorkflowError(error.code) };
+    const result = data as { created?: boolean };
+    if (!result.created)
+      return {
+        message:
+          "This rotation already completed. Create a new rotation to reveal a replacement link.",
+      };
+    return {
+      rawToken: token,
+      message: "A replacement link is ready. The previous link has been revoked.",
+    };
+  } catch {
+    return { error: "Link rotation is temporarily unavailable. Please try again." };
+  }
+}
+
+export async function revokeQuotationLinkAction(
+  _previous: QuotationWorkflowActionState,
+  formData: FormData,
+): Promise<QuotationWorkflowActionState> {
+  await requireAuthenticatedUser();
+  const quotationId = String(formData.get("quotationId") ?? "");
+  const linkId = String(formData.get("linkId") ?? "");
+  if (![quotationId, linkId].every(isUuid))
+    return { error: "Reload the quotation and try again." };
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.rpc("revoke_quotation_link", {
+      p_quotation_id: quotationId,
+      p_link_id: linkId,
+    });
+    if (error) return { error: safeWorkflowError(error.code) };
+    revalidatePath(`/quotations/${quotationId}`);
+    return { message: "The quotation link has been revoked." };
+  } catch {
+    return { error: "Link revocation is temporarily unavailable. Please try again." };
+  }
+}
+
+export async function createQuotationRevisionAction(
+  _previous: QuotationWorkflowActionState,
+  formData: FormData,
+): Promise<QuotationWorkflowActionState> {
+  await requireAuthenticatedUser();
+  const quotationId = String(formData.get("quotationId") ?? "");
+  const versionId = String(formData.get("versionId") ?? "");
+  if (![quotationId, versionId].every(isUuid))
+    return { error: "Reload the quotation and try again." };
+  let revisionId: string;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("create_quotation_revision", {
+      p_quotation_id: quotationId,
+      p_predecessor_version_id: versionId,
+    });
+    if (error) return { error: safeWorkflowError(error.code) };
+    revisionId = data as string;
+  } catch {
+    return { error: "Quotation revision is temporarily unavailable. Please try again." };
+  }
+  revalidatePath("/quotations");
+  redirect(`/quotations/${quotationId}?revision=${revisionId}`);
+}
+
+function safeWorkflowError(code: string | undefined): string {
+  if (code === "42501" || code === "P0002") return "This quotation is unavailable.";
+  if (code === "23514" || code === "22023")
+    return "This quotation cannot complete that action in its current state. Reload and review it.";
+  return "The quotation could not be updated. Please try again.";
 }

@@ -11,7 +11,7 @@ export default async function QuotationsPage() {
           <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Quotations</h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Prepare private quotation drafts with exact line and GST amounts.
+            Prepare, share and track customer responses for exact quotation versions.
           </p>
         </div>
         <Link
@@ -51,8 +51,7 @@ export default async function QuotationsPage() {
         <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-white px-6 py-12 text-center">
           <h2 className="text-lg font-semibold">No quotations yet</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Select a customer to start a private draft. Sharing will be added in a later
-            phase.
+            Select a customer to start a quotation draft.
           </p>
         </div>
       )}

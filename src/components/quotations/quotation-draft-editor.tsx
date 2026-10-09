@@ -639,8 +639,7 @@ export function QuotationDraftEditor({
         </button>
       </div>
       <p className="text-xs text-[var(--muted)]">
-        This is a private draft. Sharing, approval, PDF download, and invoice conversion are
-        not available yet.
+        This is a private draft. Save it before sharing; a shared version becomes read-only.
       </p>
     </form>
   );

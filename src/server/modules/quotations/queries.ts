@@ -35,6 +35,35 @@ export type QuoteDraft = {
   totals: QuoteTotals;
   lines: SavedQuoteLine[];
 };
+export type QuotationWorkflow = {
+  quotation_id: string;
+  reference: string;
+  current_version_id: string;
+  versions: Array<{
+    id: string;
+    version_number: number;
+    state: string;
+    created_at: string;
+    shared_at: string | null;
+    valid_until: string | null;
+    response_deadline_at: string | null;
+    total_minor: string;
+    response: {
+      kind: string;
+      customer_note: string | null;
+      respondent_name: string | null;
+      responded_at: string;
+    } | null;
+    links: Array<{
+      id: string;
+      created_at: string;
+      access_expires_at: string | null;
+      revoked_at: string | null;
+      revocation_reason: string | null;
+      active: boolean;
+    }>;
+  }>;
+};
 export type CustomerChoice = { id: string; display_name: string };
 export type CatalogChoice = {
   id: string;
@@ -65,6 +94,18 @@ export async function getQuotationDraft(id: string): Promise<QuoteDraft> {
   if (error) throw new Error("Could not load this quotation.");
   if (!data) notFound();
   return data as QuoteDraft;
+}
+
+export async function getQuotationWorkflow(id: string): Promise<QuotationWorkflow> {
+  if (!isUuid(id)) notFound();
+  const context = await getBusinessContext();
+  if (context.status !== "ready") notFound();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("get_quotation_workflow", {
+    p_quotation_id: id,
+  });
+  if (error || !data) notFound();
+  return data as QuotationWorkflow;
 }
 
 export async function listQuotationCustomers(): Promise<CustomerChoice[]> {
