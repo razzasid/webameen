@@ -131,6 +131,53 @@ SELECT pg_temp.assert_ok(
   'New link reads only the newly shared version');
 
 RESET ROLE;
+
+SELECT pg_temp.assert_ok(
+  (public.respond_to_public_quotation(repeat('d',64),'approved',repeat('x',2001),NULL)->>'status')='invalid',
+  'Public response rejects notes beyond the server-side limit');
+
+SET LOCAL ROLE authenticated;
+SELECT pg_temp.assert_ok(
+  (SELECT (public.rotate_quotation_link(quotation_id,revision_id,
+      'e8555555-5555-4555-8555-555555555555',repeat('f',64),
+      clock_timestamp()+interval '3 seconds')->>'created')::boolean
+   FROM share_fixture),
+  'A time-limited replacement link can be issued');
+RESET ROLE;
+
+SET LOCAL ROLE service_role;
+SELECT pg_temp.assert_ok(public.read_public_quotation(repeat('f',64)) IS NOT NULL,
+  'Time-limited link works before its access cutoff');
+SELECT pg_sleep(3.1);
+SELECT pg_temp.assert_ok(public.read_public_quotation(repeat('f',64)) IS NULL,
+  'Time-limited link cannot read the quotation after its cutoff');
+SELECT pg_temp.assert_ok(
+  (public.respond_to_public_quotation(repeat('f',64),'approved',NULL,NULL)->>'status')='unavailable',
+  'Time-limited link cannot submit a response after its cutoff');
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SELECT pg_temp.assert_ok(
+  (SELECT (public.rotate_quotation_link(quotation_id,revision_id,
+      'e8666666-6666-4666-8666-666666666666',repeat('9',64),NULL)->>'created')::boolean
+   FROM share_fixture),
+  'A new active link can replace an expired link');
+RESET ROLE;
+
+UPDATE public.business_memberships
+SET disabled_at=clock_timestamp()
+WHERE business_id=(SELECT business_id FROM share_fixture);
+SET LOCAL ROLE service_role;
+SELECT pg_temp.assert_ok(public.read_public_quotation(repeat('9',64)) IS NULL,
+  'Disabled business member cannot read its public quotation');
+SELECT pg_temp.assert_ok(
+  (public.respond_to_public_quotation(repeat('9',64),'approved',NULL,NULL)->>'status')='unavailable',
+  'Disabled business member cannot submit a quotation response');
+RESET ROLE;
+UPDATE public.business_memberships
+SET disabled_at=NULL
+WHERE business_id=(SELECT business_id FROM share_fixture);
+
 GRANT webameen_quote_broker TO postgres WITH SET TRUE;
 SET LOCAL ROLE webameen_quote_broker;
 SELECT pg_temp.expect_error(
@@ -139,7 +186,7 @@ SELECT pg_temp.expect_error(
       business_id,quotation_id,version_id,public_link_id,kind,responded_at)
     SELECT l.business_id,l.quotation_id,l.version_id,l.id,'approved',l.created_at-interval '1 second'
     FROM public.quotation_public_links AS l WHERE l.token_hash=decode(%L,'hex')
-  $sql$,repeat('d',64)),
+  $sql$,repeat('9',64)),
   '23514','Response trigger still rejects a pre-link timestamp under the narrow broker grants');
 RESET ROLE;
 REVOKE webameen_quote_broker FROM postgres;
@@ -148,8 +195,8 @@ CREATE TEMP TABLE response_result(first_response jsonb,retry_response jsonb);
 GRANT SELECT,INSERT ON response_result TO service_role;
 SET LOCAL ROLE service_role;
 INSERT INTO response_result
-SELECT public.respond_to_public_quotation(repeat('d',64),'approved','Approved as quoted','Buyer'),
-       public.respond_to_public_quotation(repeat('d',64),'approved','Approved as quoted','Buyer');
+SELECT public.respond_to_public_quotation(repeat('9',64),'approved','Approved as quoted','Buyer'),
+       public.respond_to_public_quotation(repeat('9',64),'approved','Approved as quoted','Buyer');
 SELECT pg_temp.assert_ok(
   (SELECT first_response->>'status'='recorded'
       AND retry_response->>'status'='recorded'
@@ -158,8 +205,17 @@ SELECT pg_temp.assert_ok(
     FROM response_result),
   'Customer approval succeeds through narrow broker grants and retries idempotently');
 SELECT pg_temp.assert_ok(
+  (public.respond_to_public_quotation(repeat('9',64),'change_requested','Different response','Buyer')->>'status')='already_responded',
+  'A conflicting second customer response leaves the original evidence unchanged');
+RESET ROLE;
+SELECT pg_temp.assert_ok(
+  (SELECT count(*)=1 FROM public.quotation_responses WHERE version_id=(SELECT revision_id FROM share_fixture))
+  AND (SELECT state='approved' FROM public.quotation_versions WHERE id=(SELECT revision_id FROM share_fixture)),
+  'A conflicting second customer response leaves one immutable approval and matching version state');
+SET LOCAL ROLE service_role;
+SELECT pg_temp.assert_ok(
   (SELECT data->>'state'='approved' AND data->'response'->>'kind'='approved'
-    FROM public.read_public_quotation(repeat('d',64)) AS data),
+    FROM public.read_public_quotation(repeat('9',64)) AS data),
   'Deferred quotation integrity accepts the retained approval and matching version state');
 RESET ROLE;
 ROLLBACK;

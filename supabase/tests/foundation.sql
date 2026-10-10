@@ -486,7 +486,11 @@ BEGIN
 END
 $fixture$;
 INSERT INTO public.invoice_number_sequences(business_id,period_key,starts_on,ends_before,prefix,format_template,minimum_digits,starting_number,created_by)
-SELECT id,'test-period',(current_date-10),(current_date+365),'INV','{prefix}-{number}',4,100,created_by FROM public.businesses;
+SELECT id,'test-period',(current_date-10),(current_date+365),'INV','{prefix}-{number}',4,100,created_by
+FROM public.businesses WHERE id IN (
+ '20000000-0000-0000-0000-000000000001'::uuid,
+ '20000000-0000-0000-0000-000000000002'::uuid
+);
 INSERT INTO fixture_ids VALUES
  ('q1',pg_temp.make_approved_quote('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001')),
  ('q2',pg_temp.make_approved_quote('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001')),
@@ -503,7 +507,9 @@ INSERT INTO fixture_ids VALUES
  ('ib',pg_temp.issue_invoice((SELECT value FROM fixture_ids WHERE label='qb')));
 SET CONSTRAINTS ALL IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;
-SELECT pg_temp.assert_ok((SELECT count(*) FROM public.invoices)=3, 'Approved quotes convert after rate removal');
+SELECT pg_temp.assert_ok((SELECT count(*) FROM public.invoices
+ WHERE business_id IN ('20000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002'))=3,
+ 'Approved quotes convert after rate removal');
 SELECT pg_temp.assert_ok((SELECT array_agg(sequence_number ORDER BY sequence_number) FROM public.invoices
  WHERE business_id='20000000-0000-0000-0000-000000000001')=ARRAY[100,101]::bigint[], 'Invoice sequence advances within business and period');
 SELECT pg_temp.assert_ok((SELECT reference FROM public.invoices WHERE id=(SELECT value FROM fixture_ids WHERE label='i1'))='INV-0100', 'Configured prefix and padding preserved');
@@ -511,7 +517,10 @@ SELECT pg_temp.assert_ok(NOT EXISTS(SELECT FROM public.invoices i JOIN public.qu
  WHERE ROW(i.seller_display_name,i.seller_contact_email,i.seller_contact_phone,i.seller_postal_address,i.seller_country_code,i.seller_state_code,i.seller_gst_registered,i.seller_gstin,i.seller_logo_asset_key,i.seller_logo_sha256,i.seller_signature_asset_key,i.seller_signature_sha256,i.buyer_display_name,i.buyer_contact_name,i.buyer_email,i.buyer_phone,i.buyer_billing_address,i.buyer_state_code,i.buyer_gstin_applicable,i.buyer_gstin,i.currency_code,i.currency_exponent,i.quantity_scale,i.calculation_rule_code,i.price_tax_mode,i.gst_auto_treatment,i.gst_treatment_override,i.gst_treatment,i.document_time_zone,i.place_of_supply_applicable,i.place_of_supply_state_code,i.place_of_supply_text,i.reverse_charge_applies,i.subtotal_minor,i.taxable_subtotal_minor,i.cgst_total_minor,i.sgst_total_minor,i.igst_total_minor,i.gst_total_minor,i.total_minor,i.seller_bank_name,i.seller_bank_account_name,i.seller_bank_account_number,i.seller_bank_ifsc,i.seller_upi_id,i.payment_instructions,i.terms) IS DISTINCT FROM ROW(q.seller_display_name,q.seller_contact_email,q.seller_contact_phone,q.seller_postal_address,q.seller_country_code,q.seller_state_code,q.seller_gst_registered,q.seller_gstin,q.seller_logo_asset_key,q.seller_logo_sha256,q.seller_signature_asset_key,q.seller_signature_sha256,q.buyer_display_name,q.buyer_contact_name,q.buyer_email,q.buyer_phone,q.buyer_billing_address,q.buyer_state_code,q.buyer_gstin_applicable,q.buyer_gstin,q.currency_code,q.currency_exponent,q.quantity_scale,q.calculation_rule_code,q.price_tax_mode,q.gst_auto_treatment,q.gst_treatment_override,q.gst_treatment,q.document_time_zone,q.place_of_supply_applicable,q.place_of_supply_state_code,q.place_of_supply_text,q.reverse_charge_applies,q.subtotal_minor,q.taxable_subtotal_minor,q.cgst_total_minor,q.sgst_total_minor,q.igst_total_minor,q.gst_total_minor,q.total_minor,q.seller_bank_name,q.seller_bank_account_name,q.seller_bank_account_number,q.seller_bank_ifsc,q.seller_upi_id,q.payment_instructions,q.terms)), 'Every approved document-content field copied exactly');
 SELECT pg_temp.assert_ok(NOT EXISTS(SELECT FROM public.invoice_items i JOIN public.quotation_items q ON q.id=i.source_quotation_item_id
  WHERE i.position<>q.position OR ROW(i.description,i.unit_label,i.hsn_sac,i.quantity,i.unit_price_minor,i.line_subtotal_minor,i.gst_category,i.gst_treatment,i.gst_rate,i.taxable_amount_minor,i.cgst_rate,i.cgst_amount_minor,i.sgst_rate,i.sgst_amount_minor,i.igst_rate,i.igst_amount_minor,i.line_total_minor) IS DISTINCT FROM ROW(q.description,q.unit_label,q.hsn_sac,q.quantity,q.unit_price_minor,q.line_subtotal_minor,q.gst_category,q.gst_treatment,q.gst_rate,q.taxable_amount_minor,q.cgst_rate,q.cgst_amount_minor,q.sgst_rate,q.sgst_amount_minor,q.igst_rate,q.igst_amount_minor,q.line_total_minor)), 'Every source line ID, position and content field copied exactly');
-SELECT pg_temp.assert_ok(NOT EXISTS(SELECT FROM public.invoices WHERE seller_display_name<>'Frozen Seller' OR buyer_display_name<>'Frozen Buyer'), 'Master edits do not rewrite snapshots');
+SELECT pg_temp.assert_ok(NOT EXISTS(SELECT FROM public.invoices
+ WHERE business_id IN ('20000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')
+   AND (seller_display_name<>'Frozen Seller' OR buyer_display_name<>'Frozen Buyer')),
+ 'Master edits do not rewrite snapshots');
 SELECT pg_temp.expect_error('UPDATE public.invoices SET seller_display_name=''Changed''','23514','Issued invoices immutable');
 SELECT pg_temp.expect_error('UPDATE public.quotation_items SET description=''Changed''','23514','Shared items immutable');
 SELECT pg_temp.expect_error('UPDATE public.quotation_versions SET seller_display_name=''Changed''','23514','Shared document content immutable');

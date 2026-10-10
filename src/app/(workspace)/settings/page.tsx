@@ -1,13 +1,19 @@
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
+import { InvoiceNumberingSettings } from "@/components/invoices/invoice-numbering-settings";
 import { updateBusinessSettingsAction } from "@/server/modules/business/settings-actions";
 import { getBusinessSettings } from "@/server/modules/business/settings-queries";
 import {
   documentReadiness,
   profileToValues,
 } from "@/server/modules/business/settings-validation";
+import { configureInvoiceNumberPeriodAction } from "@/server/modules/invoices/actions";
+import { listInvoiceNumberPeriods } from "@/server/modules/invoices/queries";
 
 export default async function SettingsPage() {
-  const { profile, selectableRateCount } = await getBusinessSettings();
+  const [{ profile, selectableRateCount }, periods] = await Promise.all([
+    getBusinessSettings(),
+    listInvoiceNumberPeriods(),
+  ]);
   const readiness = documentReadiness(profile, selectableRateCount);
   return (
     <section className="max-w-4xl">
@@ -55,6 +61,10 @@ export default async function SettingsPage() {
           initialValues={profileToValues(profile)}
         />
       </div>
+      <InvoiceNumberingSettings
+        periods={periods}
+        action={configureInvoiceNumberPeriodAction}
+      />
     </section>
   );
 }

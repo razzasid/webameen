@@ -55,13 +55,77 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
   const linkField = page.getByRole("textbox", { name: "Quotation link" });
   await expect(linkField).toHaveValue(/^http/, { timeout: 20_000 });
   const oldLink = await linkField.inputValue();
-  await page.goto(oldLink);
-  await expect(page.getByText("Accountless customer consultation")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Approve quotation" })).toBeVisible();
+  const browser = page.context().browser();
+  if (!browser) throw new Error("Playwright browser is unavailable");
+  const guestContext = await browser.newContext();
+  const guestPage = await guestContext.newPage();
+  const publicResponse = await guestPage.goto(oldLink);
+  expect(publicResponse?.headers()["cache-control"]).toContain("no-store");
+  expect(publicResponse?.headers()["referrer-policy"]).toBe("no-referrer");
+  await expect(guestPage.getByText("Accountless customer consultation")).toBeVisible();
+  await expect(guestPage.getByRole("button", { name: "Approve quotation" })).toBeVisible();
 
+  const secondGuestPage = await guestContext.newPage();
+  await secondGuestPage.goto(oldLink);
   await page.goto(quoteUrl);
-  await page.getByRole("button", { name: "Create revision" }).click();
+  await expect(page.getByRole("button", { name: "Create revision" })).toBeVisible();
+  await Promise.all([
+    guestPage.getByLabel("Your name (optional)").fill("First customer"),
+    guestPage.getByLabel("Note (optional)").fill("Approved from the first page"),
+    secondGuestPage.getByLabel("Your name (optional)").fill("Second customer"),
+    secondGuestPage
+      .getByLabel("Note (optional)")
+      .fill("Please revise from the second page"),
+  ]);
+  await Promise.all([
+    guestPage.getByRole("button", { name: "Approve quotation" }).click(),
+    secondGuestPage.getByRole("button", { name: "Request changes" }).click(),
+    page.getByRole("button", { name: "Create revision" }).click(),
+  ]);
+  const readResponseResults = () =>
+    Promise.all(
+      [guestPage, secondGuestPage].map(async (customerPage) => ({
+        recorded: await customerPage
+          .getByRole("status")
+          .filter({ hasText: "Your response has been recorded." })
+          .count(),
+        conflict: await customerPage
+          .getByRole("alert")
+          .filter({ hasText: "A response has already been recorded for this version." })
+          .count(),
+        unavailable: await customerPage
+          .getByRole("alert")
+          .filter({ hasText: "This quotation link is unavailable." })
+          .count(),
+      })),
+    );
+  await expect
+    .poll(async () =>
+      (await readResponseResults()).reduce(
+        (count, result) => count + result.recorded + result.conflict + result.unavailable,
+        0,
+      ),
+    )
+    .toBe(2);
+  const responseResults = await readResponseResults();
+  const recordedResponses = responseResults.reduce(
+    (count, result) => count + result.recorded,
+    0,
+  );
+  expect(recordedResponses).toBeLessThanOrEqual(1);
+  expect(
+    responseResults.reduce(
+      (count, result) => count + result.recorded + result.conflict + result.unavailable,
+      0,
+    ),
+  ).toBe(2);
+  await secondGuestPage.close();
   await expect(page).toHaveURL(/\?revision=[0-9a-f-]+$/i, { timeout: 20_000 });
+  await guestPage.reload();
+  await expect(guestPage.getByRole("status")).toContainText(
+    "The business is preparing a revised quotation.",
+  );
+  await expect(guestPage.getByRole("button", { name: "Approve quotation" })).toHaveCount(0);
   await expect(page.getByLabel("Description")).toHaveValue(
     "Accountless customer consultation",
   );
@@ -70,9 +134,56 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
   await expect(replacementField).toHaveValue(/^http/, { timeout: 20_000 });
   const replacementLink = await replacementField.inputValue();
 
-  await page.goto(oldLink);
-  await expect(page.getByRole("heading", { name: "That page is not here" })).toBeVisible();
-  await page.goto(replacementLink);
-  await expect(page.getByText("Accountless customer consultation")).toBeVisible();
-  await expect(page.getByText("Version 2")).toBeVisible();
+  await guestPage.goto(oldLink);
+  await expect(
+    guestPage.getByRole("heading", { name: "That page is not here" }),
+  ).toBeVisible();
+  await guestPage.goto(replacementLink);
+  await expect(guestPage.getByText("Accountless customer consultation")).toBeVisible();
+  await expect(guestPage.getByText("Version 2")).toBeVisible();
+  await page.goto(quoteUrl);
+
+  await guestPage.getByLabel("Note (optional)").fill("Please confirm the revised timing.");
+  await Promise.all([
+    guestPage.getByRole("button", { name: "Request changes" }).click(),
+    page.getByRole("button", { name: "Revoke" }).click(),
+  ]);
+  const changeRequestRecorded = guestPage
+    .getByRole("status")
+    .filter({ hasText: "Your response has been recorded." });
+  const revokedBeforeResponse = guestPage
+    .getByRole("alert")
+    .filter({ hasText: "This quotation link is unavailable." });
+  await expect
+    .poll(
+      async () =>
+        (await changeRequestRecorded.count()) + (await revokedBeforeResponse.count()),
+    )
+    .toBe(1);
+  await expect(page.getByRole("status")).toContainText(
+    "The quotation link has been revoked.",
+  );
+
+  if (await revokedBeforeResponse.count()) {
+    await page.goto(quoteUrl);
+    await page.getByRole("button", { name: "Create replacement link" }).click();
+    const renewedLink = page.getByRole("textbox", { name: "Quotation link" });
+    await expect(renewedLink).toHaveValue(/^http/, { timeout: 20_000 });
+    await guestPage.goto(await renewedLink.inputValue());
+    await guestPage
+      .getByLabel("Note (optional)")
+      .fill("Please confirm the revised timing.");
+    await guestPage.getByRole("button", { name: "Request changes" }).click();
+    await expect(guestPage.getByRole("status")).toContainText(
+      "Your response has been recorded.",
+    );
+  } else {
+    await guestPage.goto(replacementLink);
+    await expect(
+      guestPage.getByRole("heading", { name: "That page is not here" }),
+    ).toBeVisible();
+  }
+  await page.goto(quoteUrl);
+  await expect(page.getByText("Customer change requested", { exact: true })).toBeVisible();
+  await guestContext.close();
 });

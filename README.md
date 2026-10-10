@@ -36,7 +36,7 @@ The root page redirects to the protected dashboard. Login and sign-up use Supaba
 | npm run db:stop | Stop local Supabase services |
 | npm run db:status | Show local Supabase service status |
 
-Local Supabase services use Docker on Windows. No production Supabase project is configured. Schema changes are tracked in `supabase/migrations`; invoice, payment, and receipt workflows remain later phases. Quotation response submission is still incomplete; see the roadmap for the database-trigger blocker.
+Local Supabase services use Docker on Windows. No production Supabase project is configured. Schema changes are tracked in `supabase/migrations`; owners can issue numbered invoices from approved quotations, while payments and receipts remain later phases. Quotation links support accountless reads, approval/change requests, and revisions; see the roadmap for current status and implementation order.
 
 ## Environment
 

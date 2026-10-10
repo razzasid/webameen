@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
+import { QuotationInvoiceConversion } from "@/components/invoices/quotation-invoice-conversion";
 import { QuotationDraftEditor } from "@/components/quotations/quotation-draft-editor";
 import { QuotationWorkflowPanel } from "@/components/quotations/quotation-workflow-panel";
 import { getBusinessSettings } from "@/server/modules/business/settings-queries";
 import { listGstRateOptions } from "@/server/modules/catalog/queries";
 import { formatPaise } from "@/server/modules/catalog/validation";
+import { getInvoiceForQuotation } from "@/server/modules/invoices/queries";
 import { editQuotationDraftAction } from "@/server/modules/quotations/actions";
 import {
   getQuotationDraft,
@@ -25,11 +27,15 @@ export default async function QuotationDetailPage({
     getQuotationWorkflow(id),
   ]);
   const { saved } = await searchParams;
-  const [{ profile }, catalog, rateOptions] = await Promise.all([
+  const [{ profile }, catalog, rateOptions, existingInvoice] = await Promise.all([
     getBusinessSettings(),
     listQuotationCatalogChoices(),
     listGstRateOptions(),
+    getInvoiceForQuotation(id),
   ]);
+  const currentVersion = workflow.versions.find(
+    (version) => version.id === workflow.current_version_id,
+  );
   return (
     <section className="max-w-5xl">
       <Link href="/quotations" className="text-sm font-medium text-[var(--brand)]">
@@ -119,6 +125,14 @@ export default async function QuotationDetailPage({
         workflow={workflow}
         shareRequestKey={randomUUID()}
         rotateRequestKey={randomUUID()}
+      />
+      <QuotationInvoiceConversion
+        quotationId={id}
+        versionId={workflow.current_version_id}
+        versionState={currentVersion?.state ?? quote.state}
+        responseKind={currentVersion?.response?.kind ?? null}
+        reviewedManualTreatment={quote.snapshot.gst_treatment_override !== null}
+        existingInvoice={existingInvoice}
       />
     </section>
   );
