@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { InvoicePaymentPanel } from "@/components/payments/invoice-payment-panel";
 import { formatPaise } from "@/server/modules/catalog/validation";
 import { getInvoice } from "@/server/modules/invoices/queries";
+import { getInvoicePaymentSummary } from "@/server/modules/payments/queries";
 
 export default async function InvoiceDetailPage({
   params,
@@ -9,6 +11,7 @@ export default async function InvoiceDetailPage({
 }) {
   const { id } = await params;
   const invoice = await getInvoice(id);
+  const paymentSummary = await getInvoicePaymentSummary(id);
   const issuedAt = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -235,9 +238,10 @@ export default async function InvoiceDetailPage({
           ) : null}
         </div>
       </section>
+      <InvoicePaymentPanel invoiceId={invoice.id} summary={paymentSummary} />
       <p className="mt-5 text-center text-xs text-[var(--muted)]">
-        This issued invoice is an immutable copy of the approved quotation. Invoice editing
-        and payment recording are not available in this phase.
+        This issued invoice is an immutable copy of the approved quotation. Corrections to
+        recorded payments are retained in the payment history.
       </p>
     </section>
   );

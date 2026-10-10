@@ -24,7 +24,7 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
   page,
   browser,
 }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(240_000);
   await createWorkspace(page);
   await page.goto("/settings");
   await page.getByLabel("Period name").fill("FY-DEMO");
@@ -70,6 +70,7 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
 
   const guestContext = await browser.newContext();
   let secondOwnerPage: Page | undefined;
+  const openedContexts: Awaited<ReturnType<typeof browser.newContext>>[] = [];
   try {
     const guestPage = await guestContext.newPage();
     await guestPage.goto(await linkField.inputValue());
@@ -143,7 +144,6 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
     const mainInvoiceReference = await page.getByRole("heading", { level: 1 }).innerText();
     await expect(page.getByText("Approved project service")).toBeVisible();
     const invoiceUrl = page.url();
-
     await page.reload();
     await expect(page.getByRole("heading", { name: mainInvoiceReference })).toBeVisible();
     await page.goto(quotationUrl);
@@ -152,7 +152,101 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
       "href",
       new URL(invoiceUrl).pathname,
     );
+
+    const invoicePeer = secondOwnerPage;
+    if (!invoicePeer) throw new Error("The second invoice tab is unavailable.");
+    await Promise.all([page.goto(invoiceUrl), invoicePeer.goto(invoiceUrl)]);
+    await page.getByLabel("Amount received (₹)").fill("70.00");
+    await invoicePeer.getByLabel("Amount received (₹)").fill("70.00");
+    await page.getByLabel("Payment method").fill("UPI");
+    await invoicePeer.getByLabel("Payment method").fill("UPI");
+    await Promise.all([
+      page.getByRole("button", { name: "Record payment", exact: true }).click(),
+      invoicePeer.getByRole("button", { name: "Record payment", exact: true }).click(),
+    ]);
+    await expect
+      .poll(
+        () =>
+          [page.url(), invoicePeer.url()].filter((url) => url.includes("/receipts/"))
+            .length,
+        { timeout: 30_000 },
+      )
+      .toBe(1);
+    const receiptPage = page.url().includes("/receipts/") ? page : invoicePeer;
+    const invoicePage = receiptPage === page ? invoicePeer : page;
+    const blockedPage = invoicePage;
+    const partialReceiptUrl = receiptPage.url();
+    const partialReceiptReference = await receiptPage
+      .getByRole("heading", { level: 1 })
+      .innerText();
+    await expect(receiptPage.getByText("₹70.00", { exact: true })).toBeVisible();
+    await expect(
+      receiptPage.getByRole("button", { name: "Print or save receipt" }),
+    ).toBeVisible();
+    await expect(
+      blockedPage.getByText("The payment no longer fits", { exact: false }),
+    ).toBeVisible();
+    await receiptPage.getByRole("link", { name: "Payments", exact: true }).click();
+    await expect(
+      receiptPage.getByRole("heading", { name: "Payments", exact: true }),
+    ).toBeVisible();
+    await expect(
+      receiptPage.getByRole("link", { name: partialReceiptReference, exact: true }),
+    ).toBeVisible();
+
+    await invoicePage.goto(invoiceUrl);
+    await expect(invoicePage.getByText("₹48.00", { exact: true })).toBeVisible();
+    await invoicePage.getByLabel("Amount received (₹)").fill("48.00");
+    await invoicePage.getByLabel("Payment method").fill("Bank transfer");
+    await invoicePage.getByRole("button", { name: "Record payment", exact: true }).click();
+    await expect(invoicePage).toHaveURL(/\/receipts\/[0-9a-f-]+$/i);
+    await expect(invoicePage.getByText("₹48.00", { exact: true })).toBeVisible();
+
+    await invoicePage.goto(invoiceUrl);
+    const firstPayment = invoicePage.locator("li").filter({
+      has: invoicePage.getByRole("link", { name: partialReceiptReference, exact: true }),
+    });
+    await firstPayment
+      .getByLabel("Correction reason")
+      .fill("Payment entered against the wrong details");
+    await firstPayment.getByRole("button", { name: "Reverse payment" }).click();
+    await expect(invoicePage).toHaveURL(/\?paymentUpdated=1$/);
+    await expect(firstPayment.getByText("Reversed · receipt void")).toBeVisible();
+    await expect(invoicePage.getByText("₹70.00", { exact: true })).toBeVisible();
+    await expect(invoicePage.getByText("₹48.00", { exact: true })).toBeVisible();
+
+    await firstPayment.getByLabel("Amount received (₹)").fill("70.00");
+    await firstPayment.getByLabel("Payment method").fill("UPI");
+    await firstPayment.getByRole("button", { name: "Record replacement payment" }).click();
+    await expect(invoicePage).toHaveURL(/\/receipts\/[0-9a-f-]+$/i);
+    const replacementReceiptReference = await invoicePage
+      .getByRole("heading", { level: 1 })
+      .innerText();
+    await expect(
+      invoicePage.getByRole("link", { name: `Replaces ${partialReceiptReference}` }),
+    ).toBeVisible();
+    await invoicePage.goto(invoiceUrl);
+    await expect(
+      invoicePage.getByRole("heading", { name: "paid", exact: true }),
+    ).toBeVisible();
+    await expect(invoicePage.getByText("₹0.00", { exact: true }).first()).toBeVisible();
+
+    await invoicePage.goto(partialReceiptUrl);
+    await expect(invoicePage.getByText("Void receipt", { exact: true })).toBeVisible();
+    await expect(
+      invoicePage.getByRole("link", { name: `Replaced by ${replacementReceiptReference}` }),
+    ).toBeVisible();
+
+    const foreignContext = await browser.newContext();
+    openedContexts.push(foreignContext);
+    const foreignPage = await foreignContext.newPage();
+    await createWorkspace(foreignPage);
+    const foreignInvoiceResponse = await foreignPage.goto(invoiceUrl);
+    expect(foreignInvoiceResponse?.status()).toBe(404);
+    const foreignReceiptResponse = await foreignPage.goto(partialReceiptUrl);
+    expect(foreignReceiptResponse?.status()).toBe(404);
   } finally {
+    await Promise.all(openedContexts.map((context) => context.close()));
     await secondOwnerPage?.close();
     await guestContext.close();
   }
