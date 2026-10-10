@@ -46,10 +46,12 @@ export const publicEnvironment = parsePublicEnvironment({
 
 const serverEnvironmentSchema = z.object({
   SUPABASE_QUOTE_BROKER_KEY: optionalKey,
+  SUPABASE_INVOICE_BROKER_KEY: optionalKey,
 });
 
 export const serverEnvironment = serverEnvironmentSchema.parse({
   SUPABASE_QUOTE_BROKER_KEY: process.env.SUPABASE_QUOTE_BROKER_KEY,
+  SUPABASE_INVOICE_BROKER_KEY: process.env.SUPABASE_INVOICE_BROKER_KEY,
 });
 
 export function isSupabaseConfigured(): boolean {

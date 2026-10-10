@@ -18,7 +18,8 @@ SELECT set_config('request.jwt.claims','{"sub":"e9000000-0000-0000-0000-00000000
 CREATE TEMP TABLE invoice_fixture(
   business_id uuid, customer_id uuid, quotation_id uuid, version_id uuid,
   second_quote_id uuid, second_version_id uuid,
-  unapproved_quote_id uuid, unapproved_version_id uuid, invoice_id uuid
+  unapproved_quote_id uuid, unapproved_version_id uuid, invoice_id uuid,
+  invoice_link_id uuid
 );
 GRANT SELECT,INSERT,UPDATE ON invoice_fixture TO authenticated;
 SET LOCAL ROLE authenticated;
@@ -206,7 +207,106 @@ SELECT pg_temp.expect_error(
   'INSERT INTO public.invoices(business_id) SELECT business_id FROM invoice_fixture',
   '42501','Authenticated raw invoice writes remain denied'
 );
+UPDATE invoice_fixture SET invoice_link_id=(
+  public.create_invoice_link(invoice_id,
+    'ea111111-1111-4111-8111-111111111111',repeat('a',64),NULL)->>'link_id'
+)::uuid;
+SELECT pg_temp.assert_ok(
+  (SELECT public.create_invoice_link(invoice_id,
+      'ea111111-1111-4111-8111-111111111111',repeat('b',64),NULL)->>'created'='false'
+   FROM invoice_fixture),
+  'Same-key invoice link retry returns the original result without replacing its secret'
+);
+SELECT pg_temp.expect_error(
+  'SELECT public.create_invoice_link(invoice_id,''ea222222-2222-4222-8222-222222222222'',repeat(''c'',64),NULL) FROM invoice_fixture',
+  '23514','A second create cannot replace an active invoice link'
+);
+SELECT pg_temp.assert_ok(
+  NOT has_column_privilege('authenticated','public.invoice_public_links','token_hash','SELECT')
+    AND NOT has_function_privilege('anon','public.read_public_invoice(text)','EXECUTE')
+    AND has_function_privilege('service_role','public.read_public_invoice(text)','EXECUTE')
+    AND NOT has_table_privilege('service_role','public.invoices','SELECT')
+    AND (SELECT relrowsecurity AND relforcerowsecurity
+         FROM pg_class WHERE oid='public.invoice_public_links'::regclass),
+  'Only the server broker can call public invoice reads; raw hashes and invoice rows remain private'
+);
 RESET ROLE;
+
+SET LOCAL ROLE service_role;
+SELECT pg_temp.assert_ok(
+  (public.read_public_invoice(repeat('a',64))->>'reference')='WAM/FY-TEST/0100'
+  AND public.read_public_invoice(repeat('a',64)) #>> '{seller,display_name}'='Approved Seller'
+  AND public.read_public_invoice(repeat('a',64)) #>> '{buyer,display_name}'='Approved Buyer'
+  AND public.read_public_invoice(repeat('a',64)) #>> '{lines,0,description}'='Distinctive service'
+  AND public.read_public_invoice(repeat('a',64)) #>> '{lines,0,quantity}'='1.125000'
+  AND public.read_public_invoice(repeat('a',64)) #>> '{totals,total_minor}'='13275'
+  AND NOT (public.read_public_invoice(repeat('a',64)) ? 'business_id')
+  AND NOT (public.read_public_invoice(repeat('a',64)) ? 'payments')
+  AND public.read_public_invoice('invalid') IS NULL,
+  'Valid token returns only the frozen invoice snapshot and invalid tokens are unavailable'
+);
+RESET ROLE;
+
+SELECT set_config('request.jwt.claims','{"sub":"e9000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+SET LOCAL ROLE authenticated;
+SELECT pg_temp.assert_ok(
+  (SELECT (public.rotate_invoice_link(invoice_id,
+    'ea333333-3333-4333-8333-333333333333',repeat('b',64),NULL)->>'created')::boolean
+   FROM invoice_fixture),
+  'Explicit rotation creates a new one-time secret'
+);
+SELECT pg_temp.assert_ok(
+  (SELECT public.rotate_invoice_link(invoice_id,
+    'ea333333-3333-4333-8333-333333333333',repeat('f',64),NULL)->>'created'='false'
+   FROM invoice_fixture),
+  'Same-key rotation retry cannot rotate a newer active link'
+);
+UPDATE invoice_fixture SET invoice_link_id=(
+  SELECT id FROM public.invoice_public_links
+  WHERE invoice_id=invoice_fixture.invoice_id AND revoked_at IS NULL
+);
+SELECT pg_temp.assert_ok(
+  (SELECT public.revoke_invoice_link(invoice_id,invoice_link_id)->>'revocation_reason'='owner_revoked'
+   FROM invoice_fixture),
+  'Owner can revoke the current invoice link'
+);
+SELECT pg_temp.assert_ok(
+  (SELECT (public.create_invoice_link(invoice_id,
+    'ea444444-4444-4444-8444-444444444444',repeat('c',64),clock_timestamp()+interval '2 seconds')->>'created')::boolean
+   FROM invoice_fixture),
+  'Owner can create a link with an explicit future access cutoff'
+);
+SELECT pg_catalog.pg_sleep(2.2);
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT pg_temp.assert_ok(
+  public.read_public_invoice(repeat('a',64)) IS NULL
+    AND public.read_public_invoice(repeat('b',64)) IS NULL
+    AND public.read_public_invoice(repeat('c',64)) IS NULL,
+  'Rotation, revocation and expiry block subsequent customer reads'
+);
+RESET ROLE;
+
+SELECT set_config('request.jwt.claims','{"sub":"e9000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+SET LOCAL ROLE authenticated;
+SELECT public.revoke_invoice_link(invoice_id,
+  (SELECT id FROM public.invoice_public_links WHERE invoice_id=invoice_fixture.invoice_id
+    AND creation_request_key='ea444444-4444-4444-8444-444444444444'))
+FROM invoice_fixture;
+SELECT public.create_invoice_link(invoice_id,
+  'ea555555-5555-4555-8555-555555555555',repeat('d',64),NULL)
+FROM invoice_fixture;
+RESET ROLE;
+UPDATE public.business_memberships SET disabled_at=clock_timestamp()
+WHERE user_id='e9000000-0000-0000-0000-000000000001';
+SET LOCAL ROLE service_role;
+SELECT pg_temp.assert_ok(
+  public.read_public_invoice(repeat('d',64)) IS NULL,
+  'Disabling the invoice owner blocks future customer reads'
+);
+RESET ROLE;
+UPDATE public.business_memberships SET disabled_at=NULL
+WHERE user_id='e9000000-0000-0000-0000-000000000001';
 
 -- A second owner cannot read or issue the first owner's invoice/quotation. Its
 -- own approved quotes also exercise missing-period and bigint-exhaustion paths.
@@ -222,6 +322,11 @@ CREATE TEMP TABLE invoice_owner_b(
 );
 GRANT SELECT,INSERT,UPDATE ON invoice_owner_b TO authenticated;
 SET LOCAL ROLE authenticated;
+SELECT pg_temp.assert_ok(
+  (SELECT count(*)=0 FROM public.invoice_public_links
+    WHERE invoice_id=(SELECT invoice_id FROM invoice_fixture)),
+  'Another business owner cannot read the first owner invoice link metadata'
+);
 INSERT INTO invoice_owner_b(business_id)
 SELECT public.bootstrap_business('Other seller','other@example.invalid','5555555555','Other address','27',false,NULL);
 UPDATE invoice_owner_b SET customer_id=public.create_customer(

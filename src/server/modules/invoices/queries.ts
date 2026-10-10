@@ -103,6 +103,14 @@ export type InvoiceDetail = InvoiceSummary & {
   items: InvoiceItem[];
 };
 
+export type InvoicePublicLink = {
+  id: string;
+  created_at: string;
+  access_expires_at: string | null;
+  revoked_at: string | null;
+  revocation_reason: string | null;
+};
+
 export async function listInvoiceNumberPeriods(): Promise<InvoiceNumberPeriod[]> {
   const context = await getBusinessContext();
   if (context.status !== "ready") return [];
@@ -133,10 +141,10 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
   return (data ?? []) as InvoiceSummary[];
 }
 
-export async function getInvoice(id: string): Promise<InvoiceDetail> {
-  if (!isUuid(id)) notFound();
+export async function findInvoiceForOwner(id: string): Promise<InvoiceDetail | null> {
+  if (!isUuid(id)) return null;
   const context = await getBusinessContext();
-  if (context.status !== "ready") notFound();
+  if (context.status !== "ready") return null;
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("invoices")
@@ -145,7 +153,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail> {
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error("Could not load this invoice.");
-  if (!data) notFound();
+  if (!data) return null;
   const { data: itemData, error: itemError } = await supabase
     .from("invoice_items")
     .select(
@@ -156,6 +164,27 @@ export async function getInvoice(id: string): Promise<InvoiceDetail> {
     .order("position");
   if (itemError) throw new Error("Could not load invoice lines.");
   return { ...(data as Omit<InvoiceDetail, "items">), items: itemData ?? [] };
+}
+
+export async function getInvoice(id: string): Promise<InvoiceDetail> {
+  const invoice = await findInvoiceForOwner(id);
+  if (!invoice) notFound();
+  return invoice;
+}
+
+export async function listInvoicePublicLinks(id: string): Promise<InvoicePublicLink[]> {
+  if (!isUuid(id)) return [];
+  const context = await getBusinessContext();
+  if (context.status !== "ready") return [];
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("invoice_public_links")
+    .select("id,created_at,access_expires_at,revoked_at,revocation_reason")
+    .eq("business_id", context.business.id)
+    .eq("invoice_id", id)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Could not load invoice link history.");
+  return (data ?? []) as InvoicePublicLink[];
 }
 
 export async function getInvoiceForQuotation(

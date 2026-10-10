@@ -68,6 +68,12 @@ export default async function PublicQuotationPage({
             {quote.valid_until ? (
               <p className="mt-2 text-sm">Valid through {quote.valid_until}</p>
             ) : null}
+            <a
+              href={`/q/${token}/pdf`}
+              className="mt-3 inline-block rounded-xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold"
+            >
+              Download PDF
+            </a>
           </div>
         </div>
 

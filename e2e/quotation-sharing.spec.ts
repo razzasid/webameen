@@ -28,6 +28,7 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
   await page.getByLabel("Customer name").fill("Quotation Guest");
   await page.getByLabel("State or territory").selectOption("29");
   await page.getByRole("button", { name: "Create customer" }).click();
+  await expect(page).toHaveURL(/\/customers\/[0-9a-f-]+$/i, { timeout: 20_000 });
 
   await page.goto("/quotations/new");
   await page.getByLabel("Customer").selectOption({ label: "Quotation Guest" });
@@ -184,6 +185,8 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
     ).toBeVisible();
   }
   await page.goto(quoteUrl);
-  await expect(page.getByText("Customer change requested", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Customer change requested", { exact: true }).first(),
+  ).toBeVisible();
   await guestContext.close();
 });

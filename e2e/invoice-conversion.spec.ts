@@ -1,5 +1,31 @@
 import { expect, type Page, test } from "@playwright/test";
 
+async function fetchPdfFromOwnerPage(page: Page, url: string) {
+  return page.evaluate(async (href) => {
+    const response = await fetch(href, { credentials: "same-origin" });
+    return {
+      status: response.status,
+      contentType: response.headers.get("content-type") ?? "",
+      bytes: Array.from(new Uint8Array(await response.arrayBuffer())),
+    };
+  }, url);
+}
+
+function searchablePdfText(pdf: Buffer): string {
+  const streams = Array.from(
+    pdf.toString("latin1").matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g),
+    ([, stream]) => stream,
+  );
+  const textOperations = streams.flatMap((stream) =>
+    Array.from(stream.matchAll(/\[([\s\S]*?)\]\s*TJ/g), ([, operands]) =>
+      Array.from(operands.matchAll(/<([\da-fA-F]+)>/g), ([, hex]) =>
+        Buffer.from(hex, "hex").toString("latin1"),
+      ).join(""),
+    ),
+  );
+  return textOperations.join("\n");
+}
+
 async function createWorkspace(page: Page) {
   const email = `invoice-${Date.now()}@example.com`;
   await page.goto("/signup");
@@ -67,6 +93,15 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
   await page.getByRole("button", { name: "Share quotation" }).click();
   const linkField = page.getByRole("textbox", { name: "Quotation link" });
   await expect(linkField).toHaveValue(/^http/, { timeout: 20_000 });
+  const ownerQuotationPdf = await fetchPdfFromOwnerPage(
+    page,
+    new URL(`${new URL(quotationUrl).pathname}/pdf`, quotationUrl).toString(),
+  );
+  expect(ownerQuotationPdf.status).toBe(200);
+  expect(ownerQuotationPdf.contentType).toContain("application/pdf");
+  expect(Buffer.from(ownerQuotationPdf.bytes).subarray(0, 5).toString("ascii")).toBe(
+    "%PDF-",
+  );
 
   const guestContext = await browser.newContext();
   let secondOwnerPage: Page | undefined;
@@ -74,6 +109,17 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
   try {
     const guestPage = await guestContext.newPage();
     await guestPage.goto(await linkField.inputValue());
+    const quotationPdfDownloadPromise = guestPage.waitForEvent("download");
+    await guestPage.getByRole("link", { name: "Download PDF" }).click();
+    const quotationPdfDownload = await quotationPdfDownloadPromise;
+    expect(quotationPdfDownload.suggestedFilename()).toBe("quotation.pdf");
+    const quotationPdfPath = await quotationPdfDownload.path();
+    if (!quotationPdfPath) throw new Error("The quotation PDF download was not saved.");
+    const downloadedQuotationPdf = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(quotationPdfPath),
+    );
+    expect(downloadedQuotationPdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    expect(searchablePdfText(downloadedQuotationPdf)).toContain("Approved project service");
     await guestPage.getByLabel("Your name (optional)").fill("Invoice Demo Buyer");
     await guestPage.getByRole("button", { name: "Approve quotation" }).click();
     await expect(guestPage.getByRole("status")).toContainText(
@@ -131,21 +177,62 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
       secondOwnerPage.getByRole("link", { name: /Open (issued )?invoice/ }).click(),
     ]);
     await expect(
-      page.getByRole("heading", { name: /^WEB\/FY-DEMO\/010[01]$/ }),
+      page.getByRole("heading", { name: /^WEB\/FY-DEMO\/010[01]$/ }).first(),
     ).toBeVisible({ timeout: 20_000 });
     await expect(
-      secondOwnerPage.getByRole("heading", { name: /^WEB\/FY-DEMO\/010[01]$/ }),
+      secondOwnerPage.getByRole("heading", { name: /^WEB\/FY-DEMO\/010[01]$/ }).first(),
     ).toBeVisible({ timeout: 20_000 });
     const issuedReferences = [
-      await page.getByRole("heading", { level: 1 }).innerText(),
-      await secondOwnerPage.getByRole("heading", { level: 1 }).innerText(),
+      await page.getByRole("heading", { level: 1 }).first().innerText(),
+      await secondOwnerPage.getByRole("heading", { level: 1 }).first().innerText(),
     ].sort();
     expect(issuedReferences).toEqual(["WEB/FY-DEMO/0100", "WEB/FY-DEMO/0101"]);
-    const mainInvoiceReference = await page.getByRole("heading", { level: 1 }).innerText();
+    const mainInvoiceReference = await page
+      .getByRole("heading", { level: 1 })
+      .first()
+      .innerText();
     await expect(page.getByText("Approved project service")).toBeVisible();
     const invoiceUrl = page.url();
+    const ownerPdfResponse = await fetchPdfFromOwnerPage(
+      page,
+      new URL(`${new URL(invoiceUrl).pathname}/pdf`, invoiceUrl).toString(),
+    );
+    expect(ownerPdfResponse.status).toBe(200);
+    expect(ownerPdfResponse.contentType).toContain("application/pdf");
+    expect(Buffer.from(ownerPdfResponse.bytes).subarray(0, 5).toString("ascii")).toBe(
+      "%PDF-",
+    );
+
+    await page.getByRole("button", { name: "Create customer link" }).click();
+    const invoiceLinkField = page.getByRole("textbox", { name: "Invoice customer link" });
+    await expect(invoiceLinkField).toHaveValue(/^http/, { timeout: 20_000 });
+    const invoiceShareUrl = await invoiceLinkField.inputValue();
+    const publicInvoiceResponse = await guestPage.goto(invoiceShareUrl);
+    expect(publicInvoiceResponse?.status()).toBe(200);
+    expect(publicInvoiceResponse?.headers()["cache-control"]).toContain("no-store");
+    await expect(
+      guestPage.getByRole("heading", { name: mainInvoiceReference }),
+    ).toBeVisible();
+    await expect(guestPage.getByText("Approved project service")).toBeVisible();
+    await expect(guestPage.getByText("Seller address")).toBeVisible();
+    const pdfDownloadPromise = guestPage.waitForEvent("download");
+    await guestPage.getByRole("link", { name: "Download PDF" }).click();
+    const pdfDownload = await pdfDownloadPromise;
+    expect(pdfDownload.suggestedFilename()).toBe("invoice.pdf");
+    const downloadedPath = await pdfDownload.path();
+    if (!downloadedPath) throw new Error("The invoice PDF download was not saved.");
+    const downloadedPdf = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(downloadedPath),
+    );
+    expect(downloadedPdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    expect(searchablePdfText(downloadedPdf)).toContain("Approved project service");
+
+    const invalidInvoiceResponse = await guestPage.goto(`/i/${"0".repeat(64)}`);
+    expect(invalidInvoiceResponse?.status()).toBe(404);
     await page.reload();
-    await expect(page.getByRole("heading", { name: mainInvoiceReference })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: mainInvoiceReference }).first(),
+    ).toBeVisible();
     await page.goto(quotationUrl);
     await expect(page.getByRole("status")).toContainText("has been issued and is locked");
     await expect(page.getByRole("link", { name: "Open issued invoice" })).toHaveAttribute(
@@ -245,6 +332,22 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
     expect(foreignInvoiceResponse?.status()).toBe(404);
     const foreignReceiptResponse = await foreignPage.goto(partialReceiptUrl);
     expect(foreignReceiptResponse?.status()).toBe(404);
+
+    await page.goto(invoiceUrl);
+    await page.getByRole("button", { name: "Revoke link" }).click();
+    await expect(page.getByRole("status")).toContainText("revoked");
+    const revokedInvoiceResponse = await guestPage.goto(invoiceShareUrl);
+    expect(revokedInvoiceResponse?.status()).toBe(404);
+    const invoiceToken = new URL(invoiceShareUrl).pathname
+      .split("/")
+      .filter(Boolean)
+      .at(-1);
+    if (!invoiceToken)
+      throw new Error("The invoice token is missing from the copied link.");
+    const revokedInvoicePdfResponse = await guestPage.request.get(
+      new URL(`/i/${invoiceToken}/pdf`, invoiceShareUrl).toString(),
+    );
+    expect(revokedInvoicePdfResponse.status()).toBe(404);
   } finally {
     await Promise.all(openedContexts.map((context) => context.close()));
     await secondOwnerPage?.close();

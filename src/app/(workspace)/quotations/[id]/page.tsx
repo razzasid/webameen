@@ -51,11 +51,21 @@ export default async function QuotationDetailPage({
             Version {quote.version_number} · {quote.state.replaceAll("_", " ")}
           </p>
         </div>
-        <p className="text-sm">
-          {quote.totals.total_minor === null
-            ? "Amount not calculated"
-            : formatPaise(quote.totals.total_minor)}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm">
+            {quote.totals.total_minor === null
+              ? "Amount not calculated"
+              : formatPaise(quote.totals.total_minor)}
+          </p>
+          {workflow.versions.some((version) => version.shared_at !== null) ? (
+            <a
+              href={`/quotations/${id}/pdf`}
+              className="rounded-xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold"
+            >
+              Download latest shared PDF
+            </a>
+          ) : null}
+        </div>
       </div>
       {saved === "1" ? (
         <p

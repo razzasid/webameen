@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 import { isUuid } from "@/server/shared/uuid";
+import { createInvoiceToken } from "./token";
 
 function isCalendarDate(value: string): boolean {
   const parsed = new Date(`${value}T00:00:00.000Z`);
@@ -224,4 +225,98 @@ export async function issueApprovedQuotationAction(
       dueOn,
     };
   }
+}
+
+export type InvoiceLinkActionState = {
+  error?: string;
+  message?: string;
+  rawToken?: string;
+};
+
+function safeInvoiceLinkError(code: string): string {
+  if (code === "42501" || code === "P0002") return "This invoice is unavailable.";
+  if (code === "23514") return "This invoice link changed. Reload and try again.";
+  if (code === "22023") return "The invoice link request is invalid. Reload and try again.";
+  return "Invoice sharing is temporarily unavailable. Please try again.";
+}
+
+async function saveInvoiceLink(
+  formData: FormData,
+  operation: "create_invoice_link" | "rotate_invoice_link",
+): Promise<InvoiceLinkActionState> {
+  await requireAuthenticatedUser();
+  const invoiceId = String(formData.get("invoiceId") ?? "");
+  const requestKey = String(formData.get("requestKey") ?? "");
+  if (![invoiceId, requestKey].every(isUuid))
+    return { error: "Reload the invoice and try again." };
+  const { token, tokenHashHex } = createInvoiceToken();
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc(operation, {
+      p_invoice_id: invoiceId,
+      p_creation_request_key: requestKey,
+      p_token_hash_hex: tokenHashHex,
+      p_access_expires_at: null,
+    });
+    if (error) return { error: safeInvoiceLinkError(error.code) };
+    const result = data as { created?: boolean } | null;
+    if (!result?.created) {
+      return {
+        message:
+          "This request already completed. Its link cannot be shown again; create a replacement to reveal a new link.",
+      };
+    }
+    return {
+      rawToken: token,
+      message:
+        operation === "rotate_invoice_link"
+          ? "A replacement link is ready. The previous link has been revoked."
+          : "Invoice link created. Copy it now; Webameen cannot show it again.",
+    };
+  } catch {
+    return { error: "Invoice sharing is temporarily unavailable. Please try again." };
+  }
+}
+
+export async function createInvoiceLinkAction(
+  _previous: InvoiceLinkActionState,
+  formData: FormData,
+): Promise<InvoiceLinkActionState> {
+  const state = await saveInvoiceLink(formData, "create_invoice_link");
+  const invoiceId = String(formData.get("invoiceId") ?? "");
+  if (!state.error && isUuid(invoiceId)) revalidatePath(`/invoices/${invoiceId}`);
+  return state;
+}
+
+export async function rotateInvoiceLinkAction(
+  _previous: InvoiceLinkActionState,
+  formData: FormData,
+): Promise<InvoiceLinkActionState> {
+  const state = await saveInvoiceLink(formData, "rotate_invoice_link");
+  const invoiceId = String(formData.get("invoiceId") ?? "");
+  if (!state.error && isUuid(invoiceId)) revalidatePath(`/invoices/${invoiceId}`);
+  return state;
+}
+
+export async function revokeInvoiceLinkAction(
+  _previous: InvoiceLinkActionState,
+  formData: FormData,
+): Promise<InvoiceLinkActionState> {
+  await requireAuthenticatedUser();
+  const invoiceId = String(formData.get("invoiceId") ?? "");
+  const linkId = String(formData.get("linkId") ?? "");
+  if (![invoiceId, linkId].every(isUuid))
+    return { error: "Reload the invoice and try again." };
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.rpc("revoke_invoice_link", {
+      p_invoice_id: invoiceId,
+      p_link_id: linkId,
+    });
+    if (error) return { error: safeInvoiceLinkError(error.code) };
+  } catch {
+    return { error: "Invoice sharing is temporarily unavailable. Please try again." };
+  }
+  revalidatePath(`/invoices/${invoiceId}`);
+  return { message: "The invoice link has been revoked." };
 }

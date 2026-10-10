@@ -5,10 +5,10 @@ import { createHash } from "node:crypto";
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 const WINDOW_MS = 60_000;
-const LIMITS = { read: 60, pdf: 8, respond: 8 } as const;
+const LIMITS = { read: 40, pdf: 8 } as const;
 
-/** Best-effort, per-process prototype limit. Production multi-instance limits need a shared store. */
-export function allowPublicQuotationRequest(
+/** Best-effort per-process prototype limits; production needs a shared limiter. */
+export function allowPublicInvoiceRequest(
   clientAddress: string,
   operation: keyof typeof LIMITS,
   now = Date.now(),

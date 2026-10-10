@@ -12,5 +12,9 @@ describe("public quotation rate limit", () => {
     }
     expect(allowPublicQuotationRequest(client, "respond", 1_000)).toBe(false);
     expect(allowPublicQuotationRequest(client, "respond", 62_000)).toBe(true);
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      expect(allowPublicQuotationRequest(client, "pdf", 2_000)).toBe(true);
+    }
+    expect(allowPublicQuotationRequest(client, "pdf", 2_000)).toBe(false);
   });
 });

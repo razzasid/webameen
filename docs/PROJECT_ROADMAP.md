@@ -443,31 +443,33 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 
 ### Phase 11 — Accountless Invoice Access, Document PDFs and Optional Branding
 
-**Status:** 🔴 NOT STARTED. **Goal:** customers securely view/download the same frozen quotation/invoice the owner shared.
+**Status:** ✅ COMPLETE for the prototype. **Goal:** customers securely view/download the same frozen quotation/invoice the owner shared.
 
 **Depends on:** 8 for quotes, 9 for invoices; Phase 6 text settings. **Required before:** 13 customer delivery acceptance. **Blocks:** exposing PDF/assets without token authorization. **Can be implemented independently:** quote PDF can start after 8, invoice branch after 9; no payments dependency. Logo/signature uploads are optional within this phase and must not block text-only downloads.
 
 **Database / Storage**
 
-- [ ] 🔴 NOT STARTED — Add owner invoice-link create/rotate/revoke over existing table, stable keys and same one-time secret handoff as quote links; shared business/invoice advisory locks; retries do not rotate a newer link.
-- [ ] 🔴 NOT STARTED — Activate only invoice broker read grants/RLS and fixed private SECURITY DEFINER read/invoker entry functions. Only isolated server service invocation; no quote/response/payment/receipt/master/number-settings access.
-- [ ] 🔴 NOT STARTED — If branding is included, create private business-scoped immutable object storage with narrow owner membership policies, allowed image types/size, trusted keys and SHA-256 pairing. Deny overwrites and deletion of retained historical assets; no public product media or file table required.
+- [x] ✅ COMPLETE — Add owner invoice-link create/rotate/revoke over the existing table, stable request keys and one-time secret handoff; use shared business/invoice advisory locks, and resolve retries before active-link checks so an old retry cannot rotate a newer link.
+- [x] ✅ COMPLETE — Activate the isolated invoice broker with restricted row/column grants and fixed private SECURITY DEFINER read/SECURITY INVOKER entry functions. Reads return only the frozen invoice allow-list; payment, receipt, quotation, master and numbering data remain unavailable.
+- [x] ✅ OMITTED (optional) — Logo/signature object storage and upload UI were not included. Text-only documents work without storage setup.
 
 **Backend / Frontend / Security**
 
-- [ ] 🔴 NOT STARTED — Add independent invoice token namespace (`/i/[token]` proposed) and read-only customer page. Token resolves invoice; never search quote tokens or infer authorization from ID alone. Allow-list frozen content only.
-- [ ] 🔴 NOT STARTED — Select a minimal maintained server PDF renderer compatible with deployment runtime; share one frozen-snapshot view model between owner/customer HTML and PDFs. Include number/date, seller/buyer particulars, ordered HSN/units/quantity/prices, GST components, supply/reverse-charge, selected remittance and terms.
-- [ ] 🔴 NOT STARTED — Add functional Download PDF to quotation/invoice pages and owner views. Authorize every request through the same read contract; render after transaction release; no persisted PDFs, permanent download URLs or live-master fallback.
-- [ ] 🔴 NOT STARTED — If branding exists, add owner upload/settings and document-bound asset handler that verifies token, same-business frozen key and digest before serving bytes. Recheck revocation/access expiry on new image/PDF requests. Renderer must not fetch arbitrary remote/user URLs.
-- [ ] 🔴 NOT STARTED — Rate-limit reads/downloads, cap input/render workload, use safe unavailable/no-store behavior and redact tokens/assets from logs. Quote token never grants invoice access; invoice link never grants payment/receipt access.
+- [x] ✅ COMPLETE — Add the independent invoice token namespace and read-only `/i/[token]` page. Invoice tokens do not resolve quotation links or authorize reads by invoice ID; customer HTML uses only the frozen allow-list.
+- [x] ✅ COMPLETE — Use PDFKit on the supported Node runtime and shared frozen document models for owner/customer views and PDFs. Include document identity/dates, seller/buyer particulars, ordered lines, HSN/units/quantity/prices, GST, supply/reverse-charge, selected remittance and terms.
+- [x] ✅ COMPLETE — Add working PDF downloads to shared quotation/invoice pages and owner views. Public PDF requests reauthorize through their token brokers; owner downloads use owner-scoped reads. PDFs are generated on request and not persisted.
+- [x] ✅ OMITTED (optional) — No logo/signature assets or upload/asset handlers were added; the renderer does not fetch remote or user-provided URLs.
+- [x] ✅ COMPLETE for the prototype — Rate-limit public reads/downloads; cap lines, text, output size and description length; use safe unavailable responses and no-store headers. The in-process rate limiter must be replaced with shared storage before multi-instance deployment. Quote and invoice access remain separate, and public invoices expose no payment/receipt history.
 
 **Testing**
 
-- [ ] 🔴 NOT STARTED — SQL broker/tenant/token-scope/revocation/expiry/disabled-business checks; same-key link retry and explicit rotation tests.
-- [ ] 🔴 NOT STARTED — E2E guests view/download quote/invoice without login; invalid/wrong-scope/revoked links fail for page, image and PDF; assert downloaded content matches frozen snapshot.
-- [ ] 🔴 NOT STARTED — PDF visual/content fixtures for long/multiple-page documents, mixed GST, tiny rounding amounts and absent optional fields. If assets included, test MIME/size/namespace/digest/overwrite/deletion rules and retained branding after profile changes.
+- [x] ✅ PASS — Rollback-only SQL checks cover broker grants, frozen allow-list, tenant/token scope, hidden token hashes, invalid tokens, revocation/expiry, disabled businesses, same-key retries and explicit rotation.
+- [x] ✅ PASS — Playwright covers accountless quote/invoice reads and downloads, frozen content, invalid/revoked links, owner downloads and cross-business denial.
+- [x] ✅ PASS — PDF content tests cover multi-page documents, repeated page headers/footers, mixed GST, tiny paise amounts, optional fields, selected remittance and terms; rendered A4 samples were visually inspected.
 
 **Acceptance:** PDFs and pages represent identical authorized historical data; revocation blocks future requests; no arbitrary storage access or private history leaks; text-only documents work without upload setup. A previously downloaded copy cannot be remotely revoked and the UI must not promise otherwise.
+
+**11 October 2026 closeout:** Migration `20261010175909_invoice_customer_access.sql` is applied locally. All ten rollback-only SQL suites pass; `invoice_conversion.sql` also passes after the final link-function cleanup. `npm test` passes (48 tests), and typecheck/lint pass. Production builds succeeded in the Playwright run; both the invoice-conversion and quotation-sharing browser tests reported passes, including owner/guest PDF downloads, invalid/revoked access and tenant denial. The Windows Playwright runner remained open after reporting both passes and was interrupted manually; this shutdown issue remains tracked under T6. PDFKit invoice/quotation one-page and multi-page outputs were rendered and visually reviewed after fixing table-header alignment, repeated-currency text, footer pagination and continuation-page headers. Supabase security advisors report no issues; database lint retains only the earlier unrelated unused-variable warning in `private.revoke_quotation_link`. Optional branding was omitted. Deployments must configure server-only `SUPABASE_INVOICE_BROKER_KEY`; the per-process rate limiter remains a single-instance prototype limit.
 
 ### Phase 12 — Dashboard and Customer Transaction History
 
