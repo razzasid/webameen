@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { CustomerForm } from "@/components/customers/customer-form";
 import { updateCustomerAction } from "@/server/modules/customers/actions";
@@ -22,15 +23,33 @@ export default async function EditCustomerPage({
   };
   const action = updateCustomerAction.bind(null, customer.id);
   return (
-    <section>
-      <Link
-        href={`/customers/${customer.id}`}
-        className="text-sm font-medium text-[var(--brand)] hover:underline"
-      >
-        ← Customer details
-      </Link>
-      <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">Edit customer</h1>
-      <CustomerForm action={action} initial={initial} submitLabel="Save changes" />
+    <section className="space-y-5 sm:space-y-6">
+      <nav aria-label="Breadcrumb" className="flex min-h-10 items-center gap-2 text-sm">
+        <Link
+          href={`/customers/${customer.id}`}
+          className="inline-flex min-h-10 items-center gap-2 font-medium text-[var(--brand)] hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4" /> Customers
+        </Link>
+        <span aria-hidden="true" className="text-[var(--muted-foreground)]">
+          /
+        </span>
+        <span className="font-medium text-[var(--ink)]">Edit customer</span>
+      </nav>
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)] sm:text-3xl">
+          Edit customer
+        </h1>
+        <p className="text-sm text-[var(--muted-foreground)] sm:text-base">
+          Update the customer details for your business.
+        </p>
+      </header>
+      <CustomerForm
+        action={action}
+        initial={initial}
+        submitLabel="Save changes"
+        variant="edit"
+      />
     </section>
   );
 }

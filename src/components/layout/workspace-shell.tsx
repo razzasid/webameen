@@ -66,7 +66,7 @@ export function WorkspaceShell({
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">
           <main
-            className="mx-auto w-full max-w-[1380px] min-w-0 px-4 py-6 pb-24 sm:px-5 sm:py-7 md:px-7 md:py-8 md:pb-8 lg:px-9"
+            className="mx-auto w-full max-w-[1380px] min-w-0 px-4 py-4 pb-24 sm:px-5 sm:py-5 md:px-6 md:py-4 md:pb-6 lg:px-6"
             id="workspace-main"
             tabIndex={-1}
           >

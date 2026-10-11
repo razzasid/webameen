@@ -36,17 +36,19 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-dvh w-[76px] shrink-0 flex-col border-r border-white/10 bg-[#102c27] text-white md:flex xl:w-60">
+    <aside className="hidden h-dvh w-[168px] shrink-0 flex-col border-r border-white/10 bg-[#082c26] text-white md:flex xl:w-60">
       <Link
         aria-label="Webameen dashboard"
-        className="flex h-[76px] items-center justify-center gap-3 border-b border-white/10 px-3 xl:justify-start xl:px-5"
+        className="flex h-16 items-center justify-start gap-2.5 border-b border-white/10 px-3 xl:gap-3 xl:px-5"
         href="/dashboard"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#d8f0e5] text-lg font-bold text-[#104e42]">
           W
         </span>
-        <span className="hidden min-w-0 xl:block">
-          <span className="block text-[16px] font-semibold tracking-tight">Webameen</span>
+        <span className="min-w-0">
+          <span className="block text-[14px] font-semibold tracking-tight xl:text-[16px]">
+            webameen
+          </span>
           <span className="mt-0.5 block text-[10px] uppercase tracking-[0.14em] text-white/65">
             Business workspace
           </span>
@@ -61,9 +63,9 @@ export function AppSidebar() {
               aria-current={active ? "page" : undefined}
               aria-label={label}
               className={cn(
-                "group flex min-h-11 items-center justify-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b3e3d0] xl:justify-start xl:px-3",
+                "group flex min-h-11 items-center justify-start gap-2.5 rounded-lg px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b3e3d0] xl:gap-3 xl:px-3 xl:text-sm",
                 active
-                  ? "bg-[#dff2e9] !text-[#123c34]"
+                  ? "border-l-[3px] border-l-[#8ce0c5] bg-[#075b4e] !text-white"
                   : "text-white/78 hover:bg-white/10 hover:text-white",
               )}
               href={href}
@@ -71,14 +73,14 @@ export function AppSidebar() {
               title={label}
             >
               <Icon aria-hidden="true" className="size-[18px] shrink-0" strokeWidth={1.8} />
-              <span className="sr-only xl:not-sr-only">{label}</span>
+              <span className="truncate">{label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto hidden px-4 pb-5 xl:block">
-        <div className="rounded-lg border border-white/10 bg-white/5 p-3.5">
+      <div className="mt-auto hidden px-2 pb-5 md:block xl:px-4">
+        <div className="rounded-lg border border-white/10 bg-white/5 p-2.5 xl:p-3.5">
           <p className="text-xs font-semibold text-white">Your business workspace</p>
           <p className="mt-1 text-xs leading-5 text-white/65">
             Keep customers and business documents together.

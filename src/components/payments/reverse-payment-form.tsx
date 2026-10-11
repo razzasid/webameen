@@ -7,7 +7,7 @@ import {
 } from "@/server/modules/payments/actions";
 
 const inputClass =
-  "mt-1.5 w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]";
+  "mt-1.5 min-h-11 w-full resize-y rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]";
 
 export function ReversePaymentForm({
   invoiceId,
@@ -28,40 +28,46 @@ export function ReversePaymentForm({
       action={formAction}
       noValidate
       onReset={(event) => event.preventDefault()}
-      className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"
+      className="mt-4 grid min-w-0 gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
     >
-      <label className="block text-sm font-medium" htmlFor={`reversal-reason-${paymentId}`}>
-        Correction reason
-        <textarea
-          id={`reversal-reason-${paymentId}`}
-          className={inputClass}
-          name="reason"
-          rows={2}
-          maxLength={1000}
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          aria-invalid={Boolean(state.fieldError)}
-          aria-describedby={state.fieldError ? `reversal-error-${paymentId}` : undefined}
-        />
-      </label>
+      <div className="min-w-0">
+        <label
+          className="block text-sm font-medium"
+          htmlFor={`reversal-reason-${paymentId}`}
+        >
+          Correction reason
+          <textarea
+            id={`reversal-reason-${paymentId}`}
+            className={inputClass}
+            name="reason"
+            rows={2}
+            maxLength={1000}
+            placeholder="Enter a reason for reversing this payment..."
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            aria-invalid={Boolean(state.fieldError)}
+            aria-describedby={state.fieldError ? `reversal-error-${paymentId}` : undefined}
+          />
+        </label>
+      </div>
       {state.fieldError ? (
         <p
           id={`reversal-error-${paymentId}`}
           role="alert"
-          className="mt-1 text-sm text-red-700"
+          className="mt-1 text-sm text-red-700 sm:col-span-2"
         >
           {state.fieldError}
         </p>
       ) : null}
       {state.error ? (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <p role="alert" className="mt-2 text-sm text-red-700 sm:col-span-2">
           {state.error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="mt-3 rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900 disabled:opacity-60"
+        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-amber-300 bg-white px-3.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-60"
       >
         {pending ? "Reversing…" : "Reverse payment"}
       </button>

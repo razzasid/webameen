@@ -1,5 +1,20 @@
 "use client";
 
+import {
+  Building2,
+  CheckCircle2,
+  Circle,
+  FileText,
+  Lightbulb,
+  ListChecks,
+  type LucideIcon,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Settings2,
+  Wallet,
+} from "lucide-react";
 import { useActionState, useState } from "react";
 import type { BusinessProfile } from "@/server/modules/business/settings-validation";
 import { indianStates } from "@/server/modules/business/states";
@@ -17,7 +32,7 @@ import {
 } from "@/server/modules/quotations/validation";
 
 const inputClass =
-  "mt-1.5 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]";
+  "mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-white px-2.5 py-2 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] lg:!min-h-8 lg:py-1 lg:text-xs";
 const emptyLine = (): QuoteLineInput => ({
   clientId: crypto.randomUUID(),
   sourceCatalogItemId: "",
@@ -33,7 +48,7 @@ const emptyLine = (): QuoteLineInput => ({
 function Totals({ totals, title }: { totals: QuoteTotals; title: string }) {
   return (
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--mint)] p-5">
-      <h3 className="font-semibold">{title}</h3>
+      <h3 className="font-bold">{title}</h3>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:max-w-sm">
         <dt>Subtotal</dt>
         <dd className="text-right">{formatPaise(totals.subtotal_minor)}</dd>
@@ -60,7 +75,7 @@ function LineBreakdown({ lines }: { lines: CalculatedLine[] }) {
   if (lines.length === 0) return null;
   return (
     <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--line)] bg-white p-5">
-      <h3 className="font-semibold">Line tax breakdown</h3>
+      <h3 className="font-bold">Line tax breakdown</h3>
       <table className="mt-3 w-full min-w-[700px] text-left text-sm">
         <thead className="border-b border-[var(--line)] text-[var(--muted-foreground)]">
           <tr>
@@ -92,6 +107,34 @@ function LineBreakdown({ lines }: { lines: CalculatedLine[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function SectionHeading({
+  number,
+  title,
+  description,
+  icon: Icon,
+}: {
+  number: number;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <div className="mb-4 flex items-start gap-2.5">
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--brand)]">
+        <Icon aria-hidden="true" className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-sm font-bold text-[var(--ink)]">
+          {number}. {title}
+        </h2>
+        <p className="mt-0.5 text-xs leading-4 text-[var(--muted-foreground)]">
+          {description}
+        </p>
+      </div>
     </div>
   );
 }
@@ -157,6 +200,34 @@ export function QuotationDraftEditor({
     snapshot.reverseChargeApplies === "unset" && "Reverse charge declaration",
     lines.length === 0 && "At least one line",
   ].filter(Boolean) as string[];
+  const documentReady = Boolean(
+    snapshot.documentTimeZone.trim() &&
+      snapshot.sellerStateCode &&
+      snapshot.buyerStateCode &&
+      snapshot.sellerGstRegistered !== "unset" &&
+      snapshot.buyerGstinApplicable !== "unset" &&
+      snapshot.placeOfSupplyApplicable !== "unset" &&
+      snapshot.reverseChargeApplies !== "unset",
+  );
+  const linesReady =
+    lines.length > 0 &&
+    lines.every(
+      (line) =>
+        line.description.trim() &&
+        line.quantity.trim() &&
+        line.unitPriceRupees.trim() &&
+        (line.gstCategory !== "taxable" || line.gstRate.trim()),
+    );
+  const progressSteps = [
+    { label: "Customer selected", complete: true },
+    { label: "Document and tax choices", complete: documentReady },
+    { label: "Add at least one line item", complete: linesReady },
+    {
+      label: "Review and save",
+      complete: quote.totals.total_minor !== null || Boolean(state.preview),
+    },
+  ];
+  const completedSteps = progressSteps.filter((step) => step.complete).length;
 
   function updateField<K extends keyof QuoteSnapshotInput>(
     field: K,
@@ -170,12 +241,12 @@ export function QuotationDraftEditor({
     options: { rows?: number; type?: string; hint?: string } = {},
   ) {
     return (
-      <label key={field} htmlFor={`quote-${field}`} className="block text-sm font-medium">
+      <label key={field} htmlFor={`quote-${field}`} className="block text-xs font-medium">
         {label}
         {options.rows ? (
           <textarea
             id={`quote-${field}`}
-            className={inputClass}
+            className={`${inputClass} lg:!min-h-14`}
             rows={options.rows}
             value={snapshot[field]}
             onChange={(event) => updateField(field, event.target.value)}
@@ -199,7 +270,7 @@ export function QuotationDraftEditor({
   }
   function stateField(field: keyof QuoteSnapshotInput, label: string) {
     return (
-      <label className="block text-sm font-medium" key={field}>
+      <label className="block text-xs font-medium" key={field}>
         {label}
         <select
           className={inputClass}
@@ -218,7 +289,7 @@ export function QuotationDraftEditor({
   }
   function declarationField(field: keyof QuoteSnapshotInput, label: string) {
     return (
-      <label className="block text-sm font-medium" key={field}>
+      <label className="block text-xs font-medium" key={field}>
         {label}
         <select
           className={inputClass}
@@ -274,7 +345,7 @@ export function QuotationDraftEditor({
   }
 
   return (
-    <form action={formAction} className="mt-7 space-y-7" noValidate>
+    <form id="quotation-draft-form" action={formAction} className="mt-0" noValidate>
       <input type="hidden" name="quoteId" value={quote.id} />
       <input type="hidden" name="editSequence" value={quote.edit_sequence} />
       <input type="hidden" name="snapshotJson" value={JSON.stringify(snapshot)} />
@@ -286,12 +357,6 @@ export function QuotationDraftEditor({
         >
           {state.error}
         </p>
-      ) : null}
-      {missingForShare.length ? (
-        <aside className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-semibold">Draft details still needed before future sharing</p>
-          <p className="mt-1">{missingForShare.join(" · ")}</p>
-        </aside>
       ) : null}
       {sellerWarning ? (
         <p
@@ -309,338 +374,589 @@ export function QuotationDraftEditor({
           Buyer: {buyerWarning}
         </p>
       ) : null}
-      <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
-        <h2 className="text-lg font-semibold">Seller and buyer snapshot</h2>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          These details were copied when the draft was created. Edit them here; changes to
-          customer or business records will not refresh this draft.
-        </p>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {textField("sellerDisplayName", "Seller name")}
-          {textField("buyerDisplayName", "Buyer name")}
-          {textField("sellerContactEmail", "Seller email", { type: "email" })}
-          {textField("buyerEmail", "Buyer email", { type: "email" })}
-          {textField("sellerContactPhone", "Seller phone")}
-          {textField("buyerPhone", "Buyer phone")}
-          {textField("sellerPostalAddress", "Seller address", { rows: 3 })}
-          {textField("buyerBillingAddress", "Buyer billing address", { rows: 3 })}
-          {stateField("sellerStateCode", "Seller state")}
-          {stateField("buyerStateCode", "Buyer state")}
-          {declarationField("sellerGstRegistered", "Seller GST registered?")}
-          {declarationField("buyerGstinApplicable", "Buyer GSTIN applicable?")}
-          {textField("sellerGstin", "Seller GSTIN")}
-          {textField("buyerGstin", "Buyer GSTIN")}
-          {textField("buyerContactName", "Buyer contact name")}
-        </div>
-      </div>
+      <div className="grid min-w-0 items-start gap-x-4 gap-y-4 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-4 lg:contents lg:space-y-0">
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-start-1 lg:p-4">
+            <SectionHeading
+              number={1}
+              title="Select customer"
+              description="Choose the customer for this quotation."
+              icon={Building2}
+            />
+            <label className="mb-3 block text-xs font-medium">
+              Customer <span className="text-red-600">*</span>
+              <span className="relative mt-1 block">
+                <Building2
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--brand)]"
+                />
+                <select
+                  aria-label="Customer linked to this quotation draft"
+                  className={`${inputClass} mt-0 min-h-10 cursor-not-allowed bg-[var(--paper)] pl-10 disabled:opacity-100`}
+                  disabled
+                  value={snapshot.buyerDisplayName}
+                  onChange={() => undefined}
+                >
+                  <option value={snapshot.buyerDisplayName}>
+                    {snapshot.buyerDisplayName || "Customer name not provided"}
+                  </option>
+                </select>
+              </span>
+            </label>
+            <div className="rounded-xl bg-[var(--canvas)]/80 p-4 sm:p-5">
+              <h3 className="break-words font-bold text-[var(--ink)]">
+                {snapshot.buyerDisplayName || "Customer name not provided"}
+              </h3>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Customer details copied into this quotation draft
+              </p>
+              <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
+                <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+                  <Phone
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-[var(--brand)]"
+                  />
+                  <span>{snapshot.buyerPhone || "—"}</span>
+                </p>
+                <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+                  <Mail
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-[var(--brand)]"
+                  />
+                  <span>{snapshot.buyerEmail || "—"}</span>
+                </p>
+                <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+                  <MapPin
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-[var(--brand)]"
+                  />
+                  <span>
+                    {indianStates.find(([code]) => code === snapshot.buyerStateCode)?.[1] ??
+                      "—"}
+                    {snapshot.buyerStateCode ? ` (${snapshot.buyerStateCode})` : ""}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </section>
 
-      <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
-        <h2 className="text-lg font-semibold">Document and tax choices</h2>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          India · INR · prices before GST · quantity up to three decimals.
-        </p>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {textField("validUntil", "Valid through", { type: "date" })}
-          {textField("documentTimeZone", "Document time zone", {
-            hint: "IANA zone, for example Asia/Kolkata.",
-          })}
-          <label className="block text-sm font-medium">
-            GST treatment override
-            <select
-              className={inputClass}
-              value={snapshot.gstTreatmentOverride}
-              onChange={(event) =>
-                updateField(
-                  "gstTreatmentOverride",
-                  event.target.value as QuoteSnapshotInput["gstTreatmentOverride"],
-                )
-              }
-            >
-              <option value="">Use state-based suggestion</option>
-              <option value="cgst_sgst">CGST + SGST</option>
-              <option value="igst">IGST</option>
-            </select>
-            <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
-              Suggested: {autoRoute}. Final choice:{" "}
-              {finalRoute === "cgst_sgst"
-                ? "CGST + SGST"
-                : finalRoute === "igst"
-                  ? "IGST"
-                  : "Incomplete"}
-              .
-            </span>
-          </label>
-          {declarationField("placeOfSupplyApplicable", "Place of supply applies?")}
-          {snapshot.placeOfSupplyApplicable === "yes"
-            ? stateField("placeOfSupplyStateCode", "Place of supply state")
-            : null}
-          {snapshot.placeOfSupplyApplicable === "yes"
-            ? textField("placeOfSupplyText", "Additional place of supply wording")
-            : null}
-          {declarationField("reverseChargeApplies", "Reverse charge applies?")}
-        </div>
-        {snapshot.reverseChargeApplies === "yes" ? (
-          <p
-            role="status"
-            className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
-          >
-            Reverse-charge calculation is not supported in this version. Confirm the tax
-            treatment with your accountant before issuing this document.
-          </p>
-        ) : null}
-      </div>
-
-      <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Ordered lines</h2>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Catalog defaults become editable copies. You can also add one-off lines.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setLines((previous) => [...previous, emptyLine()])}
-            className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm font-medium"
-          >
-            Add line
-          </button>
-        </div>
-        {lines.length ? (
-          <div className="mt-5 space-y-5">
-            {lines.map((line, index) => (
-              <fieldset
-                key={line.clientId}
-                className="rounded-xl border border-[var(--line)] p-4"
-              >
-                <legend className="px-1 text-sm font-semibold">Line {index + 1}</legend>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block text-sm font-medium">
-                    Copy catalog default
-                    <select
-                      className={inputClass}
-                      value={line.sourceCatalogItemId}
-                      onChange={(event) => chooseCatalog(line.clientId, event.target.value)}
-                    >
-                      <option value="">One-off line</option>
-                      {line.sourceCatalogItemId &&
-                      !catalog.some((item) => item.id === line.sourceCatalogItemId) ? (
-                        <option value={line.sourceCatalogItemId}>
-                          Previously copied catalog item
-                        </option>
-                      ) : null}
-                      {catalog.map((item) => (
-                        <option value={item.id} key={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block text-sm font-medium">
-                    Description
-                    <input
-                      className={inputClass}
-                      value={line.description}
-                      onChange={(event) =>
-                        updateLine(line.clientId, "description", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className="block text-sm font-medium">
-                    Unit
-                    <input
-                      className={inputClass}
-                      value={line.unitLabel}
-                      onChange={(event) =>
-                        updateLine(line.clientId, "unitLabel", event.target.value)
-                      }
-                      placeholder="each, hour, month…"
-                    />
-                  </label>
-                  <label className="block text-sm font-medium">
-                    HSN / SAC
-                    <input
-                      className={inputClass}
-                      value={line.hsnSac}
-                      onChange={(event) =>
-                        updateLine(line.clientId, "hsnSac", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className="block text-sm font-medium">
-                    Quantity
-                    <input
-                      className={inputClass}
-                      inputMode="decimal"
-                      value={line.quantity}
-                      onChange={(event) =>
-                        updateLine(line.clientId, "quantity", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className="block text-sm font-medium">
-                    Unit price before GST (₹)
-                    <input
-                      className={inputClass}
-                      inputMode="decimal"
-                      value={line.unitPriceRupees}
-                      onChange={(event) =>
-                        updateLine(line.clientId, "unitPriceRupees", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className="block text-sm font-medium">
-                    GST category
-                    <select
-                      className={inputClass}
-                      value={line.gstCategory}
-                      onChange={(event) => {
-                        const category = event.target
-                          .value as QuoteLineInput["gstCategory"];
-                        setLines((previous) =>
-                          previous.map((item) =>
-                            item.clientId === line.clientId
-                              ? {
-                                  ...item,
-                                  gstCategory: category,
-                                  gstRate: category === "taxable" ? item.gstRate : "",
-                                }
-                              : item,
-                          ),
-                        );
-                      }}
-                    >
-                      <option value="taxable">Taxable</option>
-                      <option value="exempt">Exempt</option>
-                      <option value="no_gst">No GST</option>
-                    </select>
-                  </label>
-                  {line.gstCategory === "taxable" ? (
-                    <label className="block text-sm font-medium">
-                      GST rate
-                      <select
-                        className={inputClass}
-                        value={line.gstRate}
-                        onChange={(event) =>
-                          updateLine(line.clientId, "gstRate", event.target.value)
-                        }
-                      >
-                        <option value="">Select configured rate</option>
-                        {line.gstRate && !rates.includes(line.gstRate) ? (
-                          <option value={line.gstRate}>
-                            {line.gstRate}% retired — replace before saving
-                          </option>
-                        ) : null}
-                        {rates.map((rate) => (
-                          <option key={rate} value={rate}>
-                            {rate}%
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-start-1 lg:p-4">
+            <SectionHeading
+              number={2}
+              title="Seller and buyer snapshot"
+              description="These details were copied when the draft was created. Edit them here if needed."
+              icon={Building2}
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <section className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)]/40 p-3 sm:p-4">
+                <h3 className="text-xs font-bold text-[var(--brand-dark)]">
+                  Seller details
+                </h3>
+                <div className="mt-3 space-y-3">
+                  {textField("sellerDisplayName", "Seller name")}
+                  {textField("sellerContactEmail", "Seller email", { type: "email" })}
+                  {textField("sellerContactPhone", "Seller phone")}
+                  {textField("sellerPostalAddress", "Seller address", { rows: 2 })}
+                  {stateField("sellerStateCode", "Seller state")}
+                  {declarationField("sellerGstRegistered", "Seller GST registered?")}
+                  {textField("sellerGstin", "Seller GSTIN")}
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setLines((previous) =>
-                      previous.filter((item) => item.clientId !== line.clientId),
+              </section>
+              <section className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)]/40 p-3 sm:p-4">
+                <h3 className="text-xs font-bold text-[var(--brand-dark)]">
+                  Buyer details
+                </h3>
+                <div className="mt-3 space-y-3">
+                  {textField("buyerDisplayName", "Buyer name")}
+                  {textField("buyerEmail", "Buyer email", { type: "email" })}
+                  {textField("buyerPhone", "Buyer phone")}
+                  {textField("buyerBillingAddress", "Buyer billing address", { rows: 2 })}
+                  {stateField("buyerStateCode", "Buyer state")}
+                  {declarationField("buyerGstinApplicable", "Buyer GSTIN applicable?")}
+                  {textField("buyerGstin", "Buyer GSTIN")}
+                  {textField("buyerContactName", "Buyer contact name")}
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-start-1 lg:p-4">
+            <SectionHeading
+              number={3}
+              title="Document and tax choices"
+              description="India · INR · prices before GST · quantity up to three decimals."
+              icon={Settings2}
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              {textField("validUntil", "Valid through", { type: "date" })}
+              {textField("documentTimeZone", "Document time zone", {
+                hint: "IANA zone, for example Asia/Kolkata.",
+              })}
+              <label className="block text-xs font-medium">
+                GST treatment override
+                <select
+                  className={inputClass}
+                  value={snapshot.gstTreatmentOverride}
+                  onChange={(event) =>
+                    updateField(
+                      "gstTreatmentOverride",
+                      event.target.value as QuoteSnapshotInput["gstTreatmentOverride"],
                     )
                   }
-                  className="mt-4 text-sm font-medium text-red-700"
                 >
-                  Remove line
-                </button>
-              </fieldset>
-            ))}
+                  <option value="">Use state-based suggestion</option>
+                  <option value="cgst_sgst">CGST + SGST</option>
+                  <option value="igst">IGST</option>
+                </select>
+                <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
+                  Suggested: {autoRoute}. Final choice:{" "}
+                  {finalRoute === "cgst_sgst"
+                    ? "CGST + SGST"
+                    : finalRoute === "igst"
+                      ? "IGST"
+                      : "Incomplete"}
+                  .
+                </span>
+              </label>
+              {declarationField("placeOfSupplyApplicable", "Place of supply applies?")}
+              {snapshot.placeOfSupplyApplicable === "yes"
+                ? stateField("placeOfSupplyStateCode", "Place of supply state")
+                : null}
+              {snapshot.placeOfSupplyApplicable === "yes"
+                ? textField("placeOfSupplyText", "Additional place of supply wording")
+                : null}
+              {declarationField("reverseChargeApplies", "Reverse charge applies?")}
+            </div>
+            {snapshot.reverseChargeApplies === "yes" ? (
+              <p
+                role="status"
+                className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+              >
+                Reverse-charge calculation is not supported in this version. Confirm the tax
+                treatment with your accountant before issuing this document.
+              </p>
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-span-2 lg:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <SectionHeading
+                  number={4}
+                  title="Ordered lines"
+                  description="Catalog items are copied as editable lines. One-off lines are also supported."
+                  icon={ListChecks}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setLines((previous) => [...previous, emptyLine()])}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--brand-dark)]"
+              >
+                <Plus aria-hidden="true" className="size-4" />
+                Add line
+              </button>
+            </div>
+            {lines.length ? (
+              <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)]">
+                <table className="w-full min-w-[760px] table-fixed text-left text-xs">
+                  <colgroup>
+                    <col className="w-[4%]" />
+                    <col className="w-[30%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[5%]" />
+                  </colgroup>
+                  <thead className="bg-[var(--canvas)] text-[var(--muted-foreground)]">
+                    <tr>
+                      {[
+                        "#",
+                        "Item",
+                        "HSN / SAC",
+                        "Quantity",
+                        "Unit price (₹)",
+                        "GST",
+                        "Amount (₹)",
+                        "",
+                      ].map((heading) => (
+                        <th className="px-2 py-2 font-semibold" key={heading || "actions"}>
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, index) => (
+                      <tr
+                        className="border-t border-[var(--line)] align-middle"
+                        key={line.clientId}
+                      >
+                        <td className="px-2 py-2 text-[var(--muted-foreground)]">
+                          {index + 1}
+                        </td>
+                        <td className="space-y-1 px-2 py-2">
+                          <select
+                            aria-label={`Catalog item for line ${index + 1}`}
+                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                            value={line.sourceCatalogItemId}
+                            onChange={(event) =>
+                              chooseCatalog(line.clientId, event.target.value)
+                            }
+                          >
+                            <option value="">One-off line</option>
+                            {line.sourceCatalogItemId &&
+                            !catalog.some(
+                              (item) => item.id === line.sourceCatalogItemId,
+                            ) ? (
+                              <option value={line.sourceCatalogItemId}>
+                                Previously copied catalog item
+                              </option>
+                            ) : null}
+                            {catalog.map((item) => (
+                              <option value={item.id} key={item.id}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            aria-label={`Description for line ${index + 1}`}
+                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                            value={line.description}
+                            onChange={(event) =>
+                              updateLine(line.clientId, "description", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            aria-label={`HSN or SAC for line ${index + 1}`}
+                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                            value={line.hsnSac}
+                            onChange={(event) =>
+                              updateLine(line.clientId, "hsnSac", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            aria-label={`Quantity for line ${index + 1}`}
+                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                            inputMode="decimal"
+                            value={line.quantity}
+                            onChange={(event) =>
+                              updateLine(line.clientId, "quantity", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            aria-label={`Unit price before GST for line ${index + 1}`}
+                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                            inputMode="decimal"
+                            value={line.unitPriceRupees}
+                            onChange={(event) =>
+                              updateLine(
+                                line.clientId,
+                                "unitPriceRupees",
+                                event.target.value,
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="space-y-1">
+                            <select
+                              aria-label={`GST category for line ${index + 1}`}
+                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                              value={line.gstCategory}
+                              onChange={(event) => {
+                                const category = event.target
+                                  .value as QuoteLineInput["gstCategory"];
+                                setLines((previous) =>
+                                  previous.map((item) =>
+                                    item.clientId === line.clientId
+                                      ? {
+                                          ...item,
+                                          gstCategory: category,
+                                          gstRate:
+                                            category === "taxable" ? item.gstRate : "",
+                                        }
+                                      : item,
+                                  ),
+                                );
+                              }}
+                            >
+                              <option value="taxable">Taxable</option>
+                              <option value="exempt">Exempt</option>
+                              <option value="no_gst">No GST</option>
+                            </select>
+                            {line.gstCategory === "taxable" ? (
+                              <select
+                                aria-label={`GST rate for line ${index + 1}`}
+                                className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                value={line.gstRate}
+                                onChange={(event) =>
+                                  updateLine(line.clientId, "gstRate", event.target.value)
+                                }
+                              >
+                                <option value="">Rate</option>
+                                {line.gstRate && !rates.includes(line.gstRate) ? (
+                                  <option value={line.gstRate}>
+                                    {line.gstRate}% retired — replace
+                                  </option>
+                                ) : null}
+                                {rates.map((rate) => (
+                                  <option key={rate} value={rate}>
+                                    {rate}%
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 text-right tabular-nums">
+                          {(() => {
+                            const total =
+                              state.preview?.lines.find(
+                                (item) => item.position === index + 1,
+                              )?.line_total_minor ??
+                              quote.lines.find((item) => item.position === index + 1)
+                                ?.line_total_minor;
+                            return total === undefined ? "—" : formatPaise(total);
+                          })()}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <button
+                            type="button"
+                            aria-label={`Remove line ${index + 1}`}
+                            onClick={() =>
+                              setLines((previous) =>
+                                previous.filter((item) => item.clientId !== line.clientId),
+                              )
+                            }
+                            className="min-h-9 min-w-9 rounded-md text-red-700 hover:bg-red-50"
+                          >
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-5 rounded-xl border border-dashed border-[var(--line)] p-6 text-sm text-[var(--muted-foreground)]">
+                This draft has no lines yet. Add a line to calculate an amount.
+              </p>
+            )}
+            {rates.length === 0 ? (
+              <p className="mt-4 text-sm text-amber-900">
+                No selectable GST rates are configured. An operator must configure one
+                before taxable lines can be saved.
+              </p>
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-span-2 lg:p-4">
+            <SectionHeading
+              number={5}
+              title="Terms and optional payment details"
+              description="Use the buttons to copy current business defaults into this draft."
+              icon={Wallet}
+            />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => updateField("terms", paymentDefaults.default_terms ?? "")}
+                className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
+              >
+                Copy default terms
+              </button>
+              <button
+                type="button"
+                onClick={copyPaymentDefaults}
+                className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
+              >
+                Copy payment details
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-6">
+              <div className="md:col-span-3">
+                {textField("terms", "Terms", { rows: 2 })}
+              </div>
+              <div className="md:col-span-3">
+                {textField("paymentInstructions", "Payment instructions", { rows: 2 })}
+              </div>
+              {textField("sellerBankName", "Bank name")}
+              {textField("sellerBankAccountName", "Account holder")}
+              {textField("sellerBankAccountNumber", "Bank account number")}
+              {textField("sellerBankIfsc", "IFSC")}
+              {textField("sellerUpiId", "UPI ID")}
+            </div>
+          </section>
+
+          {state.preview ? (
+            <div role="status" className="lg:col-span-2">
+              <Totals totals={state.preview} title="Calculated preview — not saved" />
+              <LineBreakdown lines={state.preview.lines} />
+              <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+                If you change the form, preview again before saving.{" "}
+                {state.preview.lines.length} line(s); suggested{" "}
+                {state.preview.auto_treatment ?? "incomplete"}, final{" "}
+                {state.preview.treatment ?? "incomplete"}.
+              </p>
+            </div>
+          ) : null}
+          {quote.totals.total_minor !== null ? (
+            <div className="lg:col-span-2">
+              <Totals totals={quote.totals} title="Last saved totals" />
+              <LineBreakdown lines={quote.lines} />
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-3 lg:col-span-2">
+            <button
+              type="submit"
+              name="intent"
+              value="preview"
+              disabled={pending}
+              className="rounded-xl border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold disabled:opacity-60"
+            >
+              Preview calculation
+            </button>
+            <button
+              type="submit"
+              name="intent"
+              value="save"
+              disabled={pending}
+              className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {pending ? "Working…" : "Save draft"}
+            </button>
           </div>
-        ) : (
-          <p className="mt-5 rounded-xl border border-dashed border-[var(--line)] p-6 text-sm text-[var(--muted-foreground)]">
-            This draft has no lines yet. Add a line to calculate an amount.
+          <p className="text-xs text-[var(--muted-foreground)] lg:col-span-2">
+            This is a private draft. Save it before sharing; a shared version becomes
+            read-only.
           </p>
-        )}
-        {rates.length === 0 ? (
-          <p className="mt-4 text-sm text-amber-900">
-            No selectable GST rates are configured. An operator must configure one before
-            taxable lines can be saved.
-          </p>
-        ) : null}
-      </div>
+        </div>
 
-      <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
-        <h2 className="text-lg font-semibold">Terms and optional payment details</h2>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Use the buttons only when you want to copy current business defaults into this
-          draft. Later settings changes will not refresh saved quotation fields.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => updateField("terms", paymentDefaults.default_terms ?? "")}
-            className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
-          >
-            Copy default terms
-          </button>
-          <button
-            type="button"
-            onClick={copyPaymentDefaults}
-            className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
-          >
-            Copy payment details
-          </button>
-        </div>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {textField("terms", "Terms", { rows: 3 })}
-          {textField("paymentInstructions", "Payment instructions", { rows: 3 })}
-          {textField("sellerBankName", "Bank name")}
-          {textField("sellerBankAccountName", "Account holder")}
-          {textField("sellerBankAccountNumber", "Bank account number")}
-          {textField("sellerBankIfsc", "IFSC")}
-          {textField("sellerUpiId", "UPI ID")}
-        </div>
-      </div>
+        <aside className="h-fit min-w-0 space-y-3 lg:col-start-2 lg:row-start-1 lg:row-span-3">
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--brand)]">
+                  <FileText aria-hidden="true" className="size-4" />
+                </span>
+                <p className="truncate text-xs font-bold text-[var(--ink)]">
+                  Quotation draft
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-900">
+                {quote.state === "draft" ? "Draft" : quote.state.replaceAll("_", " ")}
+              </span>
+            </div>
+            <p className="mt-4 text-xs text-[var(--muted-foreground)]">Quotation ID</p>
+            <p className="mt-1 break-all text-base font-bold leading-5 text-[var(--ink)]">
+              {quote.reference}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              Version {quote.version_number} · {quote.state.replaceAll("_", " ")}
+            </p>
+            <div className="mt-3">
+              {state.preview ? (
+                <>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Preview amount · not saved
+                  </p>
+                  <p className="mt-1 break-words text-xl font-bold tabular-nums text-[var(--ink)]">
+                    {formatPaise(state.preview.total_minor)}
+                  </p>
+                </>
+              ) : quote.totals.total_minor === null ? (
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Amount not calculated
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Last saved amount
+                  </p>
+                  <p className="mt-1 break-words text-xl font-bold tabular-nums text-[var(--ink)]">
+                    {formatPaise(quote.totals.total_minor)}
+                  </p>
+                </>
+              )}
+            </div>
+            {missingForShare.length ? (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+                <p className="font-semibold">
+                  Draft details still needed before future sharing
+                </p>
+                <p className="mt-1 leading-5">{missingForShare.join(" · ")}</p>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-900">
+                Required draft details are ready for review.
+              </p>
+            )}
+          </section>
 
-      {state.preview ? (
-        <div role="status">
-          <Totals totals={state.preview} title="Calculated preview — not saved" />
-          <LineBreakdown lines={state.preview.lines} />
-          <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-            If you change the form, preview again before saving.{" "}
-            {state.preview.lines.length} line(s); suggested{" "}
-            {state.preview.auto_treatment ?? "incomplete"}, final{" "}
-            {state.preview.treatment ?? "incomplete"}.
-          </p>
-        </div>
-      ) : null}
-      {quote.totals.total_minor !== null ? (
-        <div>
-          <Totals totals={quote.totals} title="Last saved totals" />
-          <LineBreakdown lines={quote.lines} />
-        </div>
-      ) : null}
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          name="intent"
-          value="preview"
-          disabled={pending}
-          className="rounded-xl border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold disabled:opacity-60"
-        >
-          Preview calculation
-        </button>
-        <button
-          type="submit"
-          name="intent"
-          value="save"
-          disabled={pending}
-          className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {pending ? "Working…" : "Save draft"}
-        </button>
+          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-[var(--ink)]">Progress</h2>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {completedSteps} of {progressSteps.length} complete
+                </p>
+              </div>
+              <span className="grid size-10 place-items-center rounded-full bg-[var(--mint)] text-[var(--brand)]">
+                <CheckCircle2 aria-hidden="true" className="size-5" />
+              </span>
+            </div>
+            <ol className="mt-4 space-y-3 border-t border-[var(--line)] pt-4">
+              {progressSteps.map((step) => (
+                <li className="flex items-start gap-2.5 text-sm" key={step.label}>
+                  {step.complete ? (
+                    <CheckCircle2
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 shrink-0 text-[var(--success)]"
+                    />
+                  ) : (
+                    <Circle
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 shrink-0 text-[var(--muted-foreground)]"
+                    />
+                  )}
+                  <span
+                    className={
+                      step.complete ? "text-[var(--ink)]" : "text-[var(--muted-foreground)]"
+                    }
+                  >
+                    {step.label}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="rounded-2xl bg-[var(--canvas)]/80 p-4 sm:p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700">
+                <Lightbulb aria-hidden="true" className="size-4" />
+              </span>
+              <h2 className="text-sm font-bold text-[var(--ink)]">Tips</h2>
+            </div>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-xs leading-5 text-[var(--muted-foreground)]">
+              <li>Customer details are copied from their master record.</li>
+              <li>Add at least one product or service in the ordered lines.</li>
+              <li>Set the correct tax and place of supply for accurate calculations.</li>
+              <li>You can edit terms and payment details before sharing.</li>
+            </ul>
+          </section>
+        </aside>
       </div>
-      <p className="text-xs text-[var(--muted-foreground)]">
-        This is a private draft. Save it before sharing; a shared version becomes read-only.
-      </p>
     </form>
   );
 }

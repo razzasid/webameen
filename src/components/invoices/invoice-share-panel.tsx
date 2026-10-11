@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, UsersRound } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import type { InvoiceLinkActionState } from "@/server/modules/invoices/actions";
 import {
@@ -73,11 +74,13 @@ export function InvoiceSharePanel({
   links,
   createRequestKey,
   rotateRequestKey,
+  collapsible = false,
 }: {
   invoiceId: string;
   links: InvoicePublicLink[];
   createRequestKey: string;
   rotateRequestKey: string;
+  collapsible?: boolean;
 }) {
   const [createState, createAction, creating] = useActionState(
     createInvoiceLinkAction,
@@ -99,55 +102,77 @@ export function InvoiceSharePanel({
       new Date(unrevoked.access_expires_at).getTime() > now);
   const showCreate = !unrevoked && !createState.rawToken;
 
-  return (
-    <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
-      <h2 className="text-lg font-semibold">Customer access</h2>
-      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-        Share a private read-only link. Customers can view this frozen invoice and download
-        its PDF without an account.
-      </p>
+  const content = (
+    <>
+      {!collapsible ? (
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Share a private read-only link. Customers can view this frozen invoice and
+          download its PDF without an account.
+        </p>
+      ) : null}
       {showCreate ? (
-        <form action={createAction} className="mt-4">
+        <form action={createAction} className="mt-3">
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <input type="hidden" name="requestKey" value={createRequestKey} />
-          <button type="submit" className={buttonClass} disabled={creating}>
+          <button
+            type="submit"
+            className={`${buttonClass} inline-flex min-h-10 items-center justify-center`}
+            disabled={creating}
+          >
             {creating ? "Creating link…" : "Create customer link"}
           </button>
         </form>
       ) : null}
       {unrevoked ? (
-        <div className="mt-4 rounded-xl bg-[var(--canvas)] p-4">
-          <p className="text-sm font-medium">
-            {active ? "A customer link is active" : "The customer link has expired"}
-          </p>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            Created {new Date(unrevoked.created_at).toLocaleString()}
-          </p>
-          <form action={rotateAction} className="mt-3">
-            <input type="hidden" name="invoiceId" value={invoiceId} />
-            <input type="hidden" name="requestKey" value={rotateRequestKey} />
-            <button type="submit" className={secondaryClass} disabled={rotating}>
-              {rotating ? "Replacing…" : "Create replacement link"}
-            </button>
-          </form>
-          <form action={revokeAction} className="mt-3">
-            <input type="hidden" name="invoiceId" value={invoiceId} />
-            <input type="hidden" name="linkId" value={unrevoked.id} />
-            <button
-              type="submit"
-              className="text-sm font-semibold text-red-700"
-              disabled={revoking}
-            >
-              {revoking ? "Revoking…" : "Revoke link"}
-            </button>
-          </form>
+        <div className="mt-3 flex min-w-0 flex-col gap-3 rounded-xl border border-[#e3ebf7] bg-[#f5f8fd] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-3.5">
+          <div className="flex min-w-0 items-start gap-3">
+            <span
+              aria-hidden="true"
+              className={`mt-1 size-2.5 shrink-0 rounded-full ${active ? "bg-emerald-600 ring-4 ring-emerald-100" : "bg-amber-500 ring-4 ring-amber-100"}`}
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--ink)]">
+                {active ? "A customer link is active" : "The customer link has expired"}
+              </p>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                Created {new Date(unrevoked.created_at).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+            <form action={rotateAction}>
+              <input type="hidden" name="invoiceId" value={invoiceId} />
+              <input type="hidden" name="requestKey" value={rotateRequestKey} />
+              <button
+                type="submit"
+                className={`${secondaryClass} inline-flex min-h-10 items-center justify-center whitespace-nowrap px-3 py-2 text-xs`}
+                disabled={rotating}
+              >
+                {rotating ? "Replacing…" : "Create replacement link"}
+              </button>
+            </form>
+            <form action={revokeAction}>
+              <input type="hidden" name="invoiceId" value={invoiceId} />
+              <input type="hidden" name="linkId" value={unrevoked.id} />
+              <button
+                type="submit"
+                className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                disabled={revoking}
+              >
+                {revoking ? "Revoking…" : "Revoke link"}
+              </button>
+            </form>
+          </div>
         </div>
       ) : null}
       <Result state={createState} />
       <Result state={rotateState} />
       <Result state={revokeState} />
       {links.length > 0 ? (
-        <details className="mt-4">
+        <details
+          id="invoice-link-history"
+          className="mt-4 border-t border-[var(--line)] pt-3"
+        >
           <summary className="cursor-pointer text-sm font-medium">Link history</summary>
           <ul className="mt-2 space-y-2 text-xs text-[var(--muted-foreground)]">
             {links.map((link) => (
@@ -163,6 +188,42 @@ export function InvoiceSharePanel({
           </ul>
         </details>
       ) : null}
+    </>
+  );
+
+  if (collapsible) {
+    return (
+      <details
+        id="customer-access"
+        open
+        className="group min-w-0 rounded-2xl border border-[#e4ebf8] bg-[#f4f7fc] shadow-[0_1px_2px_rgb(15_45_36/4%)]"
+      >
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] sm:px-5 [&::-webkit-details-marker]:hidden">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e4edfc] text-[#315b8a]">
+              <UsersRound aria-hidden="true" className="size-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-[var(--ink)]">Customer access</span>
+              <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
+                Share a private read-only invoice link with your customer.
+              </span>
+            </span>
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className="size-5 shrink-0 text-[var(--muted-foreground)] transition-transform group-open:rotate-180"
+          />
+        </summary>
+        <div className="border-t border-[#e4ebf8] bg-white/70 p-4 sm:p-5">{content}</div>
+      </details>
+    );
+  }
+
+  return (
+    <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
+      <h2 className="text-lg font-semibold">Customer access</h2>
+      {content}
     </section>
   );
 }

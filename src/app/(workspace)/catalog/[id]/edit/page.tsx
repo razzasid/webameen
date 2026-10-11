@@ -39,6 +39,7 @@ export default async function EditCatalogItemPage({
         initial={initial}
         rates={rates}
         submitLabel="Save changes"
+        variant="edit"
       />
     </section>
   );

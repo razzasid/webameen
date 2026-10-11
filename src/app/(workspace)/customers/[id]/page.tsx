@@ -1,4 +1,15 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Building2,
+  FileText,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -43,46 +54,96 @@ export default async function CustomerDetailPage({
     ? gstinStateWarning(customer.gstin, customer.state_code)
     : null;
   const rows = [
-    ["Contact name", customer.contact_name],
-    ["Phone", customer.phone],
-    ["Email", customer.email],
-    ["Address", customer.billing_address],
-    ["State", customer.state_code ? stateLabel(customer.state_code) : null],
-    [
-      "GSTIN applicable",
-      customer.gstin_applicable === null ? null : customer.gstin_applicable ? "Yes" : "No",
-    ],
-    ["GSTIN", customer.gstin],
+    { label: "Contact name", value: customer.contact_name, icon: UserRound },
+    { label: "Phone", value: customer.phone, icon: Phone },
+    { label: "Email", value: customer.email, icon: Mail },
+    { label: "Address", value: customer.billing_address, icon: MapPin },
+    {
+      label: "State",
+      value: customer.state_code ? stateLabel(customer.state_code) : null,
+      icon: Building2,
+    },
+    {
+      label: "GSTIN applicable",
+      value:
+        customer.gstin_applicable === null
+          ? null
+          : customer.gstin_applicable
+            ? "Yes"
+            : "No",
+      icon: FileText,
+    },
+    { label: "GSTIN", value: customer.gstin, icon: ShieldCheck },
+  ] as const;
+  const summary = [
+    {
+      label: "State",
+      value: customer.state_code ? stateLabel(customer.state_code) : "Not provided",
+      icon: Building2,
+    },
+    {
+      label: "GSTIN applicable",
+      value:
+        customer.gstin_applicable === null
+          ? "Not specified"
+          : customer.gstin_applicable
+            ? "Yes"
+            : "No",
+      icon: BadgeCheck,
+    },
+    { label: "GSTIN", value: customer.gstin || "—", icon: ShieldCheck },
   ] as const;
   const pageHref = (page: number) => `/customers/${customer.id}?page=${page}`;
 
   return (
-    <section className="space-y-6">
-      <Link
-        href="/customers"
-        className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-[var(--brand)] hover:underline"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4" /> Customers
-      </Link>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-[var(--brand)]">Customer</p>
-          <h1 className="mt-1 break-words text-2xl font-semibold tracking-tight sm:text-3xl">
-            {customer.display_name}
-          </h1>
-          <p className="mt-1 break-all text-xs text-[var(--muted-foreground)]">
-            Customer record · {customer.id}
-          </p>
+    <section className="space-y-5 sm:space-y-6">
+      <div className="space-y-4">
+        <Link
+          href="/customers"
+          className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-[var(--brand)] hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4" /> Customers
+        </Link>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--brand)]">Customer profile</p>
+            <h1 className="mt-1 break-words text-2xl font-semibold tracking-tight text-[var(--ink)] sm:text-3xl">
+              {customer.display_name}
+            </h1>
+            <p className="mt-2 inline-flex max-w-full items-center rounded-full bg-[var(--canvas)] px-3 py-1 text-xs font-medium text-[var(--muted-foreground)]">
+              Customer ID: <span className="ml-1 break-all">{customer.id}</span>
+            </p>
+          </div>
+          <Button asChild className="w-full shrink-0 sm:w-auto">
+            <Link href={`/customers/${customer.id}/edit`}>Edit customer</Link>
+          </Button>
         </div>
-        <Button asChild>
-          <Link href={`/customers/${customer.id}/edit`}>Edit customer</Link>
-        </Button>
       </div>
       {customer.archived_at ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
           This customer is archived.
         </p>
       ) : null}
+      <Card className="overflow-hidden">
+        <CardContent className="grid gap-0 p-0 sm:grid-cols-3">
+          {summary.map(({ label, value, icon: Icon }, index) => (
+            <div
+              className={`flex min-w-0 items-center gap-3 px-4 py-4 sm:px-5 sm:py-5 ${index > 0 ? "border-t border-[var(--line)] sm:border-l sm:border-t-0" : ""}`}
+              key={label}
+            >
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--brand)]">
+                <Icon aria-hidden="true" className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
+                <p className="mt-1 break-words text-sm font-semibold text-[var(--ink)] sm:text-base">
+                  {value}
+                </p>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
       {gstinWarning ? (
         <p
           role="status"
@@ -91,28 +152,41 @@ export default async function CustomerDetailPage({
           {gstinWarning}
         </p>
       ) : null}
-      <Card className="max-w-4xl">
-        <CardHeader className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
-          <CardTitle>Customer information</CardTitle>
-          <CardDescription>Current contact and GST details.</CardDescription>
+      <Card className="max-w-5xl overflow-hidden">
+        <CardHeader className="flex flex-row items-center gap-4 border-b border-[var(--line)] px-4 py-5 sm:px-6">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--brand)]">
+            <FileText aria-hidden="true" className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <CardTitle>Customer information</CardTitle>
+            <CardDescription className="mt-1">
+              Basic contact and tax details for this customer.
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          <dl className="grid gap-px bg-[var(--line)] sm:grid-cols-2">
-            {rows.map(([label, value]) => (
-              <div className="min-w-0 bg-white px-4 py-4 sm:px-5" key={label}>
-                <dt className="text-xs font-medium text-[var(--muted-foreground)]">
-                  {label}
-                </dt>
-                <dd className="mt-1.5 break-words whitespace-pre-line text-sm font-medium">
-                  {value || "—"}
-                </dd>
+          <dl className="grid px-4 sm:grid-cols-2 sm:px-6">
+            {rows.map(({ label, value, icon: Icon }, index) => (
+              <div
+                className={`flex min-w-0 items-center gap-3 py-4 sm:gap-4 sm:px-2 ${index > 0 ? "border-t border-[var(--line)]" : ""} ${index % 2 === 1 ? "sm:border-l sm:pl-5" : "sm:pr-5"} ${index > 1 ? "sm:border-t" : "sm:border-t-0"}`}
+                key={label}
+              >
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--mint)]/70 text-[var(--brand)]">
+                  <Icon aria-hidden="true" className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <dt className="text-sm text-[var(--muted-foreground)]">{label}</dt>
+                  <dd className="mt-1 break-words whitespace-pre-line text-sm font-medium text-[var(--ink)] sm:text-base">
+                    {value || "—"}
+                  </dd>
+                </div>
               </div>
             ))}
           </dl>
         </CardContent>
       </Card>
 
-      <Card className="max-w-4xl">
+      <Card className="max-w-5xl overflow-hidden">
         <CardHeader className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
           <CardTitle>Document and payment history</CardTitle>
           <CardDescription>

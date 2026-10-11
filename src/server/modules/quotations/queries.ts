@@ -65,7 +65,13 @@ export type QuotationWorkflow = {
     }>;
   }>;
 };
-export type CustomerChoice = { id: string; display_name: string };
+export type CustomerChoice = {
+  id: string;
+  display_name: string;
+  email: string | null;
+  phone: string | null;
+  state_code: string | null;
+};
 export type CatalogChoice = {
   id: string;
   name: string;
@@ -237,7 +243,7 @@ export async function listQuotationCustomers(): Promise<CustomerChoice[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id,display_name")
+    .select("id,display_name,email,phone,state_code")
     .eq("business_id", context.business.id)
     .is("archived_at", null)
     .order("display_name")
