@@ -56,6 +56,18 @@ export type BusinessPaymentHistoryEntry = {
   document_time_zone: string;
 };
 
+export type BusinessPaymentDashboard = {
+  payments: BusinessPaymentHistoryEntry[];
+  stats: {
+    invoiceCount: number;
+    totalReceivedMinor: string;
+    paymentCount: number;
+    fullyPaidInvoiceCount: number;
+    outstandingMinor: string;
+    outstandingInvoiceCount: number;
+  };
+};
+
 export async function getInvoicePaymentSummary(
   invoiceId: string,
 ): Promise<InvoicePaymentSummary> {
@@ -87,15 +99,26 @@ export async function getReceiptInvoiceId(receiptId: string): Promise<string> {
   return data.invoice_id;
 }
 
-export async function listBusinessPayments(): Promise<BusinessPaymentHistoryEntry[]> {
+export async function getBusinessPaymentDashboard(): Promise<BusinessPaymentDashboard> {
   const invoices = await listInvoices();
-  const summaries = await Promise.all(
-    invoices.map(async (invoice) => ({
-      invoice,
-      summary: await getInvoicePaymentSummary(invoice.id),
-    })),
-  );
-  return summaries
+  const summaries: Array<{
+    invoice: (typeof invoices)[number];
+    summary: InvoicePaymentSummary;
+  }> = [];
+  const batchSize = 20;
+  for (let offset = 0; offset < invoices.length; offset += batchSize) {
+    const batch = invoices.slice(offset, offset + batchSize);
+    summaries.push(
+      ...(await Promise.all(
+        batch.map(async (invoice) => ({
+          invoice,
+          summary: await getInvoicePaymentSummary(invoice.id),
+        })),
+      )),
+    );
+  }
+
+  const payments = summaries
     .flatMap(({ invoice, summary }) =>
       summary.payments.map((payment) => ({
         invoice_id: invoice.id,
@@ -113,4 +136,35 @@ export async function listBusinessPayments(): Promise<BusinessPaymentHistoryEntr
         new Date(second.payment.recorded_at).getTime() -
         new Date(first.payment.recorded_at).getTime(),
     );
+
+  return {
+    payments,
+    stats: {
+      invoiceCount: invoices.length,
+      totalReceivedMinor: summaries
+        .reduce((total, { summary }) => total + BigInt(summary.paid_minor), BigInt(0))
+        .toString(),
+      paymentCount: summaries.reduce(
+        (total, { summary }) =>
+          total + summary.payments.filter((payment) => !payment.reversal).length,
+        0,
+      ),
+      fullyPaidInvoiceCount: summaries.filter(
+        ({ summary }) => summary.payment_status === "paid",
+      ).length,
+      outstandingMinor: summaries
+        .reduce(
+          (total, { summary }) => total + BigInt(summary.outstanding_minor),
+          BigInt(0),
+        )
+        .toString(),
+      outstandingInvoiceCount: summaries.filter(
+        ({ summary }) => BigInt(summary.outstanding_minor) > BigInt(0),
+      ).length,
+    },
+  };
+}
+
+export async function listBusinessPayments(): Promise<BusinessPaymentHistoryEntry[]> {
+  return (await getBusinessPaymentDashboard()).payments;
 }

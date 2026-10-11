@@ -18,6 +18,7 @@ export type CatalogItem = {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+  is_published?: boolean;
 };
 
 export type GstRateOption = { rate: string };
@@ -64,7 +65,60 @@ export async function listCatalogItems(search = "", requestedPage = 1) {
     p_limit: CATALOG_PER_PAGE,
   });
   if (error) throw new Error("Could not load catalog items.");
-  return { items: (data ?? []) as CatalogItem[], page, total, totalPages };
+  const items = (data ?? []) as CatalogItem[];
+  const itemIds = items.map((item) => item.id);
+  const publicationById = new Map<string, boolean>();
+  if (itemIds.length) {
+    const { data: publicationRows, error: publicationError } = await supabase
+      .from("catalog_items")
+      .select("id,is_published")
+      .eq("business_id", context.business.id)
+      .in("id", itemIds);
+    if (publicationError) throw new Error("Could not load catalog publication status.");
+    for (const row of publicationRows ?? []) publicationById.set(row.id, row.is_published);
+  }
+  return {
+    items: items.map((item) => ({
+      ...item,
+      is_published: publicationById.get(item.id) ?? false,
+    })),
+    page,
+    total,
+    totalPages,
+  };
+}
+
+export async function getCatalogSummary() {
+  const context = await getBusinessContext();
+  if (context.status !== "ready")
+    return { total: 0, products: 0, services: 0, published: 0 };
+
+  const supabase = await createSupabaseServerClient();
+  const count = () =>
+    supabase
+      .from("catalog_items")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", context.business.id)
+      .is("archived_at", null);
+  const [totalResult, productResult, serviceResult, publishedResult] = await Promise.all([
+    count(),
+    count().eq("kind", "product"),
+    count().eq("kind", "service"),
+    count().eq("is_published", true),
+  ]);
+  if (
+    [totalResult, productResult, serviceResult, publishedResult].some(
+      (result) => result.error,
+    )
+  ) {
+    throw new Error("Could not load catalog summary.");
+  }
+  return {
+    total: totalResult.count ?? 0,
+    products: productResult.count ?? 0,
+    services: serviceResult.count ?? 0,
+    published: publishedResult.count ?? 0,
+  };
 }
 
 export async function getCatalogItem(

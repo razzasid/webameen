@@ -22,10 +22,27 @@ export type Customer = {
 
 export const CUSTOMERS_PER_PAGE = 10;
 
-export async function listCustomers(search = "", requestedPage = 1) {
+export type CustomerListFilters = {
+  customerStatus?: "all" | "active" | "archived";
+  gstinStatus?: "all" | "applicable" | "not_applicable";
+  stateCode?: string;
+  sort?: "name_asc" | "name_desc";
+};
+
+export async function listCustomers(
+  search = "",
+  requestedPage = 1,
+  filters: CustomerListFilters = {},
+) {
   const context = await getBusinessContext();
   if (context.status !== "ready") {
-    return { customers: [] as Customer[], page: 1, total: 0, totalPages: 1 };
+    return {
+      customers: [] as Customer[],
+      page: 1,
+      total: 0,
+      totalPages: 1,
+      summary: { total: 0, gstinApplicable: 0, states: 0 },
+    };
   }
   const supabase = await createSupabaseServerClient();
   const term = search.trim().slice(0, 100);
@@ -34,36 +51,104 @@ export async function listCustomers(search = "", requestedPage = 1) {
   const searchFilter = ["display_name", "email", "phone"]
     .map((column) => `${column}.ilike."%${escapedTerm}%"`)
     .join(",");
+  const searchWithoutGstinFilter = ["display_name", "email", "phone"]
+    .flatMap((column) => [
+      `and(${column}.ilike."%${escapedTerm}%",gstin_applicable.eq.false)`,
+      `and(${column}.ilike."%${escapedTerm}%",gstin_applicable.is.null)`,
+    ])
+    .join(",");
+  const combineSearchAndGstin = term && filters.gstinStatus === "not_applicable";
 
   let countQuery = supabase
     .from("customers")
     .select("id", { count: "exact", head: true })
     .eq("business_id", context.business.id);
-  if (term) countQuery = countQuery.or(searchFilter);
-  const { count, error: countError } = await countQuery;
-  if (countError) throw new Error("Could not load customers.");
-
-  const total = count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / CUSTOMERS_PER_PAGE));
-  const page = Math.min(
-    Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
-    totalPages,
-  );
-  const offset = (page - 1) * CUSTOMERS_PER_PAGE;
+  if (combineSearchAndGstin) countQuery = countQuery.or(searchWithoutGstinFilter);
+  else if (term) countQuery = countQuery.or(searchFilter);
+  if (filters.customerStatus === "active") countQuery = countQuery.is("archived_at", null);
+  if (filters.customerStatus === "archived")
+    countQuery = countQuery.not("archived_at", "is", null);
+  if (filters.gstinStatus === "applicable")
+    countQuery = countQuery.eq("gstin_applicable", true);
+  if (filters.gstinStatus === "not_applicable" && !combineSearchAndGstin)
+    countQuery = countQuery.or("gstin_applicable.eq.false,gstin_applicable.is.null");
+  if (filters.stateCode) countQuery = countQuery.eq("state_code", filters.stateCode);
 
   let rowsQuery = supabase
     .from("customers")
     .select(
       "id, display_name, contact_name, email, phone, billing_address, state_code, gstin_applicable, gstin, archived_at, created_at, updated_at",
     )
-    .eq("business_id", context.business.id)
-    .order("display_name", { ascending: true })
-    .order("id", { ascending: true })
+    .eq("business_id", context.business.id);
+  if (combineSearchAndGstin) rowsQuery = rowsQuery.or(searchWithoutGstinFilter);
+  else if (term) rowsQuery = rowsQuery.or(searchFilter);
+  if (filters.customerStatus === "active") rowsQuery = rowsQuery.is("archived_at", null);
+  if (filters.customerStatus === "archived")
+    rowsQuery = rowsQuery.not("archived_at", "is", null);
+  if (filters.gstinStatus === "applicable")
+    rowsQuery = rowsQuery.eq("gstin_applicable", true);
+  if (filters.gstinStatus === "not_applicable" && !combineSearchAndGstin)
+    rowsQuery = rowsQuery.or("gstin_applicable.eq.false,gstin_applicable.is.null");
+  if (filters.stateCode) rowsQuery = rowsQuery.eq("state_code", filters.stateCode);
+
+  const [countResult, allCountResult, gstinCountResult] = await Promise.all([
+    countQuery,
+    supabase
+      .from("customers")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", context.business.id),
+    supabase
+      .from("customers")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", context.business.id)
+      .eq("gstin_applicable", true),
+  ]);
+  if (countResult.error || allCountResult.error || gstinCountResult.error) {
+    throw new Error("Could not load customers.");
+  }
+
+  const total = countResult.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / CUSTOMERS_PER_PAGE));
+  const page = Math.min(
+    Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
+    totalPages,
+  );
+  const offset = (page - 1) * CUSTOMERS_PER_PAGE;
+  const ascending = filters.sort !== "name_desc";
+  const { data, error } = await rowsQuery
+    .order("display_name", { ascending })
+    .order("id", { ascending })
     .range(offset, offset + CUSTOMERS_PER_PAGE - 1);
-  if (term) rowsQuery = rowsQuery.or(searchFilter);
-  const { data, error } = await rowsQuery;
   if (error) throw new Error("Could not load customers.");
-  return { customers: (data ?? []) as Customer[], page, total, totalPages };
+
+  const stateCodes = new Set<string>();
+  const statePageSize = 1000;
+  for (let stateOffset = 0; ; stateOffset += statePageSize) {
+    const { data: stateRows, error: stateError } = await supabase
+      .from("customers")
+      .select("state_code")
+      .eq("business_id", context.business.id)
+      .not("state_code", "is", null)
+      .order("id", { ascending: true })
+      .range(stateOffset, stateOffset + statePageSize - 1);
+    if (stateError) throw new Error("Could not load customer summary.");
+    for (const row of stateRows ?? []) {
+      if (row.state_code) stateCodes.add(row.state_code);
+    }
+    if (!stateRows || stateRows.length < statePageSize) break;
+  }
+
+  return {
+    customers: (data ?? []) as Customer[],
+    page,
+    total,
+    totalPages,
+    summary: {
+      total: allCountResult.count ?? 0,
+      gstinApplicable: gstinCountResult.count ?? 0,
+      states: stateCodes.size,
+    },
+  };
 }
 
 export async function getCustomer(id: string): Promise<Customer> {
