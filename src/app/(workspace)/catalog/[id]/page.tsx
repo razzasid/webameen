@@ -52,7 +52,7 @@ export default async function CatalogItemPage({
           <h2 className="text-sm font-semibold">
             {item.is_published ? "Published" : "Private draft"}
           </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             {item.is_published
               ? "Customers can view this item. Saved changes also update the public listing."
               : "Publish this item when it is ready for customers."}
@@ -81,7 +81,7 @@ export default async function CatalogItemPage({
         <Detail label="Default GST category" value={category} />
         <Detail label="HSN / SAC" value={item.hsn_sac || "Not set"} />
         <div className="sm:col-span-2">
-          <dt className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
             Description
           </dt>
           <dd className="mt-1 whitespace-pre-wrap text-sm">
@@ -89,7 +89,7 @@ export default async function CatalogItemPage({
           </dd>
         </div>
       </dl>
-      <p className="mt-4 max-w-3xl text-xs leading-5 text-[var(--muted)]">
+      <p className="mt-4 max-w-3xl text-xs leading-5 text-[var(--muted-foreground)]">
         These are defaults for future documents. Editing this item does not change any
         existing quotation or invoice snapshots.
       </p>
@@ -100,7 +100,7 @@ export default async function CatalogItemPage({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+      <dt className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
         {label}
       </dt>
       <dd className="mt-1 text-sm">{value}</dd>

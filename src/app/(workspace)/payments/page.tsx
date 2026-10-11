@@ -17,7 +17,7 @@ export default async function PaymentsPage() {
       <div>
         <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Payments</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Recorded money received across your issued invoices.
         </p>
       </div>
@@ -45,7 +45,7 @@ export default async function PaymentsPage() {
                     <p className="mt-1 text-sm">
                       {customer_name} · {payment.method}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--muted)]">
+                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                       Received {formatDateTime(payment.received_at, document_time_zone)}
                       {payment.external_reference
                         ? ` · Ref ${payment.external_reference}`
@@ -56,7 +56,7 @@ export default async function PaymentsPage() {
                         Reversed: {payment.reversal.reason}
                       </p>
                     ) : (
-                      <p className="mt-2 text-xs capitalize text-[var(--muted)]">
+                      <p className="mt-2 text-xs capitalize text-[var(--muted-foreground)]">
                         Invoice {payment_status.replace("_", " ")} ·{" "}
                         {formatPaise(outstanding_minor)} outstanding
                       </p>
@@ -81,7 +81,7 @@ export default async function PaymentsPage() {
       ) : (
         <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-white px-6 py-12 text-center">
           <h2 className="text-lg font-semibold">No payments yet</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Record a payment from an issued invoice to see its receipt and history here.
           </p>
           <Link

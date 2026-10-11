@@ -44,7 +44,7 @@ export function NewQuotationForm({
           ))}
         </select>
       </label>
-      <p className="text-sm text-[var(--muted)]">
+      <p className="text-sm text-[var(--muted-foreground)]">
         The selected customer remains fixed for this quotation. Its current details will be
         copied into the new draft for review.
       </p>

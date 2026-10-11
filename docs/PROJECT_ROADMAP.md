@@ -471,23 +471,54 @@ Dependency overview: `1 → 2 → {3,4}; {2,4} → 5; 2 → 6; {3,4,6} → 7 →
 
 **11 October 2026 closeout:** Migration `20261010175909_invoice_customer_access.sql` is applied locally. All ten rollback-only SQL suites pass; `invoice_conversion.sql` also passes after the final link-function cleanup. `npm test` passes (48 tests), and typecheck/lint pass. Production builds succeeded in the Playwright run; both the invoice-conversion and quotation-sharing browser tests reported passes, including owner/guest PDF downloads, invalid/revoked access and tenant denial. The Windows Playwright runner remained open after reporting both passes and was interrupted manually; this shutdown issue remains tracked under T6. PDFKit invoice/quotation one-page and multi-page outputs were rendered and visually reviewed after fixing table-header alignment, repeated-currency text, footer pagination and continuation-page headers. Supabase security advisors report no issues; database lint retains only the earlier unrelated unused-variable warning in `private.revoke_quotation_link`. Optional branding was omitted. Deployments must configure server-only `SUPABASE_INVOICE_BROKER_KEY`; the per-process rate limiter remains a single-instance prototype limit.
 
-### Phase 12 — Dashboard and Customer Transaction History
+### Phase 12 — Dashboard, Customer History and Mobile-first UI/UX Refinement
 
-**Status:** 🔴 NOT STARTED workflow read models (identity/contact screens exist). **Goal:** owner sees recent work, effective payments and money still due.
+**Scope amendment — 11 October 2026:** The original Phase 12 dashboard and customer-history read models remain in scope. The user's explicit Phase 12 implementation request also adds a shared responsive UI refinement across existing routes. This phase does not authorize new business workflows, schema fields, sample records, bulk actions, exports, or changes to established API/security contracts. UI work must use current application data and preserve the existing server-side authorization boundary.
+
+**Reference-to-route map and inspection checklist**
+
+| Reference screen(s) | Existing application pages / workflow |
+|---|---|
+| `Webameen Business Dashboard Overview.png`, `Modern Webameen Mobile Dashboard UI.png` | `/dashboard`, shared workspace shell and mobile navigation |
+| `Webameen Customers Dashboard.png`, `Modern Green SaaS Customer Dashboard.png`, `Webameen Customer Edit Dashboard.png` | `/customers`, `/customers/[id]`, `/customers/[id]/edit`, `/customers/new` |
+| `Modern Products & Services Dashboard.png`, `Modern SaaS Catalog Item Form.png` | `/catalog`, `/catalog/new`, `/catalog/[id]`, `/catalog/[id]/edit` |
+| `Webameen Quotations Dashboard.png`, `Modern SaaS Quotation Dashboard.png`, `Modern Green CRM Quotation Dashboard.png`, `Green SaaS Quotation Editor Dashboard.png`, `Quotation Preview and Sharing Dashboard.png` | `/quotations`, `/quotations/new`, `/quotations/[id]`; draft calculation, save, share and revision workflows |
+| `Modern Green Quotation Approval Dashboard.png`, `Webameen Green Quotation Document.png` | Accountless `/q/[token]` quotation review, PDF and response workflow |
+| `Modern SaaS Invoice Dashboard.png`, `Modern SaaS Invoice Dashboard(1).png`, `Modern SaaS Invoice Detail Dashboard.png`, `Webameen Tax Invoice Summary.png` | `/invoices`, `/invoices/[id]`, owner/customer PDF, access-link and payment history |
+| `Modern Payments Dashboard UI.png` | `/payments` and invoice payment/reversal details; use only recorded payment data and existing operations |
+| `SaaS Settings Dashboard Interface.png` | `/settings`, business profile, document defaults and invoice-numbering periods |
+
+| Implementation checklist | Status |
+|---|---|
+| Confirm current Phase 12 scope, dependencies, existing UI/data modules and all 20 reference images | [x] Inspected |
+| Establish shadcn/ui on the existing Next 16 / React 19 / Tailwind 4 stack and Webameen design tokens | [x] |
+| Refine the shared workspace shell, navigation, page hierarchy and reusable interaction patterns | [x] |
+| Refine represented customer, catalog, quotation, invoice, payment and settings screens without replacing their workflows | [x] |
+| Complete owner-scoped dashboard and paged customer-history read models from existing records | [x] |
+| Verify required mobile/tablet/desktop widths, keyboard behavior and representative existing workflows | [x] |
+| Run quality checks and record verified results, limitations and documentation | [x] |
+
+The dashboard reference includes trends, export and sample activity that the current data model/UI does not support. Show only values derived from existing authorized records; omit unsupported reports, export controls, comparative claims and fabricated activity. The invoice/quotation document references guide presentation only; immutable snapshots, public-link access and PDF behavior remain unchanged.
+
+**Status:** ✅ COMPLETE — 11 October 2026. Dashboard and customer history now use existing authorized records, with a responsive workspace design system applied across the represented routes. **Goal:** owner sees recent work, effective payments and money still due.
 
 **Depends on:** 3, 8, 9, 10. **Required before:** 13 usable end-to-end pilot. **Blocks:** claims of complete business history/reporting. **Can be implemented independently:** quote metrics can start after 8; invoice/payment portions wait for corresponding transactions; no PDF dependency.
 
 **Database / Backend**
 
-- [ ] 🔴 NOT STARTED — Add owner-scoped exact-string read models for current quote states, recent activity, invoice unpaid/part_paid/paid/overdue and outstanding total. Reuse typed records; any view must preserve caller RLS (`security_invoker`), no definer reporting bypass.
-- [ ] 🔴 NOT STARTED — Add paged customer timeline from their quotes/versions/responses, invoices/payments/reversals/receipts, with deterministic date/type/ID ordering and same-business joins. No new generic events/ledger/cached-balance subsystem.
-- [ ] 🔴 NOT STARTED — Derive balance/status consistently with Phase 10; typed changes/response history remains linked to exact version; avoid double-counting reversed payments or replaced receipts.
+- [x] ✅ COMPLETE — Compose owner-scoped dashboard summaries from existing quotation, invoice and effective-payment query modules, plus explicit business-filtered customer counts/activity. No schema or migration change was needed.
+- [x] ✅ COMPLETE — Build a paged customer timeline from existing quotation versions/responses and invoice payments, reversals and receipts. Sort by event time, type and ID; retain owner-only routes and business-local time display.
+- [x] ✅ COMPLETE — Reuse Phase 10 payment summaries for paid, outstanding and overdue status; keep monetary totals as exact integer strings and keep responses linked to their immutable quotation version.
 
 **Frontend / Security / Testing**
 
-- [ ] 🔴 NOT STARTED — Extend dashboard with useful counts/recent work/outstanding and next actions; extend `/customers/[id]` with paged document/payment history and protected links. Show real empty/loading/error states.
-- [ ] 🔴 NOT STARTED — Return only authorized business/customer rows and required fields; deny changed customer IDs, guests and disabled owners; do not make customer timeline public.
-- [ ] 🔴 NOT STARTED — Unit/SQL tests for states/rounding-free aggregation/timezone/deterministic paging and two-business isolation; E2E complete workflow visible in dashboard/customer detail, including reversal and revision.
+- [x] ✅ COMPLETE — Add business summary cards, recent record activity, useful next actions, customer details and paged document/payment history, including the real empty state.
+- [x] ✅ COMPLETE — Keep customer history behind existing owner checks and same-business filters. Existing cross-business route tests continue to deny foreign IDs; the timeline is not public.
+- [x] ✅ COMPLETE — Add exact-money dashboard aggregation and stable timeline pagination unit tests. Browser coverage exercises dashboard, customer history, invoice PDF/share/payment/receipt, quotation revision and public responses.
+
+**Verification — 11 October 2026:** `npm run lint`, `npm run typecheck`, `npm test` (52 tests) and production build passed. The Playwright suite reached all 20 scenarios without a reported test failure; the Windows runner stayed open during shutdown, matching the existing T6 cleanup limitation. A focused rerun explicitly passed the invoice download/share/payment/receipt flow and the responsive navigation sweep. The responsive sweep checked the dashboard and customer, catalog, quotation, invoice, payment and settings routes at 320, 375, 390, 430, 768, 1024, 1280 and 1440px with no horizontal overflow.
+
+**Known limitation:** customer history is paged for display after its existing document/payment records are assembled server-side. This is suitable for current pilot-scale records; a high-volume deployment should add bounded event queries before expanding data volume. No new tables, fields, APIs or security grants were introduced.
 
 **Acceptance:** totals equal authoritative invoices/effective payments; old/new version activity remains distinguishable; one business/customer cannot see another's history; no fabricated dashboard counters or broad reporting subsystem.
 

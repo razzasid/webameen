@@ -152,7 +152,7 @@ export function CatalogForm({ action, initial, rates, submitLabel }: Props) {
               placeholder="e.g. 1250.00"
               defaultValue={value("defaultPrice")}
             />
-            <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+            <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
               Optional. Enter up to two paise decimal places.
             </span>
           </Field>
@@ -172,7 +172,7 @@ export function CatalogForm({ action, initial, rates, submitLabel }: Props) {
               defaultValue={value("hsnSac")}
               maxLength={40}
             />
-            <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+            <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
               Optional. Enter the code supplied for this item.
             </span>
           </Field>
@@ -236,7 +236,7 @@ export function CatalogForm({ action, initial, rates, submitLabel }: Props) {
               ))}
             </select>
             {rates.length === 0 ? (
-              <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+              <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
                 No GST rates are configured yet. Ask your workspace operator to configure
                 the approved options, or choose Exempt / No GST if that is the correct
                 classification.

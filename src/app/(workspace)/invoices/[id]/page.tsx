@@ -36,7 +36,7 @@ export default async function InvoiceDetailPage({
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
             {invoice.reference}
           </h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Invoice date {invoice.invoice_date}
             {invoice.due_on ? ` · Due ${invoice.due_on}` : ""}
             {" · Issued "}
@@ -45,9 +45,11 @@ export default async function InvoiceDetailPage({
         </div>
         <div className="flex flex-wrap items-end gap-4">
           <div className="text-right">
-            <p className="text-xs text-[var(--muted)]">Total</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Total</p>
             <p className="text-2xl font-semibold">{formatPaise(invoice.total_minor)}</p>
-            <p className="text-xs text-[var(--muted)]">{invoice.currency_code}</p>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {invoice.currency_code}
+            </p>
           </div>
           <a
             href={`/invoices/${invoice.id}/pdf`}
@@ -60,7 +62,7 @@ export default async function InvoiceDetailPage({
 
       <div className="mt-6 rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
         <h2 className="text-lg font-semibold">Approved source</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Quotation {invoice.quotation_id} · version {invoice.source_version_id} · approval
           evidence {invoice.approved_response_id}
         </p>
@@ -70,7 +72,7 @@ export default async function InvoiceDetailPage({
         >
           Open quotation history
         </Link>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Number {invoice.sequence_number} from owner configured period “
           {invoice.numbering_period}”.
         </p>
@@ -86,7 +88,7 @@ export default async function InvoiceDetailPage({
         <InvoiceDocumentView document={toInvoiceDocument(invoice)} />
       </section>
       <InvoicePaymentPanel invoiceId={invoice.id} summary={paymentSummary} />
-      <p className="mt-5 text-center text-xs text-[var(--muted)]">
+      <p className="mt-5 text-center text-xs text-[var(--muted-foreground)]">
         This issued invoice is an immutable copy of the approved quotation. Corrections to
         recorded payments are retained in the payment history.
       </p>

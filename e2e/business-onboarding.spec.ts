@@ -38,13 +38,13 @@ test("onboarding needs a session, and a new owner is sent to setup", async ({ pa
   await page.getByLabel("GSTIN").fill("27abcde1234f1z5");
   await page.getByRole("button", { name: "Create business" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("heading", { name: "Welcome to Webameen" })).toBeVisible();
-  await expect(page.getByText("Business: Webameen Test Shop")).toBeVisible();
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Webameen Test Shop" })).toBeVisible();
+  await expect(page.getByText("Business overview")).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toBeVisible();
   await expect(page.getByText(/GSTIN starts with 27/)).toBeVisible();
 
   await page.goto("/onboarding/business");
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.reload();
-  await expect(page.getByText("Business: Webameen Test Shop")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Webameen Test Shop" })).toBeVisible();
 });

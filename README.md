@@ -72,6 +72,12 @@ Set the URL and publishable key together. APP_URL is the application origin used
 - Do not expose owner/customer private data through public catalog reads.
 - Do not treat local GST-rate fixtures as production configuration or legal advice.
 
+## UI and responsive conventions
+
+The workspace uses shadcn/ui components configured for Next.js App Router, React Server Components, Tailwind CSS 4, Radix Nova and Lucide. `components.json` maps shared UI to `src/components/ui`, with `@/lib/utils` as the class utility entry point. Add shadcn components only when a real screen needs them; customize generated primitives in place to fit Webameen.
+
+Shared theme tokens live in `src/app/globals.css`: forest-green primary colors, mint selection/active states, off-white page surfaces, white cards, neutral borders and readable status colors. Reuse those tokens instead of introducing page-specific palettes. The shared workspace shell keeps the forest-green desktop rail from tablet widths onward, collapses it to an icon rail below desktop, and uses four primary destinations plus an accessible “More” drawer on phones. Forms and financial records should remain usable at 320px, preserve their existing server-side data/action boundaries, and use tabular numerals for amounts.
+
 ## Business setup verification
 
 With local Supabase running, execute the database checks against the disposable local database:

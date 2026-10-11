@@ -34,7 +34,9 @@ test("owner creates, previews, saves and reopens an exact quotation draft", asyn
   await expect(page).toHaveURL(/\/customers\/[0-9a-f-]+$/i, { timeout: 20_000 });
 
   await page.goto("/quotations/new");
-  await page.getByLabel("Customer").selectOption({ label: "Quotation Buyer" });
+  await page
+    .getByRole("combobox", { name: "Customer", exact: true })
+    .selectOption({ label: "Quotation Buyer" });
   await page.getByRole("button", { name: "Create draft" }).click();
   await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
   const quoteUrl = page.url();
@@ -153,7 +155,9 @@ test("another owner cannot open a private quotation draft", async ({ browser }) 
     await pageA.getByRole("button", { name: "Create customer" }).click();
     await expect(pageA).toHaveURL(/\/customers\/[0-9a-f-]+$/i, { timeout: 20_000 });
     await pageA.goto("/quotations/new");
-    await pageA.getByLabel("Customer").selectOption({ label: "Private Buyer" });
+    await pageA
+      .getByRole("combobox", { name: "Customer", exact: true })
+      .selectOption({ label: "Private Buyer" });
     await pageA.getByRole("button", { name: "Create draft" }).click();
     await expect(pageA).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
     const privateUrl = pageA.url();

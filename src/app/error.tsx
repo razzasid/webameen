@@ -15,7 +15,7 @@ export default function ErrorPage({
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">
           This page could not load
         </h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
           Try again. If the problem continues, return to the dashboard.
         </p>
         <div className="mt-6 flex justify-center gap-3">

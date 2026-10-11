@@ -26,7 +26,7 @@ export default async function PublicCatalogPage({
         <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
           Products &amp; services
         </h1>
-        <p className="mt-3 break-words text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-3 break-words text-sm leading-6 text-[var(--muted-foreground)]">
           Explore what {catalog.business_name} offers. Open an item for pricing and details.
         </p>
       </div>
@@ -44,7 +44,7 @@ export default async function PublicCatalogPage({
                   </span>
                   <h2 className="mt-3 break-words text-lg font-semibold">{item.name}</h2>
                   {item.description ? (
-                    <p className="mt-2 line-clamp-3 break-words text-sm leading-6 text-[var(--muted)]">
+                    <p className="mt-2 line-clamp-3 break-words text-sm leading-6 text-[var(--muted-foreground)]">
                       {item.description}
                     </p>
                   ) : null}
@@ -55,7 +55,7 @@ export default async function PublicCatalogPage({
                         : formatPaise(item.price_minor)}
                     </p>
                     {item.unit_label ? (
-                      <p className="mt-1 break-words text-xs text-[var(--muted)]">
+                      <p className="mt-1 break-words text-xs text-[var(--muted-foreground)]">
                         per {item.unit_label}
                       </p>
                     ) : null}
@@ -93,14 +93,14 @@ export default async function PublicCatalogPage({
               ) : null}
             </nav>
           ) : null}
-          <p className="mt-6 text-xs text-[var(--muted)]">
+          <p className="mt-6 text-xs text-[var(--muted-foreground)]">
             Prices shown before GST where applicable.
           </p>
         </>
       ) : (
         <section className="mt-7 rounded-2xl border border-dashed border-[var(--line)] bg-white px-5 py-12 text-center">
           <h2 className="text-lg font-semibold">No items available yet</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+          <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
             This business has not published any items. Please check back later.
           </p>
         </section>

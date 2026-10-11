@@ -20,7 +20,7 @@ export function PlaceholderPage({ title }: { title: string }) {
             {title}
           </h1>
         </div>
-        <span className="rounded-full border border-[#dbe7e1] bg-white px-3 py-1.5 text-xs font-medium text-[var(--muted)]">
+        <span className="rounded-full border border-[#dbe7e1] bg-white px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)]">
           Foundation placeholder
         </span>
       </div>
@@ -60,7 +60,7 @@ export function PlaceholderPage({ title }: { title: string }) {
             ◇
           </div>
           <h2 className="mt-5 text-lg font-semibold">Ready for the next milestone</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted-foreground)]">
             {notes[title] ?? "This area is reserved for the next milestone."} No business
             data or actions are connected on this screen yet.
           </p>

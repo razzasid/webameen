@@ -6,7 +6,7 @@ export default function PublicCatalogNotFound() {
           Public catalog
         </p>
         <h1 className="mt-3 text-2xl font-semibold">Catalog or item unavailable</h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
           This link may be incorrect, or the item may no longer be published. Ask the
           business for an updated link.
         </p>

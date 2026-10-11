@@ -102,7 +102,7 @@ export function InvoiceSharePanel({
   return (
     <section className="mt-5 rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
       <h2 className="text-lg font-semibold">Customer access</h2>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         Share a private read-only link. Customers can view this frozen invoice and download
         its PDF without an account.
       </p>
@@ -120,7 +120,7 @@ export function InvoiceSharePanel({
           <p className="text-sm font-medium">
             {active ? "A customer link is active" : "The customer link has expired"}
           </p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
             Created {new Date(unrevoked.created_at).toLocaleString()}
           </p>
           <form action={rotateAction} className="mt-3">
@@ -149,7 +149,7 @@ export function InvoiceSharePanel({
       {links.length > 0 ? (
         <details className="mt-4">
           <summary className="cursor-pointer text-sm font-medium">Link history</summary>
-          <ul className="mt-2 space-y-2 text-xs text-[var(--muted)]">
+          <ul className="mt-2 space-y-2 text-xs text-[var(--muted-foreground)]">
             {links.map((link) => (
               <li key={link.id}>
                 {new Date(link.created_at).toLocaleString()} ·{" "}

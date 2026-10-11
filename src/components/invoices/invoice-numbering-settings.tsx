@@ -59,7 +59,9 @@ export function InvoiceNumberingSettings({
           aria-invalid={Boolean(error)}
         />
         {hint ? (
-          <span className="mt-1 block text-xs font-normal text-[var(--muted)]">{hint}</span>
+          <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
+            {hint}
+          </span>
         ) : null}
         {error ? <span className="mt-1 block text-sm text-red-700">{error}</span> : null}
       </label>
@@ -69,7 +71,7 @@ export function InvoiceNumberingSettings({
   return (
     <div className="mt-7 rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
       <h2 className="text-lg font-semibold">Invoice numbering periods</h2>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         Set the exact dates and number format your business uses. The end date is excluded.
         Use <code>{"{prefix}"}</code>, <code>{"{period}"}</code> and exactly one{" "}
         <code>{"{number}"}</code>. No dates or statutory format are chosen for you.
@@ -77,7 +79,7 @@ export function InvoiceNumberingSettings({
       {periods.length ? (
         <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--line)]">
           <table className="w-full min-w-[680px] text-left text-sm">
-            <thead className="bg-[var(--canvas)] text-xs text-[var(--muted)]">
+            <thead className="bg-[var(--canvas)] text-xs text-[var(--muted-foreground)]">
               <tr>
                 <th className="p-3">Period</th>
                 <th>Dates</th>
@@ -141,7 +143,7 @@ export function InvoiceNumberingSettings({
           {input("minimumDigits", "Minimum number digits", "number")}
           {input("startingNumber", "Starting number", "number")}
         </div>
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-[var(--muted-foreground)]">
           Submit an existing period name to change its settings while it is unused. Once an
           invoice uses a period, its date range and format are fixed.
         </p>

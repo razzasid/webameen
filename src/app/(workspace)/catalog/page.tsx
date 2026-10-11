@@ -29,7 +29,7 @@ export default async function CatalogPage({
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
             Products &amp; services
           </h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Manage reusable items and their default pricing and GST settings.
           </p>
         </div>
@@ -44,7 +44,7 @@ export default async function CatalogPage({
       {context.status === "ready" ? (
         <aside className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--mint)] p-4 text-sm">
           <p className="font-semibold">Your public catalog</p>
-          <p className="mt-1 text-[var(--muted)]">
+          <p className="mt-1 text-[var(--muted-foreground)]">
             Share this link with customers. Only published, active items appear.
           </p>
           <Link
@@ -53,7 +53,7 @@ export default async function CatalogPage({
           >
             Open public catalog
           </Link>
-          <p className="mt-1 break-all text-xs text-[var(--muted)]">
+          <p className="mt-1 break-all text-xs text-[var(--muted-foreground)]">
             /c/{context.business.public_catalog_slug}
           </p>
         </aside>
@@ -92,7 +92,7 @@ export default async function CatalogPage({
                   >
                     <span className="min-w-48 flex-1">
                       <strong className="block text-sm font-semibold">{item.name}</strong>
-                      <span className="mt-1 block text-sm text-[var(--muted)]">
+                      <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
                         {[item.kind === "product" ? "Product" : "Service", item.unit_label]
                           .filter(Boolean)
                           .join(" · ")}
@@ -117,7 +117,7 @@ export default async function CatalogPage({
             aria-label="Catalog pages"
             className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm"
           >
-            <p className="text-[var(--muted)]">
+            <p className="text-[var(--muted-foreground)]">
               Showing {(page - 1) * CATALOG_PER_PAGE + 1}–
               {Math.min(page * CATALOG_PER_PAGE, total)} of {total} items
             </p>
@@ -133,7 +133,7 @@ export default async function CatalogPage({
                 ) : (
                   <span
                     aria-disabled="true"
-                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted)]"
+                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted-foreground)]"
                   >
                     Previous
                   </span>
@@ -151,7 +151,7 @@ export default async function CatalogPage({
                 ) : (
                   <span
                     aria-disabled="true"
-                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted)]"
+                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted-foreground)]"
                   >
                     Next
                   </span>
@@ -165,7 +165,7 @@ export default async function CatalogPage({
           <h2 className="text-lg font-semibold">
             {search ? "No items found" : "Your catalog is empty"}
           </h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             {search
               ? "Try a different name, description, or HSN/SAC code."
               : "Add products and services your business offers, with reusable defaults for future documents."}

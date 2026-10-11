@@ -150,7 +150,8 @@ export function PaymentEntryForm({
         className="block text-sm font-medium"
         htmlFor={`payment-reference-${requestKey}`}
       >
-        Reference <span className="font-normal text-[var(--muted)]">(optional)</span>
+        Reference{" "}
+        <span className="font-normal text-[var(--muted-foreground)]">(optional)</span>
         <input
           id={`payment-reference-${requestKey}`}
           className={inputClass}

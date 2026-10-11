@@ -31,7 +31,7 @@ export default async function EditCatalogItemPage({
         ← {item.name}
       </Link>
       <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">Edit catalog item</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         Changes apply to future use of this item.
       </p>
       <CatalogForm

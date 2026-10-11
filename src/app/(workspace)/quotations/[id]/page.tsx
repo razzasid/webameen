@@ -47,7 +47,7 @@ export default async function QuotationDetailPage({
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
             {quote.reference}
           </h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Version {quote.version_number} · {quote.state.replaceAll("_", " ")}
           </p>
         </div>
@@ -86,7 +86,7 @@ export default async function QuotationDetailPage({
       ) : (
         <div className="mt-7 rounded-2xl border border-[var(--line)] bg-white p-6">
           <h2 className="text-lg font-semibold">This version is frozen</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Its saved content cannot be edited. Create a revision before making changes.
           </p>
           <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
@@ -105,7 +105,7 @@ export default async function QuotationDetailPage({
           </div>
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="border-b border-[var(--line)] text-[var(--muted)]">
+              <thead className="border-b border-[var(--line)] text-[var(--muted-foreground)]">
                 <tr>
                   <th className="py-2">Line</th>
                   <th>Qty</th>

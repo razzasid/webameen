@@ -14,7 +14,7 @@ export default async function WorkspaceLayout({
     return (
       <main className="mx-auto max-w-xl px-5 py-16">
         <h1 className="text-2xl font-semibold">Business access unavailable</h1>
-        <p className="mt-3 text-sm text-[var(--muted)]">
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">
           This account already has a business membership, but its access is disabled.
           Contact the workspace operator.
         </p>

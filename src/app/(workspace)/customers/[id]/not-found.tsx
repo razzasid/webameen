@@ -4,7 +4,7 @@ export default function CustomerNotFound() {
   return (
     <section className="rounded-2xl border border-[var(--line)] bg-white p-8">
       <h1 className="text-xl font-semibold">Page not found</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         This customer is unavailable in your business.
       </p>
       <Link

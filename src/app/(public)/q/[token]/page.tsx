@@ -49,11 +49,13 @@ export default async function PublicQuotationPage({
       <article className="rounded-3xl border border-[var(--line)] bg-white p-6 shadow-sm sm:p-10">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--line)] pb-6">
           <div>
-            <p className="text-sm text-[var(--muted)]">Quotation {quote.reference}</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Quotation {quote.reference}
+            </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
               {String(seller.display_name ?? "")}
             </h1>
-            <p className="mt-2 whitespace-pre-line text-sm text-[var(--muted)]">
+            <p className="mt-2 whitespace-pre-line text-sm text-[var(--muted-foreground)]">
               {String(seller.address ?? "")}
             </p>
             {seller.email ? <p className="mt-1 text-sm">{String(seller.email)}</p> : null}
@@ -63,7 +65,9 @@ export default async function PublicQuotationPage({
             ) : null}
           </div>
           <div className="text-right">
-            <p className="text-sm text-[var(--muted)]">Version {quote.version_number}</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Version {quote.version_number}
+            </p>
             <p className="mt-1 text-sm capitalize">{quote.state.replaceAll("_", " ")}</p>
             {quote.valid_until ? (
               <p className="mt-2 text-sm">Valid through {quote.valid_until}</p>
@@ -122,7 +126,7 @@ export default async function PublicQuotationPage({
 
         <div className="mt-7 overflow-x-auto">
           <table className="w-full min-w-[620px] text-left text-sm">
-            <thead className="border-b border-[var(--line)] text-[var(--muted)]">
+            <thead className="border-b border-[var(--line)] text-[var(--muted-foreground)]">
               <tr>
                 <th className="py-3 pr-3">Description</th>
                 <th className="py-3 pr-3">Qty</th>
@@ -137,7 +141,7 @@ export default async function PublicQuotationPage({
                   <td className="py-3 pr-3">
                     {String(line.description)}
                     {line.hsn_sac ? (
-                      <small className="block text-[var(--muted)]">
+                      <small className="block text-[var(--muted-foreground)]">
                         HSN/SAC {String(line.hsn_sac)}
                       </small>
                     ) : null}
@@ -151,7 +155,7 @@ export default async function PublicQuotationPage({
                   <td className="py-3 pr-3">
                     {String(line.gst_category)}
                     {line.gst_rate ? ` · ${String(line.gst_rate)}%` : ""}
-                    <small className="block text-[var(--muted)]">
+                    <small className="block text-[var(--muted-foreground)]">
                       {String(line.gst_treatment ?? "")}
                     </small>
                   </td>
@@ -224,7 +228,7 @@ export default async function PublicQuotationPage({
         ) : null}
 
         {canRespond ? <PublicResponseForm token={token} /> : null}
-        <p className="mt-8 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
+        <p className="mt-8 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted-foreground)]">
           This page shows the quotation version shared with you. Responses are recorded once
           per version; names entered here are not verified identities.
         </p>

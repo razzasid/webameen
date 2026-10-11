@@ -1,14 +1,58 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: reduced motion must override component animations. */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   color-scheme: light;
-  --ink: #172321;
-  --muted: #687571;
-  --paper: #f6f8f7;
-  --line: #e3e9e6;
-  --brand: #12685e;
-  --brand-dark: #0c514a;
-  --mint: #e5f1ed;
+  --font-ui:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --ink: #17251f;
+  --muted-foreground: #53645d;
+  --paper: #f4f7f5;
+  --canvas: #edf3f0;
+  --line: #dce6e1;
+  --brand: #0d6255;
+  --brand-dark: #084b42;
+  --mint: #dff1e9;
+  --success: #176b4c;
+  --warning: #8d5400;
+  --danger: #a32e32;
+  --info: #315b8a;
+  --background: oklch(0.978 0.006 160);
+  --foreground: oklch(0.22 0.022 164);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.022 164);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.022 164);
+  --primary: oklch(0.39 0.075 168);
+  --primary-foreground: oklch(0.99 0.004 160);
+  --secondary: oklch(0.94 0.025 158);
+  --secondary-foreground: oklch(0.31 0.05 165);
+  --muted: oklch(0.95 0.01 160);
+  --accent: oklch(0.93 0.035 158);
+  --accent-foreground: oklch(0.28 0.055 165);
+  --destructive: oklch(0.49 0.15 25);
+  --border: oklch(0.9 0.014 158);
+  --input: oklch(0.86 0.018 158);
+  --ring: oklch(0.52 0.085 166);
+  --chart-1: oklch(0.4 0.08 167);
+  --chart-2: oklch(0.61 0.09 158);
+  --chart-3: oklch(0.73 0.09 145);
+  --chart-4: oklch(0.68 0.11 82);
+  --chart-5: oklch(0.55 0.1 205);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.21 0.045 167);
+  --sidebar-foreground: oklch(0.96 0.01 155);
+  --sidebar-primary: oklch(0.88 0.07 159);
+  --sidebar-primary-foreground: oklch(0.23 0.05 166);
+  --sidebar-accent: oklch(0.29 0.05 167);
+  --sidebar-accent-foreground: oklch(0.98 0.01 155);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.74 0.08 159);
 }
 
 * {
@@ -17,23 +61,74 @@
 
 html {
   min-height: 100%;
+  width: 100%;
   background: var(--paper);
+  scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
+  min-width: 320px;
+  width: 100%;
   margin: 0;
   color: var(--ink);
   background: var(--paper);
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 2.75rem;
+  border-color: var(--input);
+  color: var(--foreground);
+}
+
+textarea {
+  min-height: 6rem;
+  max-width: 100%;
+}
+
+button:not([data-slot="button"]),
+input[type="checkbox"],
+input[type="radio"] {
+  touch-action: manipulation;
+}
+
+button:not([data-slot="button"]) {
+  min-height: 2.75rem;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand);
+}
+
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  font-weight: 600;
+}
+
+td,
+th {
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in oklch, var(--ring) 55%, transparent);
+  outline-offset: 2px;
 }
 
 a {
@@ -44,6 +139,17 @@ a {
 ::selection {
   color: var(--brand-dark);
   background: #c8e4db;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .business-gstin-field {
@@ -61,4 +167,97 @@ a {
 
 form:has(input[name="gstinApplicable"][value="yes"]:checked) .customer-gstin-field {
   display: block;
+}
+
+@theme inline {
+  --font-heading: var(--font-ui);
+  --font-sans: var(--font-ui);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
 }

@@ -32,7 +32,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
       <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
         {isLogin ? "Welcome back" : "Create your account"}
       </h1>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+      <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
         {isLogin
           ? "Sign in to continue to your workspace."
           : "Create a Webameen account to get started."}
@@ -127,7 +127,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[var(--muted)]">
+      <p className="mt-6 text-center text-sm text-[var(--muted-foreground)]">
         {isLogin ? "New to Webameen?" : "Already have an account?"}{" "}
         <Link
           className="font-semibold text-[var(--brand)] hover:text-[var(--brand-dark)]"

@@ -42,7 +42,7 @@ export default async function PublicCatalogItemPage({
             : formatPaise(item.price_minor)}
         </p>
         {item.unit_label ? (
-          <p className="mt-1 break-words text-sm text-[var(--muted)]">
+          <p className="mt-1 break-words text-sm text-[var(--muted-foreground)]">
             per {item.unit_label}
           </p>
         ) : null}
@@ -51,7 +51,7 @@ export default async function PublicCatalogItemPage({
         </p>
         <section className="mt-7 border-t border-[var(--line)] pt-6">
           <h2 className="text-sm font-semibold">About this {item.kind}</h2>
-          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-[var(--muted)]">
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-[var(--muted-foreground)]">
             {item.description ||
               "Contact the business for more information about this item."}
           </p>

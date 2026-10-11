@@ -58,12 +58,12 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
               {receipt.reference}
             </h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
               Issued {formatDateTime(receipt.issued_at, summary.document_time_zone)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-[var(--muted)]">Amount received</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Amount received</p>
             <p className="mt-1 text-2xl font-semibold">
               {formatPaise(payment.amount_minor)}
             </p>
@@ -73,7 +73,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
 
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
               Received from
             </h2>
             <p className="mt-2 font-semibold">{invoice.buyer_display_name}</p>
@@ -88,7 +88,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             </p>
           </section>
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
               Received by
             </h2>
             <p className="mt-2 font-semibold">{invoice.seller_display_name}</p>
@@ -104,25 +104,25 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         </div>
 
         <dl className="mt-6 grid gap-x-8 gap-y-3 border-y border-[var(--line)] py-5 text-sm sm:grid-cols-2">
-          <dt className="text-[var(--muted)]">Invoice</dt>
+          <dt className="text-[var(--muted-foreground)]">Invoice</dt>
           <dd className="font-medium">
             {invoice.reference} · {invoice.invoice_date}
           </dd>
-          <dt className="text-[var(--muted)]">Date payment received</dt>
+          <dt className="text-[var(--muted-foreground)]">Date payment received</dt>
           <dd>{formatDateTime(payment.received_at, summary.document_time_zone)}</dd>
-          <dt className="text-[var(--muted)]">Payment method</dt>
+          <dt className="text-[var(--muted-foreground)]">Payment method</dt>
           <dd>{payment.method}</dd>
           {payment.external_reference ? (
             <>
-              <dt className="text-[var(--muted)]">Payment reference</dt>
+              <dt className="text-[var(--muted-foreground)]">Payment reference</dt>
               <dd>{payment.external_reference}</dd>
             </>
           ) : null}
-          <dt className="text-[var(--muted)]">Invoice total</dt>
+          <dt className="text-[var(--muted-foreground)]">Invoice total</dt>
           <dd>{formatPaise(invoice.total_minor)}</dd>
           {invoice.due_on ? (
             <>
-              <dt className="text-[var(--muted)]">Invoice due date</dt>
+              <dt className="text-[var(--muted-foreground)]">Invoice due date</dt>
               <dd>{invoice.due_on}</dd>
             </>
           ) : null}
@@ -132,7 +132,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           <h2 className="font-semibold">Invoice details</h2>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[620px] text-left text-sm">
-              <thead className="border-b border-[var(--line)] text-xs text-[var(--muted)]">
+              <thead className="border-b border-[var(--line)] text-xs text-[var(--muted-foreground)]">
                 <tr>
                   <th className="py-2 pr-3">Description</th>
                   <th className="py-2 pr-3">Quantity</th>
@@ -201,7 +201,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             Reason: {payment.reversal.reason}
           </p>
         ) : null}
-        <p className="mt-6 text-xs text-[var(--muted)]">
+        <p className="mt-6 text-xs text-[var(--muted-foreground)]">
           This receipt records the payment against the immutable invoice shown above.
         </p>
       </article>

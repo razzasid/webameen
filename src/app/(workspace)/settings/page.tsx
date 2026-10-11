@@ -19,7 +19,7 @@ export default async function SettingsPage() {
     <section className="max-w-4xl">
       <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Settings</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         Review the business details that you may choose to copy into future documents.
       </p>
       <aside
@@ -30,7 +30,7 @@ export default async function SettingsPage() {
         {readiness.missing.length ? (
           <>
             <p className="mt-2 text-sm">Complete these details before sharing documents:</p>
-            <ul className="mt-2 list-inside list-disc text-sm text-[var(--muted)]">
+            <ul className="mt-2 list-inside list-disc text-sm text-[var(--muted-foreground)]">
               {readiness.missing.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -41,7 +41,7 @@ export default async function SettingsPage() {
             Business document details are ready for future draft and sharing workflows.
           </p>
         )}
-        <p className="mt-3 text-sm text-[var(--muted)]">
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">
           Document time zone: {readiness.timeZone}. Dates on future documents will use the
           time zone captured when the document is created.
         </p>

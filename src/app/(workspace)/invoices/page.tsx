@@ -10,7 +10,7 @@ export default async function InvoicesPage() {
         <div>
           <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Invoices</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Immutable invoices issued from customer approved quotation versions.
           </p>
         </div>
@@ -31,7 +31,7 @@ export default async function InvoicesPage() {
               >
                 <span>
                   <strong className="block text-sm">{invoice.reference}</strong>
-                  <span className="mt-1 block text-xs text-[var(--muted)]">
+                  <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
                     {invoice.buyer_display_name} · {invoice.invoice_date}
                     {invoice.due_on ? ` · Due ${invoice.due_on}` : ""}
                   </span>
@@ -45,7 +45,7 @@ export default async function InvoicesPage() {
       ) : (
         <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-white px-6 py-12 text-center">
           <h2 className="text-lg font-semibold">No invoices yet</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Configure a numbering period, then issue an invoice from a currently approved
             quotation.
           </p>

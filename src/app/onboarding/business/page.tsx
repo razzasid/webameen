@@ -17,12 +17,15 @@ export default async function BusinessOnboardingPage() {
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
           Set up your business
         </h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
           Add the business details you want to use in your workspace.
         </p>
         <BusinessSetupForm action={createBusinessAction} />
         <form action={logoutAction} className="mt-5 text-center">
-          <button className="text-sm text-[var(--muted)] underline" type="submit">
+          <button
+            className="text-sm text-[var(--muted-foreground)] underline"
+            type="submit"
+          >
             Log out
           </button>
         </form>

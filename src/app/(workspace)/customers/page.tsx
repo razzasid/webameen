@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { CustomerSearch } from "@/components/customers/customer-search";
 import { stateLabel } from "@/server/modules/business/states";
-import { CUSTOMERS_PER_PAGE, listCustomers } from "@/server/modules/customers/queries";
+import {
+  CUSTOMERS_PER_PAGE,
+  listCustomers,
+} from "@/server/modules/customers/queries";
 
 export default async function CustomersPage({
   searchParams,
@@ -11,8 +14,13 @@ export default async function CustomersPage({
   const { q = "", page: pageParam = "1" } = await searchParams;
   const search = typeof q === "string" ? q.trim().slice(0, 100) : "";
   const requestedPage =
-    typeof pageParam === "string" && /^\d{1,6}$/.test(pageParam) ? Number(pageParam) : 1;
-  const { customers, page, total, totalPages } = await listCustomers(search, requestedPage);
+    typeof pageParam === "string" && /^\d{1,6}$/.test(pageParam)
+      ? Number(pageParam)
+      : 1;
+  const { customers, page, total, totalPages } = await listCustomers(
+    search,
+    requestedPage,
+  );
   function pageHref(targetPage: number) {
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -24,14 +32,16 @@ export default async function CustomersPage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Customers</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
+            Customers
+          </h1>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Manage the customer records for your business.
           </p>
         </div>
         <Link
           href="/customers/new"
-          className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-dark)]"
+          className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold !text-white hover:bg-[var(--brand-dark)]"
         >
           Add customer
         </Link>
@@ -53,18 +63,21 @@ export default async function CustomersPage({
                       <strong className="block text-sm font-semibold">
                         {customer.display_name}
                       </strong>
-                      <span className="mt-1 block text-sm text-[var(--muted)]">
-                        {[customer.phone, customer.email].filter(Boolean).join(" · ") ||
-                          "No phone or email"}
+                      <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
+                        {[customer.phone, customer.email]
+                          .filter(Boolean)
+                          .join(" · ") || "No phone or email"}
                       </span>
                     </span>
-                    <span className="text-sm text-[var(--muted)]">
+                    <span className="text-sm text-[var(--muted-foreground)]">
                       {customer.state_code
                         ? stateLabel(customer.state_code)
                         : "State not set"}
                     </span>
                     <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-xs font-medium text-[#22584d]">
-                      {customer.gstin_applicable ? "GSTIN applicable" : "No GSTIN"}
+                      {customer.gstin_applicable
+                        ? "GSTIN applicable"
+                        : "No GSTIN"}
                     </span>
                   </Link>
                 </li>
@@ -75,7 +88,7 @@ export default async function CustomersPage({
             aria-label="Customer pages"
             className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm"
           >
-            <p className="text-[var(--muted)]">
+            <p className="text-[var(--muted-foreground)]">
               Showing {(page - 1) * CUSTOMERS_PER_PAGE + 1}–
               {Math.min(page * CUSTOMERS_PER_PAGE, total)} of {total} customers
             </p>
@@ -91,7 +104,7 @@ export default async function CustomersPage({
                 ) : (
                   <span
                     aria-disabled="true"
-                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted)]"
+                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted-foreground)]"
                   >
                     Previous
                   </span>
@@ -109,7 +122,7 @@ export default async function CustomersPage({
                 ) : (
                   <span
                     aria-disabled="true"
-                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted)]"
+                    className="rounded-xl border border-[var(--line)] px-4 py-2 text-[var(--muted-foreground)]"
                   >
                     Next
                   </span>
@@ -123,7 +136,7 @@ export default async function CustomersPage({
           <h2 className="text-lg font-semibold">
             {search ? "No customers found" : "No customers yet"}
           </h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             {search
               ? "Try a different name, phone number, or email."
               : "Add a customer to keep their contact and GST details together."}

@@ -24,7 +24,7 @@ export function PublicCatalogShell({
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">{children}</main>
-      <footer className="mx-auto max-w-6xl break-words px-5 pb-8 text-xs text-[var(--muted)] sm:px-8">
+      <footer className="mx-auto max-w-6xl break-words px-5 pb-8 text-xs text-[var(--muted-foreground)] sm:px-8">
         Catalog by {catalog.business_name} · Powered by Webameen
       </footer>
     </div>

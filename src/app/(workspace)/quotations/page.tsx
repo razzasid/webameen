@@ -10,7 +10,7 @@ export default async function QuotationsPage() {
         <div>
           <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Quotations</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Prepare, share and track customer responses for exact quotation versions.
           </p>
         </div>
@@ -31,7 +31,7 @@ export default async function QuotationsPage() {
               >
                 <span>
                   <strong className="block text-sm">{quote.customer_name}</strong>
-                  <span className="mt-1 block text-xs text-[var(--muted)]">
+                  <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
                     {quote.reference}
                   </span>
                 </span>
@@ -50,7 +50,7 @@ export default async function QuotationsPage() {
       ) : (
         <div className="mt-6 rounded-2xl border border-dashed border-[var(--line)] bg-white px-6 py-12 text-center">
           <h2 className="text-lg font-semibold">No quotations yet</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Select a customer to start a quotation draft.
           </p>
         </div>

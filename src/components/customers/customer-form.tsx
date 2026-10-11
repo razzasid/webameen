@@ -205,7 +205,7 @@ export function CustomerForm({ action, initial, submitLabel }: Props) {
             autoCapitalize="characters"
             maxLength={15}
           />
-          <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+          <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
             Basic format check only; no online verification.
           </span>
         </Field>

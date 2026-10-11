@@ -110,7 +110,7 @@ export function QuotationWorkflowPanel({
           <input type="hidden" name="quotationId" value={workflow.quotation_id} />
           <input type="hidden" name="versionId" value={current.id} />
           <input type="hidden" name="requestKey" value={shareRequestKey} />
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Sharing freezes this draft and creates a private link for the customer.
           </p>
           <button type="submit" className={`${buttonClass} mt-3`} disabled={sharing}>
@@ -125,7 +125,7 @@ export function QuotationWorkflowPanel({
             <p className="text-sm font-medium">
               Version {current.version_number} is frozen.
             </p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Create a revision to make changes. The earlier version stays available while
               the revision is a draft.
             </p>
@@ -145,7 +145,7 @@ export function QuotationWorkflowPanel({
           <input type="hidden" name="quotationId" value={workflow.quotation_id} />
           <input type="hidden" name="versionId" value={current.id} />
           <input type="hidden" name="requestKey" value={rotateRequestKey} />
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Lost or expired link? Create a replacement for this frozen version. The old link
             will stop working.
           </p>
@@ -219,7 +219,7 @@ export function QuotationWorkflowPanel({
         </ul>
         <Result state={revokeState} />
       </div>
-      <p className="mt-5 text-xs text-[var(--muted)]">
+      <p className="mt-5 text-xs text-[var(--muted-foreground)]">
         Customer names are self-reported. This prototype records a response as evidence but
         does not verify identity or create a digital signature.
       </p>

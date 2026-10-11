@@ -10,7 +10,7 @@ export default function NotFoundPage() {
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">
           That page is not here
         </h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
           The address may have changed, or the page may not be part of this foundation yet.
         </p>
         <Link

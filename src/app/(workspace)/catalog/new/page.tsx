@@ -14,7 +14,7 @@ export default async function NewCatalogItemPage() {
         ← Products &amp; services
       </Link>
       <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">Add catalog item</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         Save a product or service and its default details for future use.
       </p>
       <CatalogForm

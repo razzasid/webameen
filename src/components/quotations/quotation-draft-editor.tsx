@@ -62,7 +62,7 @@ function LineBreakdown({ lines }: { lines: CalculatedLine[] }) {
     <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--line)] bg-white p-5">
       <h3 className="font-semibold">Line tax breakdown</h3>
       <table className="mt-3 w-full min-w-[700px] text-left text-sm">
-        <thead className="border-b border-[var(--line)] text-[var(--muted)]">
+        <thead className="border-b border-[var(--line)] text-[var(--muted-foreground)]">
           <tr>
             <th className="py-2 pr-3">Line</th>
             <th className="py-2 pr-3">Base</th>
@@ -190,7 +190,7 @@ export function QuotationDraftEditor({
           />
         )}
         {options.hint ? (
-          <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+          <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
             {options.hint}
           </span>
         ) : null}
@@ -311,7 +311,7 @@ export function QuotationDraftEditor({
       ) : null}
       <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
         <h2 className="text-lg font-semibold">Seller and buyer snapshot</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
           These details were copied when the draft was created. Edit them here; changes to
           customer or business records will not refresh this draft.
         </p>
@@ -336,7 +336,7 @@ export function QuotationDraftEditor({
 
       <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
         <h2 className="text-lg font-semibold">Document and tax choices</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
           India · INR · prices before GST · quantity up to three decimals.
         </p>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
@@ -360,7 +360,7 @@ export function QuotationDraftEditor({
               <option value="cgst_sgst">CGST + SGST</option>
               <option value="igst">IGST</option>
             </select>
-            <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+            <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
               Suggested: {autoRoute}. Final choice:{" "}
               {finalRoute === "cgst_sgst"
                 ? "CGST + SGST"
@@ -394,7 +394,7 @@ export function QuotationDraftEditor({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Ordered lines</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Catalog defaults become editable copies. You can also add one-off lines.
             </p>
           </div>
@@ -555,7 +555,7 @@ export function QuotationDraftEditor({
             ))}
           </div>
         ) : (
-          <p className="mt-5 rounded-xl border border-dashed border-[var(--line)] p-6 text-sm text-[var(--muted)]">
+          <p className="mt-5 rounded-xl border border-dashed border-[var(--line)] p-6 text-sm text-[var(--muted-foreground)]">
             This draft has no lines yet. Add a line to calculate an amount.
           </p>
         )}
@@ -569,7 +569,7 @@ export function QuotationDraftEditor({
 
       <div className="rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
         <h2 className="text-lg font-semibold">Terms and optional payment details</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
           Use the buttons only when you want to copy current business defaults into this
           draft. Later settings changes will not refresh saved quotation fields.
         </p>
@@ -604,7 +604,7 @@ export function QuotationDraftEditor({
         <div role="status">
           <Totals totals={state.preview} title="Calculated preview — not saved" />
           <LineBreakdown lines={state.preview.lines} />
-          <p className="mt-2 text-xs text-[var(--muted)]">
+          <p className="mt-2 text-xs text-[var(--muted-foreground)]">
             If you change the form, preview again before saving.{" "}
             {state.preview.lines.length} line(s); suggested{" "}
             {state.preview.auto_treatment ?? "incomplete"}, final{" "}
@@ -638,7 +638,7 @@ export function QuotationDraftEditor({
           {pending ? "Working…" : "Save draft"}
         </button>
       </div>
-      <p className="text-xs text-[var(--muted)]">
+      <p className="text-xs text-[var(--muted-foreground)]">
         This is a private draft. Save it before sharing; a shared version becomes read-only.
       </p>
     </form>

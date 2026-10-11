@@ -173,12 +173,14 @@ export function BusinessSetupForm({ action }: Props) {
             maxLength={15}
             required
           />
-          <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+          <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
             Basic format check only. We do not verify GST registration online.
           </span>
         </label>
       </div>
-      <p className="text-xs text-[var(--muted)]">Country: India · Currency: INR (₹)</p>
+      <p className="text-xs text-[var(--muted-foreground)]">
+        Country: India · Currency: INR (₹)
+      </p>
       <button
         className="w-full rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
         type="submit"

@@ -63,7 +63,7 @@ export function PublicResponseForm({ token }: { token: string }) {
           Request changes
         </button>
       </div>
-      <p className="text-xs text-[var(--muted)]">
+      <p className="text-xs text-[var(--muted-foreground)]">
         Your name is self-reported and is not a verified signature. Only one response can be
         recorded for this version.
       </p>

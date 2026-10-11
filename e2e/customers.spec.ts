@@ -56,6 +56,10 @@ test("customers are session protected and an authenticated owner can create, fin
   await expect(page.getByRole("heading", { name: "Northwind Parts" })).toBeVisible();
   await expect(page.getByText("27ABCDE1234F1Z5")).toBeVisible();
   await expect(page.getByText(/GSTIN starts with 27/)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Document and payment history" }),
+  ).toBeVisible();
+  await expect(page.getByText("No document activity yet")).toBeVisible();
 
   await page.goto("/customers");
   const search = page.getByLabel("Search customers");

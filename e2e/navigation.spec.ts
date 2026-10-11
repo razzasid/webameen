@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 test("workspace navigation opens the catalog alongside existing workspace pages", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   const email = `nav-${Date.now()}@example.com`;
   await page.goto("/signup");
   await page.getByLabel("Email address").fill(email);
@@ -18,9 +19,9 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
   await page.getByLabel("No", { exact: true }).check();
   await page.getByRole("button", { name: "Create business" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toBeVisible();
 
   const destinations = [
     { label: "Customers", path: "/customers", heading: "Customers" },
@@ -33,7 +34,7 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
     { label: "Invoices", path: "/invoices", heading: "Invoices" },
     { label: "Payments", path: "/payments", heading: "Payments" },
     { label: "Settings", path: "/settings", heading: "Settings" },
-    { label: "Dashboard", path: "/dashboard", heading: "Welcome to Webameen" },
+    { label: "Dashboard", path: "/dashboard", heading: "Navigation Test Business" },
   ];
 
   for (const destination of destinations) {
@@ -42,6 +43,45 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
     await expect(
       page.getByRole("heading", { level: 1, name: destination.heading }),
     ).toBeVisible();
+  }
+
+  const responsiveRoutes = [
+    "/customers",
+    "/customers/new",
+    "/catalog",
+    "/catalog/new",
+    "/quotations",
+    "/quotations/new",
+    "/invoices",
+    "/payments",
+    "/settings",
+  ];
+  for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/dashboard");
+    await expect(page.getByRole("main")).toBeVisible();
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(hasHorizontalOverflow, `dashboard overflows at ${width}px`).toBe(false);
+    if (width < 768) {
+      await expect(
+        page.getByRole("navigation", { name: "Mobile navigation" }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "More navigation options" }).click();
+      await expect(page.getByRole("link", { name: "Settings", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Close" }).click();
+    } else {
+      await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+    }
+    for (const path of responsiveRoutes) {
+      await page.goto(path);
+      await expect(page.getByRole("main")).toBeVisible();
+      const routeHasHorizontalOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      expect(routeHasHorizontalOverflow, `${path} overflows at ${width}px`).toBe(false);
+    }
   }
 });
 

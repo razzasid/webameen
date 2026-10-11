@@ -46,7 +46,7 @@ function ReceiptTrail({
     (item) => item.replaces_payment_id === payment.payment_id,
   );
   return (
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted-foreground)]">
       {predecessor?.receipt ? (
         <span>
           Replaces{" "}
@@ -92,9 +92,9 @@ export function InvoicePaymentPanel({
           </h2>
         </div>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-right text-sm">
-          <dt className="text-[var(--muted)]">Paid</dt>
+          <dt className="text-[var(--muted-foreground)]">Paid</dt>
           <dd className="font-semibold">{formatPaise(summary.paid_minor)}</dd>
-          <dt className="text-[var(--muted)]">Outstanding</dt>
+          <dt className="text-[var(--muted-foreground)]">Outstanding</dt>
           <dd className="font-semibold">{formatPaise(summary.outstanding_minor)}</dd>
         </dl>
       </div>
@@ -137,14 +137,14 @@ export function InvoicePaymentPanel({
                       <p className="font-semibold">
                         {formatPaise(payment.amount_minor)} · {payment.method}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                         Received{" "}
                         {formatDateTime(payment.received_at, summary.document_time_zone)}
                         {payment.external_reference
                           ? ` · Ref ${payment.external_reference}`
                           : ""}
                       </p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
+                      <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                         Recorded{" "}
                         {formatDateTime(payment.recorded_at, summary.document_time_zone)}
                       </p>
@@ -200,7 +200,7 @@ export function InvoicePaymentPanel({
             })}
           </ol>
         ) : (
-          <p className="mt-3 text-sm text-[var(--muted)]">
+          <p className="mt-3 text-sm text-[var(--muted-foreground)]">
             No payments have been recorded.
           </p>
         )}

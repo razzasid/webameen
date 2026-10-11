@@ -70,7 +70,9 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
   await expect(page).toHaveURL(/\/customers\/[0-9a-f-]+$/i, { timeout: 20_000 });
 
   await page.goto("/quotations/new");
-  await page.getByLabel("Customer").selectOption({ label: "Invoice Demo Buyer" });
+  await page
+    .getByRole("combobox", { name: "Customer", exact: true })
+    .selectOption({ label: "Invoice Demo Buyer" });
   await page.getByRole("button", { name: "Create draft" }).click();
   await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
   const quotationUrl = page.url();
@@ -127,7 +129,9 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
     );
 
     await page.goto("/quotations/new");
-    await page.getByLabel("Customer").selectOption({ label: "Invoice Demo Buyer" });
+    await page
+      .getByRole("combobox", { name: "Customer", exact: true })
+      .selectOption({ label: "Invoice Demo Buyer" });
     await page.getByRole("button", { name: "Create draft" }).click();
     await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
     const secondQuotationUrl = page.url();

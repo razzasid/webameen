@@ -52,7 +52,8 @@ export function InvoiceIssueForm({ quotationId }: { quotationId: string }) {
         </p>
       ) : null}
       <label className="block max-w-xs text-sm font-medium" htmlFor="invoice-due-on">
-        Due date <span className="font-normal text-[var(--muted)]">(optional)</span>
+        Due date{" "}
+        <span className="font-normal text-[var(--muted-foreground)]">(optional)</span>
         <input
           id="invoice-due-on"
           className={inputClass}

@@ -34,7 +34,7 @@ export function QuotationInvoiceConversion({
           </Link>
         </div>
       ) : versionState !== "approved" || responseKind !== "approved" ? (
-        <p className="mt-3 text-sm text-[var(--muted)]">
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">
           This quotation cannot be invoiced until its current version has customer approval.
         </p>
       ) : (

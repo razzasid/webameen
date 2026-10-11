@@ -44,7 +44,7 @@ export function CustomerSearch({ initialSearch }: { initialSearch: string }) {
           className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]"
         />
         {value.trim() !== initialSearch ? (
-          <p role="status" className="mt-2 text-xs text-[var(--muted)]">
+          <p role="status" className="mt-2 text-xs text-[var(--muted-foreground)]">
             Updating results…
           </p>
         ) : null}

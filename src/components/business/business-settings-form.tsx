@@ -63,7 +63,7 @@ export function BusinessSettingsForm({ initialValues, action }: Props) {
           />
         )}
         {options.hint ? (
-          <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+          <span className="mt-1 block text-xs font-normal text-[var(--muted-foreground)]">
             {options.hint}
           </span>
         ) : null}
@@ -136,12 +136,12 @@ export function BusinessSettingsForm({ initialValues, action }: Props) {
           hint: "Required if GST registered. Basic format only; registration is not verified online.",
         })}
       </div>
-      <p className="text-sm text-[var(--muted)]">
+      <p className="text-sm text-[var(--muted-foreground)]">
         Country: India · Currency: INR (₹). These values are fixed for this prototype.
       </p>
       <div className="border-t border-[var(--line)] pt-6">
         <h3 className="font-semibold">Future document defaults</h3>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
           Optional payment details and terms are copied only when you explicitly select them
           in a future document. Changing settings will not change existing documents.
         </p>

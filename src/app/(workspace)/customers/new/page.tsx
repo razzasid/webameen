@@ -12,7 +12,7 @@ export default function NewCustomerPage() {
         ← Customers
       </Link>
       <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">Add customer</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
         Add the customer details your business needs to keep on file.
       </p>
       <CustomerForm action={createCustomerAction} submitLabel="Create customer" />
