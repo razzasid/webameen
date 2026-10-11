@@ -1,6 +1,6 @@
 # Webameen
 
-Webameen is a modular-monolith workspace for small businesses. Owners use Supabase authentication to manage a business, customers, products/services, and quotation drafts. Owners can share immutable quotation versions with accountless customers, and manage revisions and links. Invoice, payment, and receipt workflows are later phases; check the [project roadmap](docs/PROJECT_ROADMAP.md) for verified status and implementation order. The [database specification](docs/16-prototype-database-spec.md) describes the approved database and document contracts.
+Webameen is a modular-monolith workspace for small businesses. Owners use Supabase authentication to manage a business, customers, products/services, quotations, invoices, manually recorded payments and receipts. Customers can review shared quotations and access shared invoice documents without creating an account. Check the [project roadmap](docs/PROJECT_ROADMAP.md) for verified status and implementation order. The [database specification](docs/16-prototype-database-spec.md) describes the approved database and document contracts.
 
 ## Requirements
 
@@ -36,6 +36,8 @@ The root page redirects to the protected dashboard. Login and sign-up use Supaba
 | npm run db:stop | Stop local Supabase services |
 | npm run db:status | Show local Supabase service status |
 
+GitHub Actions runs linting, typechecking and unit tests, then starts a fresh Supabase stack for migration replay, every rollback-only SQL suite, production-mode Playwright, and a production build. The integration job resets only its disposable CI database. The public catalog prototype limit can be tuned with `WEBAMEEN_PUBLIC_CATALOG_READS_PER_MINUTE` (default 60 requests per minute per visitor and process); multi-instance deployments need a shared limiter before treating it as an abuse-control boundary.
+
 Local Supabase services use Docker on Windows. No production Supabase project is configured. Schema changes are tracked in `supabase/migrations`; owners can issue numbered invoices from approved quotations, while payments and receipts remain later phases. Quotation links support accountless reads, approval/change requests, and revisions; see the roadmap for current status and implementation order.
 
 ## Environment
@@ -46,8 +48,14 @@ Local Supabase services use Docker on Windows. No production Supabase project is
 - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 - APP_URL
 - SUPABASE_QUOTE_BROKER_KEY (server-only, needed for public quotation links)
+- SUPABASE_INVOICE_BROKER_KEY (server-only, needed for public invoice links)
+- WEBAMEEN_PUBLIC_CATALOG_READS_PER_MINUTE (optional prototype limit; defaults to 60)
 
 Set the URL and publishable key together. APP_URL is the application origin used to build the confirmation callback; set it to the production HTTPS origin for hosted deployments. For local development, the local Supabase status output includes `SECRET_KEY`; put it in `SUPABASE_QUOTE_BROKER_KEY`. Hosted deployments should use a server-side Supabase secret key for this value. It is used only by the isolated quotation token broker; never put it in a `NEXT_PUBLIC_` variable, browser module, or ordinary owner data-access client.
+
+`/api/health` is a readiness check for the two required public Supabase settings. A `503` means the app is not configured to serve requests; it does not probe database connectivity or hosted Auth/SMTP readiness.
+
+Unexpected failures in authentication, customer/business actions, quotations, invoices and payments write a redacted JSON log entry with an operation name and reference ID. The matching ID is returned with the generic user-facing error. Logs intentionally omit provider messages, input values, tokens, email addresses and document data.
 
 ## Project organization
 

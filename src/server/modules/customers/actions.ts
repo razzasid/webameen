@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import {
   type CustomerActionState,
   customerFieldErrors,
@@ -57,9 +58,13 @@ async function saveCustomer(
       };
     }
     customerId = data;
-  } catch {
+  } catch (error) {
     return {
-      error: "Customer management is temporarily unavailable. Please try again.",
+      error: reportSafeFailure(
+        id ? "customer.update" : "customer.create",
+        error,
+        "Customer management is temporarily unavailable. Please try again.",
+      ),
       values,
     };
   }

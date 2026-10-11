@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessContext } from "@/server/modules/business/context";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import {
   type CatalogActionState,
   catalogFieldErrors,
@@ -111,8 +112,14 @@ export async function setCatalogItemPublicationAction(
       p_published: published,
     });
     if (error) return { error: "We couldn't change publication. Please try again." };
-  } catch {
-    return { error: "Publication is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "catalog.publication.update",
+        error,
+        "Publication is temporarily unavailable. Please try again.",
+      ),
+    };
   }
   revalidatePath(`/catalog/${id}`);
   revalidatePath(`/c/${context.business.public_catalog_slug}`);

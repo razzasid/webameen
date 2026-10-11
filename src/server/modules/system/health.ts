@@ -1,11 +1,13 @@
-import { publicEnvironment } from "@/config/env";
+import { type PublicEnvironment, publicEnvironment } from "@/config/env";
 
-export function getSystemHealth() {
+export function getSystemHealth(environment: PublicEnvironment = publicEnvironment) {
+  const configured = Boolean(
+    environment.NEXT_PUBLIC_SUPABASE_URL &&
+      environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  );
+
   return {
-    status: "ok" as const,
-    databaseConfigured: Boolean(
-      publicEnvironment.NEXT_PUBLIC_SUPABASE_URL &&
-        publicEnvironment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    ),
+    status: configured ? ("ready" as const) : ("not_ready" as const),
+    databaseConfigured: configured,
   };
 }

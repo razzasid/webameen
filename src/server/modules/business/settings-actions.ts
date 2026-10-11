@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import {
   type BusinessSettingsActionState,
   type BusinessSettingsField,
@@ -54,10 +55,14 @@ export async function updateBusinessSettingsAction(
             : "We couldn't save business settings. Please try again.",
       };
     }
-  } catch {
+  } catch (error) {
     return {
       values,
-      error: "Business settings are temporarily unavailable. Please try again.",
+      error: reportSafeFailure(
+        "business.settings.update",
+        error,
+        "Business settings are temporarily unavailable. Please try again.",
+      ),
     };
   }
   revalidatePath("/settings");

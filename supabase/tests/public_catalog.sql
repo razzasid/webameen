@@ -76,6 +76,7 @@ SET LOCAL ROLE webameen_catalog_reader;
 SELECT pg_temp.expect_error('SELECT bank_account_number FROM public.businesses', '42501', 'Public RPC role cannot read private business columns');
 SELECT pg_temp.expect_error('SELECT created_by FROM public.catalog_items', '42501', 'Public RPC role cannot read user IDs');
 SELECT pg_temp.expect_error('UPDATE public.catalog_items SET is_published=true', '42501', 'Public RPC role cannot write');
+SELECT pg_temp.assert_ok(NOT has_schema_privilege('webameen_catalog_reader','private','CREATE'), 'Catalog reader has no persistent private-schema CREATE privilege');
 RESET ROLE;
 SELECT set_config('request.jwt.claims','{"sub":"e3000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 SET LOCAL ROLE authenticated;
@@ -84,5 +85,22 @@ RESET ROLE;
 SET LOCAL ROLE anon;
 SELECT pg_temp.assert_ok((SELECT item_count=0 FROM public.get_public_catalog((SELECT slug_a FROM public_catalog_fixture))), 'Unpublishing immediately removes public items');
 SELECT pg_temp.assert_ok((SELECT count(*)=0 FROM public.get_public_catalog_item((SELECT slug_a FROM public_catalog_fixture),(SELECT published_a FROM public_catalog_fixture))), 'Unpublished detail is unavailable');
+RESET ROLE;
+
+-- Disabling the owner withdraws the entire public surface, while preserving
+-- the publication flags so a deliberate re-enable can restore availability.
+UPDATE public.catalog_items SET is_published=true WHERE id=(SELECT published_a FROM public_catalog_fixture);
+UPDATE public.business_memberships SET disabled_at=clock_timestamp()
+  WHERE user_id='e3000000-0000-0000-0000-000000000001';
+SET LOCAL ROLE anon;
+SELECT pg_temp.assert_ok((SELECT count(*)=0 FROM public.get_public_catalog((SELECT slug_a FROM public_catalog_fixture))), 'Disabled owner catalog is withdrawn');
+SELECT pg_temp.assert_ok((SELECT count(*)=0 FROM public.list_public_catalog_items((SELECT slug_a FROM public_catalog_fixture),0,12)), 'Disabled owner public list is withdrawn');
+SELECT pg_temp.assert_ok((SELECT count(*)=0 FROM public.get_public_catalog_item((SELECT slug_a FROM public_catalog_fixture),(SELECT published_a FROM public_catalog_fixture))), 'Disabled owner public detail is withdrawn');
+RESET ROLE;
+UPDATE public.business_memberships SET disabled_at=NULL
+  WHERE user_id='e3000000-0000-0000-0000-000000000001';
+SET LOCAL ROLE anon;
+SELECT pg_temp.assert_ok((SELECT item_count=1 FROM public.get_public_catalog((SELECT slug_a FROM public_catalog_fixture))), 'Re-enabled owner restores previously published catalog');
+SELECT pg_temp.assert_ok((SELECT count(*)=1 FROM public.list_public_catalog_items((SELECT slug_a FROM public_catalog_fixture),0,12)), 'Re-enabled owner retains item publication state');
 RESET ROLE;
 ROLLBACK;

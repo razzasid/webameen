@@ -127,6 +127,23 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
         </button>
       </form>
 
+      {isLogin ? (
+        <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+          <Link
+            className="font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]"
+            href="/forgot-password"
+          >
+            Forgot password?
+          </Link>
+          <Link
+            className="font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]"
+            href="/resend-confirmation"
+          >
+            Resend confirmation
+          </Link>
+        </div>
+      ) : null}
+
       <p className="mt-5 text-center text-sm text-[var(--muted-foreground)] sm:mt-6">
         {isLogin ? "New to Webameen?" : "Already have an account?"}{" "}
         <Link

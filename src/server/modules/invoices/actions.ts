@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { isUuid } from "@/server/shared/uuid";
 import { createInvoiceToken } from "./token";
 
@@ -127,10 +128,14 @@ export async function configureInvoiceNumberPeriodAction(
               : "We couldn't save this numbering period. Please try again.",
       };
     }
-  } catch {
+  } catch (error) {
     return {
       values,
-      error: "Invoice numbering settings are temporarily unavailable. Please try again.",
+      error: reportSafeFailure(
+        "invoice.numbering.configure",
+        error,
+        "Invoice numbering settings are temporarily unavailable. Please try again.",
+      ),
     };
   }
 
@@ -219,9 +224,13 @@ export async function issueApprovedQuotationAction(
     revalidatePath("/invoices");
     revalidatePath(`/invoices/${result.invoice_id}`);
     return { invoiceId: result.invoice_id, created: result.created === true, dueOn };
-  } catch {
+  } catch (error) {
     return {
-      error: "Invoice issuance is temporarily unavailable. Please try again.",
+      error: reportSafeFailure(
+        "invoice.issue",
+        error,
+        "Invoice issuance is temporarily unavailable. Please try again.",
+      ),
       dueOn,
     };
   }
@@ -273,8 +282,14 @@ async function saveInvoiceLink(
           ? "A replacement link is ready. The previous link has been revoked."
           : "Invoice link created. Copy it now; Webameen cannot show it again.",
     };
-  } catch {
-    return { error: "Invoice sharing is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "invoice.share",
+        error,
+        "Invoice sharing is temporarily unavailable. Please try again.",
+      ),
+    };
   }
 }
 
@@ -314,8 +329,14 @@ export async function revokeInvoiceLinkAction(
       p_link_id: linkId,
     });
     if (error) return { error: safeInvoiceLinkError(error.code) };
-  } catch {
-    return { error: "Invoice sharing is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "invoice.link.revoke",
+        error,
+        "Invoice sharing is temporarily unavailable. Please try again.",
+      ),
+    };
   }
   revalidatePath(`/invoices/${invoiceId}`);
   return { message: "The invoice link has been revoked." };

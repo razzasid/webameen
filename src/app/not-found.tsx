@@ -11,7 +11,7 @@ export default function NotFoundPage() {
           That page is not here
         </h1>
         <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-          The address may have changed, or the page may not be part of this foundation yet.
+          The address may have changed, or this page may have been removed.
         </p>
         <Link
           className="mt-6 inline-flex rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--brand-dark)]"

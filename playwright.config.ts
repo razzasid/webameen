@@ -23,8 +23,16 @@ export default defineConfig({
     // complete route manifest and server-action behavior as a deployment.
     command: `npm run build && npm run start -- --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,
-    env: { NEXT_DIST_DIR: ".next-playwright" },
-    reuseExistingServer: !process.env.CI,
+    env: {
+      NEXT_DIST_DIR: ".next-playwright",
+      APP_URL: `http://127.0.0.1:${port}`,
+    },
+    // Production build output is isolated in .next-playwright. Reusing an
+    // unrelated/stale local server can serve HTML whose chunk manifest no
+    // longer matches that output and make every browser test fail at hydration.
+    // Set PLAYWRIGHT_REUSE_SERVER=true only when intentionally attaching to a
+    // matching server started with the same build and NEXT_DIST_DIR.
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
     timeout: 300_000,
   },
 });

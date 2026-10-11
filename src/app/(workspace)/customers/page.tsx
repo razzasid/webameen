@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { CustomerSearch } from "@/components/customers/customer-search";
 import { stateLabel } from "@/server/modules/business/states";
-import {
-  CUSTOMERS_PER_PAGE,
-  listCustomers,
-} from "@/server/modules/customers/queries";
+import { CUSTOMERS_PER_PAGE, listCustomers } from "@/server/modules/customers/queries";
 
 export default async function CustomersPage({
   searchParams,
@@ -14,13 +11,8 @@ export default async function CustomersPage({
   const { q = "", page: pageParam = "1" } = await searchParams;
   const search = typeof q === "string" ? q.trim().slice(0, 100) : "";
   const requestedPage =
-    typeof pageParam === "string" && /^\d{1,6}$/.test(pageParam)
-      ? Number(pageParam)
-      : 1;
-  const { customers, page, total, totalPages } = await listCustomers(
-    search,
-    requestedPage,
-  );
+    typeof pageParam === "string" && /^\d{1,6}$/.test(pageParam) ? Number(pageParam) : 1;
+  const { customers, page, total, totalPages } = await listCustomers(search, requestedPage);
   function pageHref(targetPage: number) {
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -32,9 +24,7 @@ export default async function CustomersPage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[var(--brand)]">Workspace</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
-            Customers
-          </h1>
+          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Customers</h1>
           <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Manage the customer records for your business.
           </p>
@@ -64,9 +54,8 @@ export default async function CustomersPage({
                         {customer.display_name}
                       </strong>
                       <span className="mt-1 block text-sm text-[var(--muted-foreground)]">
-                        {[customer.phone, customer.email]
-                          .filter(Boolean)
-                          .join(" · ") || "No phone or email"}
+                        {[customer.phone, customer.email].filter(Boolean).join(" · ") ||
+                          "No phone or email"}
                       </span>
                     </span>
                     <span className="text-sm text-[var(--muted-foreground)]">
@@ -75,9 +64,7 @@ export default async function CustomersPage({
                         : "State not set"}
                     </span>
                     <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-xs font-medium text-[#22584d]">
-                      {customer.gstin_applicable
-                        ? "GSTIN applicable"
-                        : "No GSTIN"}
+                      {customer.gstin_applicable ? "GSTIN applicable" : "No GSTIN"}
                     </span>
                   </Link>
                 </li>

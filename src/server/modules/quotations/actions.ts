@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { isUuid } from "@/server/shared/uuid";
 import { createQuotationToken } from "./token";
 import {
@@ -40,8 +41,14 @@ export async function createQuotationAction(
             : "Could not create the draft. Please try again.",
       };
     quoteId = data as string;
-  } catch {
-    return { error: "Quotation creation is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.create",
+        error,
+        "Quotation creation is temporarily unavailable. Please try again.",
+      ),
+    };
   }
   revalidatePath("/quotations");
   redirect(`/quotations/${quoteId}`);
@@ -121,8 +128,14 @@ export async function editQuotationDraftAction(
       return { error: "Could not calculate this draft. Please try again." };
     }
     preview = data as QuoteCalculation;
-  } catch {
-    return { error: "Quotation service is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.draft.save",
+        error,
+        "Quotation service is temporarily unavailable. Please try again.",
+      ),
+    };
   }
   if (intent === "preview") return { preview: preview ?? undefined, previewed: true };
   revalidatePath("/quotations");
@@ -168,8 +181,14 @@ export async function shareQuotationAction(
       rawToken: token,
       message: "Quotation shared. Copy this link now; Webameen cannot show it again.",
     };
-  } catch {
-    return { error: "Quotation sharing is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.share",
+        error,
+        "Quotation sharing is temporarily unavailable. Please try again.",
+      ),
+    };
   }
 }
 
@@ -204,8 +223,14 @@ export async function rotateQuotationLinkAction(
       rawToken: token,
       message: "A replacement link is ready. The previous link has been revoked.",
     };
-  } catch {
-    return { error: "Link rotation is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.link.rotate",
+        error,
+        "Link rotation is temporarily unavailable. Please try again.",
+      ),
+    };
   }
 }
 
@@ -227,8 +252,14 @@ export async function revokeQuotationLinkAction(
     if (error) return { error: safeWorkflowError(error.code) };
     revalidatePath(`/quotations/${quotationId}`);
     return { message: "The quotation link has been revoked." };
-  } catch {
-    return { error: "Link revocation is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.link.revoke",
+        error,
+        "Link revocation is temporarily unavailable. Please try again.",
+      ),
+    };
   }
 }
 
@@ -250,8 +281,14 @@ export async function createQuotationRevisionAction(
     });
     if (error) return { error: safeWorkflowError(error.code) };
     revisionId = data as string;
-  } catch {
-    return { error: "Quotation revision is temporarily unavailable. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.revision.create",
+        error,
+        "Quotation revision is temporarily unavailable. Please try again.",
+      ),
+    };
   }
   revalidatePath("/quotations");
   redirect(`/quotations/${quotationId}?revision=${revisionId}`);

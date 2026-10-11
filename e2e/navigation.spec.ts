@@ -50,6 +50,7 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
     "/customers/new",
     "/catalog",
     "/catalog/new",
+    "/products",
     "/quotations",
     "/quotations/new",
     "/invoices",
@@ -76,6 +77,7 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
     }
     for (const path of responsiveRoutes) {
       await page.goto(path);
+      if (path === "/products") await expect(page).toHaveURL(/\/catalog$/);
       await expect(page.getByRole("main")).toBeVisible();
       const routeHasHorizontalOverflow = await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth,
@@ -88,6 +90,10 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
 test("unauthenticated workspace access redirects and auth pages link to each other", async ({
   page,
 }) => {
+  const health = await page.request.get("/api/health");
+  expect(health.status()).toBe(200);
+  expect(await health.json()).toMatchObject({ status: "ready", databaseConfigured: true });
+
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/login");
@@ -101,6 +107,25 @@ test("unauthenticated workspace access redirects and auth pages link to each oth
   await expect(page.getByLabel("Password")).toBeVisible();
   await page.getByRole("link", { name: "Log in", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test("password recovery callback handles expired links and unauthenticated resets safely", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await expect(page.getByRole("link", { name: "Forgot password?" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Resend confirmation" })).toBeVisible();
+
+  await page.goto("/auth/callback?code=expired&next=%2Freset-password");
+  await expect(page).toHaveURL(/\/reset-password\?error=link$/);
+  await expect(page.locator('p[role="alert"]')).toContainText("invalid or expired");
+
+  await page.getByLabel("New password").fill("Valid-Reset-Password");
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.locator('p[role="alert"]').last()).toContainText("invalid or expired");
+
+  await page.goto("/auth/callback?code=expired&next=https%3A%2F%2Fevil.example");
+  await expect(page).toHaveURL(/\/login\?error=confirmation$/);
 });
 
 test("login errors are safe and logout invalidates the current session", async ({

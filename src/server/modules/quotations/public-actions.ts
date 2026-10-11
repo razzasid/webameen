@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { respondToPublicQuotation } from "./public-broker";
 import { allowPublicQuotationRequest } from "./rate-limit";
 import { hashQuotationToken } from "./token";
@@ -50,7 +51,13 @@ export async function respondToQuotationAction(
       default:
         return { error: "This quotation link is unavailable." };
     }
-  } catch {
-    return { error: "We could not record your response. Please try again." };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.public_response.record",
+        error,
+        "We could not record your response. Please try again.",
+      ),
+    };
   }
 }

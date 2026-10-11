@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { isUuid } from "@/server/shared/uuid";
 import {
   type PaymentActionState,
@@ -62,8 +63,11 @@ export async function recordInvoicePaymentAction(
       };
     }
     receiptId = result.receipt_id;
-  } catch {
-    return { error: paymentFailure(), values };
+  } catch (error) {
+    return {
+      error: reportSafeFailure("invoice.payment.record", error, paymentFailure()),
+      values,
+    };
   }
 
   revalidatePath("/invoices");
@@ -101,8 +105,11 @@ export async function reverseInvoicePaymentAction(
       p_reason: parsedReason.data,
     });
     if (error) return { reason, error: paymentFailure(error.code) };
-  } catch {
-    return { reason, error: paymentFailure() };
+  } catch (error) {
+    return {
+      reason,
+      error: reportSafeFailure("invoice.payment.reverse", error, paymentFailure()),
+    };
   }
 
   revalidatePath("/invoices");

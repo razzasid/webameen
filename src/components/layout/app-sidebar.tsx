@@ -46,9 +46,7 @@ export function AppSidebar() {
           W
         </span>
         <span className="hidden min-w-0 xl:block">
-          <span className="block text-[16px] font-semibold tracking-tight">
-            Webameen
-          </span>
+          <span className="block text-[16px] font-semibold tracking-tight">Webameen</span>
           <span className="mt-0.5 block text-[10px] uppercase tracking-[0.14em] text-white/65">
             Business workspace
           </span>
@@ -72,11 +70,7 @@ export function AppSidebar() {
               key={href}
               title={label}
             >
-              <Icon
-                aria-hidden="true"
-                className="size-[18px] shrink-0"
-                strokeWidth={1.8}
-              />
+              <Icon aria-hidden="true" className="size-[18px] shrink-0" strokeWidth={1.8} />
               <span className="sr-only xl:not-sr-only">{label}</span>
             </Link>
           );
@@ -85,9 +79,7 @@ export function AppSidebar() {
 
       <div className="mt-auto hidden px-4 pb-5 xl:block">
         <div className="rounded-lg border border-white/10 bg-white/5 p-3.5">
-          <p className="text-xs font-semibold text-white">
-            Your business workspace
-          </p>
+          <p className="text-xs font-semibold text-white">Your business workspace</p>
           <p className="mt-1 text-xs leading-5 text-white/65">
             Keep customers and business documents together.
           </p>

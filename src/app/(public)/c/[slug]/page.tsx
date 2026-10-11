@@ -1,9 +1,12 @@
+import { headers } from "next/headers";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PublicCatalogShell } from "@/components/catalog/public-catalog-shell";
 import {
   getPublicCatalog,
   listPublicCatalogItems,
 } from "@/server/modules/catalog/public-queries";
+import { allowPublicCatalogRequest } from "@/server/modules/catalog/public-rate-limit";
 import { formatPaise } from "@/server/modules/catalog/validation";
 
 export default async function PublicCatalogPage({
@@ -14,6 +17,12 @@ export default async function PublicCatalogPage({
   searchParams: Promise<{ page?: string | string[] }>;
 }) {
   const { slug } = await params;
+  const requestHeaders = await headers();
+  const clientAddress =
+    requestHeaders.get("x-real-ip") ??
+    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown-client";
+  if (!allowPublicCatalogRequest(clientAddress)) notFound();
   const { page: pageParam } = await searchParams;
   const requestedPage =
     typeof pageParam === "string" && /^\d{1,6}$/.test(pageParam) ? Number(pageParam) : 1;

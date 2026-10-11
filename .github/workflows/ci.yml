@@ -1,4 +1,3 @@
-# Browser and SQL checks currently run locally via `npm run test:all` and `supabase/tests/*.sql`.
 name: CI
 
 on:
@@ -22,5 +21,52 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Start isolated Supabase stack
+        run: |
+          npm exec supabase -- start --output-format json > "$RUNNER_TEMP/supabase-start.json"
+          api_url="$(jq -r '.env.API_URL' "$RUNNER_TEMP/supabase-start.json")"
+          publishable_key="$(jq -r '.env.PUBLISHABLE_KEY' "$RUNNER_TEMP/supabase-start.json")"
+          secret_key="$(jq -r '.env.SECRET_KEY' "$RUNNER_TEMP/supabase-start.json")"
+          test -n "$api_url" && test "$api_url" != null
+          test -n "$publishable_key" && test "$publishable_key" != null
+          test -n "$secret_key" && test "$secret_key" != null
+          echo "::add-mask::$publishable_key"
+          echo "::add-mask::$secret_key"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$api_url"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$publishable_key"
+            echo "SUPABASE_QUOTE_BROKER_KEY=$secret_key"
+            echo "SUPABASE_INVOICE_BROKER_KEY=$secret_key"
+            echo "APP_URL=http://127.0.0.1:3301"
+          } >> "$GITHUB_ENV"
+      - name: Replay migrations into the disposable database
+        run: npm exec supabase -- db reset --local
+      - name: SQL security and behavior suites
+        run: |
+          for suite in supabase/tests/*.sql; do
+            echo "Running $suite"
+            psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f "$suite"
+          done
+      - name: Production browser tests
+        run: npm run test:e2e
       - name: Production build
         run: npm run build
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: npm exec supabase -- stop

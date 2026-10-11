@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/pages/placeholder-page";
+import { redirect } from "next/navigation";
 
 export default function ProductsPage() {
-  return <PlaceholderPage title="Products & Services" />;
+  redirect("/catalog");
 }

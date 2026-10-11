@@ -7,6 +7,8 @@ const emailSchema = z
   .toLowerCase()
   .email("Enter a valid email address.");
 
+export const recoveryEmailSchema = emailSchema;
+
 export const loginCredentialsSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Enter a password."),
@@ -19,6 +21,11 @@ export const signupCredentialsSchema = z.object({
     .min(1, "Enter a password.")
     .min(6, "Password must be at least 6 characters."),
 });
+
+export const newPasswordSchema = z
+  .string()
+  .min(1, "Enter a new password.")
+  .min(6, "Password must be at least 6 characters.");
 
 export type AuthActionState = {
   error?: string;
@@ -42,6 +49,10 @@ export function readCredentials(formData: FormData) {
     email: formData.get("email"),
     password: formData.get("password"),
   };
+}
+
+export function readEmail(formData: FormData) {
+  return formData.get("email");
 }
 
 export function safeLoginError(code?: string): string {

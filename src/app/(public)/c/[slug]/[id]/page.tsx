@@ -1,9 +1,12 @@
+import { headers } from "next/headers";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PublicCatalogShell } from "@/components/catalog/public-catalog-shell";
 import {
   getPublicCatalog,
   getPublicCatalogItem,
 } from "@/server/modules/catalog/public-queries";
+import { allowPublicCatalogRequest } from "@/server/modules/catalog/public-rate-limit";
 import { formatPaise } from "@/server/modules/catalog/validation";
 
 export default async function PublicCatalogItemPage({
@@ -12,6 +15,12 @@ export default async function PublicCatalogItemPage({
   params: Promise<{ slug: string; id: string }>;
 }) {
   const { slug, id } = await params;
+  const requestHeaders = await headers();
+  const clientAddress =
+    requestHeaders.get("x-real-ip") ??
+    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown-client";
+  if (!allowPublicCatalogRequest(clientAddress)) notFound();
   const catalog = await getPublicCatalog(slug);
   const item = await getPublicCatalogItem(slug, id);
   const gst =

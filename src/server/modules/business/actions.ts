@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
+import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import {
   type BusinessSetupActionState,
   type BusinessSetupField,
@@ -53,8 +54,12 @@ export async function createBusinessAction(
           ? "Confirm your email before creating a business."
           : "We couldn't save your business. Please try again.";
     }
-  } catch {
-    errorMessage = "Business setup is temporarily unavailable. Please try again.";
+  } catch (error) {
+    errorMessage = reportSafeFailure(
+      "business.setup",
+      error,
+      "Business setup is temporarily unavailable. Please try again.",
+    );
   }
   if (errorMessage) return { error: errorMessage, values };
 

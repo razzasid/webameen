@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   loginCredentialsSchema,
+  newPasswordSchema,
+  recoveryEmailSchema,
   safeLoginError,
   safeSignupError,
   signupCredentialsSchema,
@@ -32,6 +34,12 @@ describe("identity credentials", () => {
       signupCredentialsSchema.safeParse({ email: "owner@example.com", password: "123456" })
         .success,
     ).toBe(true);
+  });
+
+  it("normalizes recovery emails and applies the password reset minimum", () => {
+    expect(recoveryEmailSchema.parse(" OWNER@Example.COM ")).toBe("owner@example.com");
+    expect(newPasswordSchema.safeParse("12345").success).toBe(false);
+    expect(newPasswordSchema.safeParse("123456").success).toBe(true);
   });
 
   it("returns safe login and signup errors without backend details", () => {
