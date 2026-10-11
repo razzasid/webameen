@@ -25,11 +25,11 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
   const passwordError = fieldError("password");
 
   return (
-    <section className="rounded-[28px] border border-[var(--line)] bg-white p-7 shadow-[0_20px_80px_-48px_rgba(19,55,45,0.32)] md:p-9">
+    <section className="min-w-0 rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[0_16px_48px_-40px_rgba(19,55,45,0.32)] sm:rounded-[28px] sm:p-7 sm:shadow-[0_20px_80px_-48px_rgba(19,55,45,0.32)] md:p-9">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
         Business workspace
       </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+      <h1 className="mt-2 text-[1.75rem] leading-tight font-semibold tracking-[-0.04em] sm:text-3xl">
         {isLogin ? "Welcome back" : "Create your account"}
       </h1>
       <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
@@ -63,7 +63,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
         </p>
       ) : null}
 
-      <form action={formAction} className="mt-7 space-y-4" noValidate>
+      <form action={formAction} className="mt-6 space-y-4 sm:mt-7" noValidate>
         <div>
           <label className="block" htmlFor="auth-email">
             <span className="mb-1.5 block text-sm font-medium">Email address</span>
@@ -72,7 +72,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
             aria-describedby={emailError ? "auth-email-error" : undefined}
             aria-invalid={Boolean(emailError)}
             autoComplete="email"
-            className="w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]"
+            className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] sm:px-3.5 sm:text-sm"
             id="auth-email"
             name="email"
             onChange={(event) => {
@@ -97,7 +97,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
             aria-describedby={passwordError ? "auth-password-error" : undefined}
             aria-invalid={Boolean(passwordError)}
             autoComplete={isLogin ? "current-password" : "new-password"}
-            className="w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]"
+            className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] sm:px-3.5 sm:text-sm"
             id="auth-password"
             name="password"
             onChange={(event) => {
@@ -127,7 +127,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[var(--muted-foreground)]">
+      <p className="mt-5 text-center text-sm text-[var(--muted-foreground)] sm:mt-6">
         {isLogin ? "New to Webameen?" : "Already have an account?"}{" "}
         <Link
           className="font-semibold text-[var(--brand)] hover:text-[var(--brand-dark)]"
