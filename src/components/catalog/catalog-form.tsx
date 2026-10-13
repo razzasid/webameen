@@ -207,6 +207,7 @@ export function CatalogForm({
                 <Field
                   label="Unit label"
                   name="unitLabel"
+                  required
                   error={fieldError("unitLabel")}
                   onChange={() => dismissField("unitLabel")}
                 >
@@ -219,13 +220,20 @@ export function CatalogForm({
                     value={values.unitLabel}
                     onChange={(event) => setValue("unitLabel", event.target.value)}
                     maxLength={40}
+                    required
+                    aria-invalid={fieldError("unitLabel") ? true : undefined}
+                    aria-describedby={
+                      fieldError("unitLabel") ? "unitLabel-error" : "unitLabel-help"
+                    }
                   />
                   <datalist id="unit-label-suggestions">
                     {unitSuggestions.map((unit) => (
                       <option key={unit} value={unit} />
                     ))}
                   </datalist>
-                  <HelperText>Choose a suggestion or enter your own.</HelperText>
+                  <HelperText id="unitLabel-help">
+                    Choose a suggestion or enter your own.
+                  </HelperText>
                 </Field>
                 <Field
                   label="Default unit price (₹)"
@@ -505,7 +513,7 @@ function Field({
       <span onChange={onChange} className="block">
         {children}
       </span>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error ? <ErrorText id={`${name}-error`}>{error}</ErrorText> : null}
     </label>
   );
 }
@@ -518,13 +526,20 @@ function Required() {
   );
 }
 
-function ErrorText({ children }: { children?: React.ReactNode }) {
-  return <span className="mt-1 block text-sm font-normal text-red-700">{children}</span>;
+function ErrorText({ id, children }: { id?: string; children?: React.ReactNode }) {
+  return (
+    <span id={id} className="mt-1 block text-sm font-normal text-red-700">
+      {children}
+    </span>
+  );
 }
 
-function HelperText({ children }: { children: React.ReactNode }) {
+function HelperText({ id, children }: { id?: string; children: React.ReactNode }) {
   return (
-    <span className="mt-1 block text-xs font-normal leading-5 text-[var(--muted-foreground)]">
+    <span
+      id={id}
+      className="mt-1 block text-xs font-normal leading-5 text-[var(--muted-foreground)]"
+    >
       {children}
     </span>
   );

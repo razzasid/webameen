@@ -40,7 +40,7 @@ export const catalogItemSchema = z
     kind: z.enum(catalogKinds, { error: "Choose product or service." }),
     name: z.string().trim().min(1, "Enter an item name."),
     description: z.string().trim(),
-    unitLabel: z.string().trim(),
+    unitLabel: z.string().trim().min(1, "Enter a unit label."),
     defaultPrice: z.string().trim(),
     gstCategory: z.enum(catalogCategories, { error: "Choose a GST category." }),
     gstRate: z.string().trim(),
