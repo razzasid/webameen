@@ -147,7 +147,7 @@ export function toInvoiceDocument(invoice: InvoiceDetail): InvoiceDocument {
     lines: invoice.items.map((item) => ({
       position: item.position,
       description: item.description,
-      unit_label: item.unit_label,
+      unit_label: item.unit_label ?? "",
       hsn_sac: item.hsn_sac,
       quantity: String(item.quantity),
       unit_price_minor: item.unit_price_minor,
@@ -170,6 +170,10 @@ export function toInvoiceDocument(invoice: InvoiceDetail): InvoiceDocument {
 export function publicInvoiceToDocument(invoice: PublicInvoice): InvoiceDocument {
   return {
     ...invoice,
-    lines: invoice.lines.map((line) => ({ ...line, quantity: String(line.quantity) })),
+    lines: invoice.lines.map((line) => ({
+      ...line,
+      unit_label: line.unit_label ?? "",
+      quantity: String(line.quantity),
+    })),
   };
 }

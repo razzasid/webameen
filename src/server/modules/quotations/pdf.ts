@@ -12,6 +12,13 @@ function amount(value: string) {
   return formatPaise(value).replace(/^₹/, "INR ");
 }
 
+function componentAmountMinor(quantity: string, unitPriceMinor: string) {
+  const [whole, fraction = ""] = quantity.split(".", 2);
+  const scale = BigInt(1000);
+  const quantityThousandths = BigInt(whole) * scale + BigInt(fraction.padEnd(3, "0"));
+  return ((quantityThousandths * BigInt(unitPriceMinor) + BigInt(500)) / scale).toString();
+}
+
 export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buffer> {
   const textValues = [
     quote.reference,
@@ -21,7 +28,10 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
     quote.buyer.billing_address,
     quote.document.terms ?? "",
     quote.seller.payment_instructions ?? "",
-    ...quote.lines.map((line) => line.description),
+    ...quote.lines.flatMap((line) => [
+      line.description,
+      ...line.components.map((component) => component.description),
+    ]),
   ];
   if (
     quote.lines.length === 0 ||
@@ -200,6 +210,46 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
     pdf.y = y + rowHeight;
     pdf.moveTo(left, pdf.y).lineTo(right, pdf.y).strokeColor("#e3e8eb").stroke();
     pdf.y += 7;
+    if (line.components.length) {
+      if (pdf.y + 22 > bottom) {
+        pdf.addPage();
+        pdf.font("Helvetica").fillColor("#1d292f");
+        tableHeader();
+      }
+      pdf
+        .font("Helvetica-Bold")
+        .fontSize(7)
+        .fillColor("#596872")
+        .text(
+          "Materials / subproducts (breakdown only; not added to quotation total)",
+          left + 8,
+          pdf.y,
+          {
+            width: width - 16,
+          },
+        );
+      pdf.y += 12;
+      for (const component of line.components) {
+        const unit = component.unit_label ? ` ${component.unit_label}` : "";
+        const detail = `• ${component.description} — ${component.quantity}${unit} × ${amount(component.unit_price_minor)} = ${amount(componentAmountMinor(component.quantity, component.unit_price_minor))}`;
+        pdf.font("Helvetica").fontSize(7).fillColor("#596872");
+        const detailHeight = Math.max(
+          pdf.heightOfString(detail, { width: width - 24, lineGap: 1 }),
+          10,
+        );
+        if (pdf.y + detailHeight + 5 > bottom) {
+          pdf.addPage();
+          pdf.font("Helvetica").fillColor("#1d292f");
+          tableHeader();
+        }
+        if (pdf.y + detailHeight > bottom) {
+          throw new Error("Quotation subproduct is too long for the PDF layout.");
+        }
+        pdf.text(detail, left + 16, pdf.y, { width: width - 24, lineGap: 1 });
+        pdf.y += detailHeight + 4;
+      }
+      pdf.y += 3;
+    }
   }
 
   section("Supply and tax");

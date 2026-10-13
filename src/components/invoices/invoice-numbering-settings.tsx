@@ -3,6 +3,7 @@
 import { Hash, RefreshCw } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import type {
   InvoiceNumberPeriodActionState,
   InvoiceNumberPeriodValues,
@@ -32,6 +33,7 @@ export function InvoiceNumberingSettings({
   ) => Promise<InvoiceNumberPeriodActionState>;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  useSubmissionErrorToast(state);
   const [values, setValues] = useState(state.values ?? emptyValues);
   useEffect(() => {
     if (state.values) setValues(state.values);

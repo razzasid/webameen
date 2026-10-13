@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { PublicResponseForm } from "@/components/quotations/public-response-form";
+import { QuotationLineComponents } from "@/components/quotations/quotation-line-components";
 import { formatPaise } from "@/server/modules/catalog/validation";
 import {
   type PublicQuotation,
@@ -145,6 +146,7 @@ export default async function PublicQuotationPage({
                         HSN/SAC {String(line.hsn_sac)}
                       </small>
                     ) : null}
+                    <QuotationLineComponents components={line.components ?? []} />
                   </td>
                   <td className="py-3 pr-3">
                     {String(line.quantity)} {String(line.unit_label ?? "")}

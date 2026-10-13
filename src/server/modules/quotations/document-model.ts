@@ -1,4 +1,5 @@
 import type { PublicQuotation } from "./public-broker";
+import type { SavedQuoteComponent } from "./validation";
 
 type JsonRecord = Record<string, string | number | boolean | null>;
 
@@ -77,6 +78,7 @@ export type QuotationDocument = {
     sgst_amount_minor: string;
     igst_amount_minor: string;
     line_total_minor: string;
+    components: SavedQuoteComponent[];
   }>;
 };
 
@@ -137,7 +139,8 @@ export function toQuotationDocument(quotation: PublicQuotation): QuotationDocume
       total_minor: text(totals, "total_minor") ?? "0",
     },
     lines: quotation.lines.map((line) => {
-      const record = line as JsonRecord;
+      const { components: savedComponents, ...lineFields } = line;
+      const record = lineFields as JsonRecord;
       return {
         position: Number(record.position ?? 0),
         description: text(record, "description") ?? "",
@@ -153,6 +156,7 @@ export function toQuotationDocument(quotation: PublicQuotation): QuotationDocume
         sgst_amount_minor: text(record, "sgst_amount_minor") ?? "0",
         igst_amount_minor: text(record, "igst_amount_minor") ?? "0",
         line_total_minor: text(record, "line_total_minor") ?? "0",
+        components: savedComponents ?? [],
       };
     }),
   };

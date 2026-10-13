@@ -65,7 +65,7 @@ export type PublicInvoice = {
   lines: Array<{
     position: number;
     description: string;
-    unit_label: string;
+    unit_label: string | null;
     hsn_sac: string | null;
     quantity: string;
     unit_price_minor: string;

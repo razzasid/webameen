@@ -70,12 +70,53 @@ export const quoteSnapshotSchema = z
   });
 export type QuoteSnapshotInput = z.infer<typeof quoteSnapshotSchema>;
 
+export const quoteComponentSchema = z
+  .object({
+    clientId: z.string(),
+    description: z.string().trim().min(1, "Enter a subproduct or material name.").max(1000),
+    unitLabel: z.string().trim().max(1000),
+    quantity: z
+      .string()
+      .trim()
+      .regex(
+        /^\d{1,12}(?:\.\d{1,3})?$/,
+        "Enter a positive quantity with up to three decimals.",
+      ),
+    unitPriceRupees: z.string().trim().min(1, "Enter a subproduct price.").max(30),
+  })
+  .superRefine((component, context) => {
+    if (/^0+(?:\.0+)?$/.test(component.quantity)) {
+      context.addIssue({
+        code: "custom",
+        path: ["quantity"],
+        message: "Quantity must be positive.",
+      });
+    }
+    try {
+      if (rupeesToPaise(component.unitPriceRupees) === null) throw new Error();
+    } catch {
+      context.addIssue({
+        code: "custom",
+        path: ["unitPriceRupees"],
+        message: "Enter a nonnegative price with up to two decimals.",
+      });
+    }
+  });
+export type QuoteComponentInput = z.infer<typeof quoteComponentSchema>;
+export type SavedQuoteComponent = {
+  position: number;
+  description: string;
+  unit_label: string | null;
+  quantity: string;
+  unit_price_minor: string;
+};
+
 export const quoteLineSchema = z
   .object({
     clientId: z.string(),
     sourceCatalogItemId: z.union([z.literal(""), z.uuid()]),
     description: z.string().trim().min(1, "Enter a line description.").max(10000),
-    unitLabel: z.string().trim().min(1, "Enter a unit.").max(1000),
+    unitLabel: z.string().trim().max(1000),
     hsnSac: z.string().max(1000),
     quantity: z
       .string()
@@ -87,6 +128,10 @@ export const quoteLineSchema = z
     unitPriceRupees: z.string().trim().min(1, "Enter a price in rupees.").max(30),
     gstCategory: z.enum(["taxable", "exempt", "no_gst"]),
     gstRate: z.string().max(80),
+    components: z
+      .array(quoteComponentSchema)
+      .max(20, "Add up to 20 subproducts per line.")
+      .default([]),
   })
   .superRefine((line, context) => {
     if (/^0+(?:\.0+)?$/.test(line.quantity))
@@ -129,12 +174,21 @@ export type QuoteShareBlocker = {
   target: string;
 };
 
+function normalizeGstRate(value: string) {
+  const match = /^(\d+)(?:\.(\d+))?$/.exec(value.trim());
+  if (!match) return value.trim();
+  const whole = match[1].replace(/^0+(?=\d)/, "");
+  const fraction = (match[2] ?? "").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+
 export function getQuoteShareBlockers(
   snapshot: QuoteSnapshotInput,
   lines: QuoteLineInput[],
   configuredGstRates: string[],
 ): QuoteShareBlocker[] {
   const blockers: QuoteShareBlocker[] = [];
+  const availableGstRates = new Set(configuredGstRates.map(normalizeGstRate));
   const add = (label: string, field: string) => {
     blockers.push({ label, target: `quote-${field}` });
   };
@@ -202,7 +256,8 @@ export function getQuoteShareBlockers(
   if (
     lines.some(
       (line) =>
-        line.gstCategory === "taxable" && !configuredGstRates.includes(line.gstRate.trim()),
+        line.gstCategory === "taxable" &&
+        !availableGstRates.has(normalizeGstRate(line.gstRate)),
     )
   ) {
     add("Choose an available GST rate for each taxable line", "lines");
@@ -223,7 +278,7 @@ export type QuoteTotals = {
 export type CalculatedLine = {
   position: number;
   description: string;
-  unit_label: string;
+  unit_label: string | null;
   quantity: string;
   unit_price_minor: string;
   line_subtotal_minor: string;
@@ -283,12 +338,18 @@ export function toRpcLines(lines: QuoteLineInput[]) {
   return lines.map((line) => ({
     source_catalog_item_id: line.sourceCatalogItemId || null,
     description: line.description,
-    unit_label: line.unitLabel,
+    unit_label: line.unitLabel.trim() || null,
     hsn_sac: line.hsnSac,
     quantity: line.quantity,
     unit_price_minor: rupeesToPaise(line.unitPriceRupees),
     gst_category: line.gstCategory,
     gst_rate: line.gstCategory === "taxable" ? line.gstRate : null,
+    components: line.components.map((component) => ({
+      description: component.description,
+      unit_label: component.unitLabel || null,
+      quantity: component.quantity,
+      unit_price_minor: rupeesToPaise(component.unitPriceRupees),
+    })),
   }));
 }
 
@@ -339,12 +400,13 @@ export function savedLineToInput(line: {
   id: string;
   source_catalog_item_id: string | null;
   description: string;
-  unit_label: string;
+  unit_label: string | null;
   hsn_sac: string | null;
   quantity: string;
   unit_price_minor: string;
   gst_category: "taxable" | "exempt" | "no_gst";
   gst_rate: string | null;
+  components?: SavedQuoteComponent[] | null;
 }): QuoteLineInput {
   const [whole, fraction] = line.quantity.split(".", 2);
   const normalizedFraction = fraction?.replace(/0+$/, "");
@@ -352,7 +414,7 @@ export function savedLineToInput(line: {
     clientId: line.id,
     sourceCatalogItemId: line.source_catalog_item_id ?? "",
     description: line.description,
-    unitLabel: line.unit_label,
+    unitLabel: line.unit_label ?? "",
     hsnSac: line.hsn_sac ?? "",
     // PostgreSQL returns scaled NUMERIC values such as `1.000000`. Normalize
     // insignificant zeroes so a valid saved quantity remains valid input under
@@ -361,5 +423,18 @@ export function savedLineToInput(line: {
     unitPriceRupees: paiseToRupees(line.unit_price_minor),
     gstCategory: line.gst_category,
     gstRate: line.gst_rate ?? "",
+    components: (line.components ?? []).map((component) => ({
+      clientId: crypto.randomUUID(),
+      description: component.description,
+      unitLabel: component.unit_label ?? "",
+      quantity: normalizeQuantity(component.quantity),
+      unitPriceRupees: paiseToRupees(component.unit_price_minor),
+    })),
   };
+}
+
+function normalizeQuantity(value: string) {
+  const [whole, fraction] = value.split(".", 2);
+  const normalizedFraction = fraction?.replace(/0+$/, "");
+  return normalizedFraction ? `${whole}.${normalizedFraction}` : whole;
 }

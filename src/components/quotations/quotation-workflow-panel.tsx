@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import type { QuotationWorkflowActionState } from "@/server/modules/quotations/actions";
 import {
   createQuotationRevisionAction,
@@ -97,6 +98,10 @@ export function QuotationWorkflowPanel({
     createQuotationRevisionAction,
     initialState,
   );
+  useSubmissionErrorToast(shareState);
+  useSubmissionErrorToast(rotateState);
+  useSubmissionErrorToast(revokeState);
+  useSubmissionErrorToast(revisionState);
   const current = workflow.versions.find(
     (version) => version.id === workflow.current_version_id,
   );

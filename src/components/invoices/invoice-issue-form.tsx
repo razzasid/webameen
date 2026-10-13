@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import {
   type IssueInvoiceActionState,
   issueApprovedQuotationAction,
@@ -16,6 +17,7 @@ export function InvoiceIssueForm({ quotationId }: { quotationId: string }) {
     issueApprovedQuotationAction,
     initialState,
   );
+  useSubmissionErrorToast(state);
   const [dueOn, setDueOn] = useState(state.dueOn ?? "");
   const [reviewed, setReviewed] = useState(false);
   useEffect(() => {

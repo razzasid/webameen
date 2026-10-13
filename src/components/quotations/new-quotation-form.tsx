@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import { indianStates } from "@/server/modules/business/states";
 import type { NewQuotationState } from "@/server/modules/quotations/actions";
 import type { CustomerChoice } from "@/server/modules/quotations/queries";
@@ -25,6 +26,7 @@ export function NewQuotationForm({
   action: (state: NewQuotationState, data: FormData) => Promise<NewQuotationState>;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  useSubmissionErrorToast(state);
   const [customerId, setCustomerId] = useState("");
   const selectedCustomer = customers.find((customer) => customer.id === customerId);
   const customerState = selectedCustomer?.state_code

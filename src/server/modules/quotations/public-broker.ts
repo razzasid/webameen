@@ -2,6 +2,29 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 import { publicEnvironment, serverEnvironment } from "@/config/env";
+import type { SavedQuoteComponent } from "./validation";
+
+export type PublicQuotationLine = {
+  position: number;
+  description: string;
+  unit_label: string | null;
+  hsn_sac: string | null;
+  quantity: string;
+  unit_price_minor: string;
+  line_subtotal_minor: string;
+  gst_category: string;
+  gst_treatment: string;
+  gst_rate: string | null;
+  taxable_amount_minor: string;
+  cgst_rate: string | null;
+  cgst_amount_minor: string;
+  sgst_rate: string | null;
+  sgst_amount_minor: string;
+  igst_rate: string | null;
+  igst_amount_minor: string;
+  line_total_minor: string;
+  components?: SavedQuoteComponent[];
+};
 
 export type PublicQuotation = {
   reference: string;
@@ -15,7 +38,7 @@ export type PublicQuotation = {
   buyer: Record<string, string | boolean | null>;
   document: Record<string, string | boolean | null>;
   totals: Record<string, string>;
-  lines: Array<Record<string, string | number | null>>;
+  lines: PublicQuotationLine[];
   response: {
     kind: string;
     customer_note: string | null;

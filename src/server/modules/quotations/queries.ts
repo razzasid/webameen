@@ -5,7 +5,12 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessContext } from "@/server/modules/business/context";
 import { isUuid } from "@/server/shared/uuid";
 import type { PublicQuotation } from "./public-broker";
-import type { CalculatedLine, QuoteSnapshot, QuoteTotals } from "./validation";
+import type {
+  CalculatedLine,
+  QuoteSnapshot,
+  QuoteTotals,
+  SavedQuoteComponent,
+} from "./validation";
 
 export type QuoteSummary = {
   id: string;
@@ -21,6 +26,7 @@ export type SavedQuoteLine = CalculatedLine & {
   source_catalog_item_id: string | null;
   hsn_sac: string | null;
   gst_category: "taxable" | "exempt" | "no_gst";
+  components: SavedQuoteComponent[];
 };
 export type QuoteDraft = {
   id: string;
@@ -148,7 +154,7 @@ export async function getLatestSharedQuotationDocument(
   const { data: lines, error: linesError } = await supabase
     .from("quotation_items")
     .select(
-      "position,description,unit_label,hsn_sac,quantity,unit_price_minor,line_subtotal_minor,gst_category,gst_treatment,gst_rate,taxable_amount_minor,cgst_rate,cgst_amount_minor,sgst_rate,sgst_amount_minor,igst_rate,igst_amount_minor,line_total_minor",
+      "position,description,unit_label,hsn_sac,quantity,unit_price_minor,line_subtotal_minor,gst_category,gst_treatment,gst_rate,taxable_amount_minor,cgst_rate,cgst_amount_minor,sgst_rate,sgst_amount_minor,igst_rate,igst_amount_minor,line_total_minor,components",
     )
     .eq("business_id", context.business.id)
     .eq("version_id", version.id)
@@ -232,6 +238,7 @@ export async function getLatestSharedQuotationDocument(
       igst_rate: line.igst_rate === null ? null : String(line.igst_rate),
       igst_amount_minor: String(line.igst_amount_minor),
       line_total_minor: String(line.line_total_minor),
+      components: (line.components ?? []) as SavedQuoteComponent[],
     })),
     response: null,
   } as unknown as PublicQuotation;

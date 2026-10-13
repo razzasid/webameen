@@ -3,6 +3,7 @@
 import {
   Building2,
   CheckCircle2,
+  ChevronDown,
   Circle,
   FileText,
   Lightbulb,
@@ -15,7 +16,8 @@ import {
   Settings2,
   Wallet,
 } from "lucide-react";
-import { useActionState, useState } from "react";
+import { Fragment, useActionState, useState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import type { BusinessProfile } from "@/server/modules/business/settings-validation";
 import { indianStates } from "@/server/modules/business/states";
 import { gstinStateWarning } from "@/server/modules/business/validation";
@@ -25,12 +27,29 @@ import type { CatalogChoice, QuoteDraft } from "@/server/modules/quotations/quer
 import {
   type CalculatedLine,
   getQuoteShareBlockers,
+  type QuoteComponentInput,
   type QuoteLineInput,
   type QuoteSnapshotInput,
   type QuoteTotals,
   savedLineToInput,
   snapshotToInput,
 } from "@/server/modules/quotations/validation";
+
+type BuyerSnapshotFields = Pick<
+  QuoteSnapshotInput,
+  | "buyerDisplayName"
+  | "buyerEmail"
+  | "buyerPhone"
+  | "buyerBillingAddress"
+  | "buyerStateCode"
+  | "buyerGstinApplicable"
+  | "buyerGstin"
+  | "buyerContactName"
+>;
+type BuyerTextField = Exclude<
+  keyof BuyerSnapshotFields,
+  "buyerStateCode" | "buyerGstinApplicable"
+>;
 
 const inputClass =
   "mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-white px-2.5 py-2 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] lg:!min-h-8 lg:py-1 lg:text-xs";
@@ -44,6 +63,14 @@ const emptyLine = (): QuoteLineInput => ({
   unitPriceRupees: "",
   gstCategory: "taxable",
   gstRate: "",
+  components: [],
+});
+const emptyComponent = (): QuoteComponentInput => ({
+  clientId: crypto.randomUUID(),
+  description: "",
+  unitLabel: "",
+  quantity: "1",
+  unitPriceRupees: "",
 });
 
 function Totals({ totals, title }: { totals: QuoteTotals; title: string }) {
@@ -112,6 +139,18 @@ function LineBreakdown({ lines }: { lines: CalculatedLine[] }) {
   );
 }
 
+function hasOptionalQuotationDetails(snapshot: QuoteSnapshotInput) {
+  return [
+    snapshot.terms,
+    snapshot.paymentInstructions,
+    snapshot.sellerBankName,
+    snapshot.sellerBankAccountName,
+    snapshot.sellerBankAccountNumber,
+    snapshot.sellerBankIfsc,
+    snapshot.sellerUpiId,
+  ].some((value) => value.trim());
+}
+
 function SectionHeading({
   number,
   title,
@@ -156,10 +195,29 @@ export function QuotationDraftEditor({
   const [snapshot, setSnapshot] = useState<QuoteSnapshotInput>(() =>
     snapshotToInput(quote.snapshot),
   );
+  const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(() =>
+    hasOptionalQuotationDetails(snapshot),
+  );
+  const [buyerEditing, setBuyerEditing] = useState(false);
+  const [buyerDraft, setBuyerDraft] = useState<BuyerSnapshotFields>(() => {
+    const initial = snapshotToInput(quote.snapshot);
+    return {
+      buyerDisplayName: initial.buyerDisplayName,
+      buyerEmail: initial.buyerEmail,
+      buyerPhone: initial.buyerPhone,
+      buyerBillingAddress: initial.buyerBillingAddress,
+      buyerStateCode: initial.buyerStateCode,
+      buyerGstinApplicable: initial.buyerGstinApplicable,
+      buyerGstin: initial.buyerGstin,
+      buyerContactName: initial.buyerContactName,
+    };
+  });
   const [lines, setLines] = useState<QuoteLineInput[]>(() =>
     quote.lines.map(savedLineToInput),
   );
   const [state, formAction, pending] = useActionState(action, {});
+  useSubmissionErrorToast(state);
+  const hasOptionalDetails = hasOptionalQuotationDetails(snapshot);
   const autoRoute =
     snapshot.sellerStateCode && snapshot.buyerStateCode
       ? snapshot.sellerStateCode === snapshot.buyerStateCode
@@ -198,6 +256,12 @@ export function QuotationDraftEditor({
         line.description.trim() &&
         line.quantity.trim() &&
         line.unitPriceRupees.trim() &&
+        line.components.every(
+          (component) =>
+            component.description.trim() &&
+            component.quantity.trim() &&
+            component.unitPriceRupees.trim(),
+        ) &&
         (line.gstCategory !== "taxable" || line.gstRate.trim()),
     );
   const progressSteps = [
@@ -247,6 +311,38 @@ export function QuotationDraftEditor({
             {options.hint}
           </span>
         ) : null}
+      </label>
+    );
+  }
+  function buyerTextField(
+    field: BuyerTextField,
+    label: string,
+    options: { rows?: number; type?: string } = {},
+  ) {
+    return (
+      <label key={field} htmlFor={`quote-${field}`} className="block text-xs font-medium">
+        {label}
+        {options.rows ? (
+          <textarea
+            id={`quote-${field}`}
+            className={`${inputClass} lg:!min-h-14`}
+            rows={options.rows}
+            value={buyerDraft[field]}
+            onChange={(event) =>
+              setBuyerDraft((previous) => ({ ...previous, [field]: event.target.value }))
+            }
+          />
+        ) : (
+          <input
+            id={`quote-${field}`}
+            className={inputClass}
+            type={options.type ?? "text"}
+            value={buyerDraft[field]}
+            onChange={(event) =>
+              setBuyerDraft((previous) => ({ ...previous, [field]: event.target.value }))
+            }
+          />
+        )}
       </label>
     );
   }
@@ -313,6 +409,50 @@ export function QuotationDraftEditor({
                 gstRate: item.default_gst_rate ?? "",
               }
             : { ...line, sourceCatalogItemId: "" },
+      ),
+    );
+  }
+  function updateComponent(
+    lineId: string,
+    componentId: string,
+    field: keyof QuoteComponentInput,
+    value: string,
+  ) {
+    setLines((previous) =>
+      previous.map((line) =>
+        line.clientId !== lineId
+          ? line
+          : {
+              ...line,
+              components: line.components.map((component) =>
+                component.clientId === componentId
+                  ? { ...component, [field]: value }
+                  : component,
+              ),
+            },
+      ),
+    );
+  }
+  function addComponent(lineId: string) {
+    setLines((previous) =>
+      previous.map((line) =>
+        line.clientId === lineId
+          ? { ...line, components: [...line.components, emptyComponent()] }
+          : line,
+      ),
+    );
+  }
+  function removeComponent(lineId: string, componentId: string) {
+    setLines((previous) =>
+      previous.map((line) =>
+        line.clientId === lineId
+          ? {
+              ...line,
+              components: line.components.filter(
+                (component) => component.clientId !== componentId,
+              ),
+            }
+          : line,
       ),
     );
   }
@@ -388,55 +528,196 @@ export function QuotationDraftEditor({
               </span>
             </label>
             <div className="rounded-xl bg-[var(--canvas)]/80 p-4 sm:p-5">
-              <h3 className="break-words font-bold text-[var(--ink)]">
-                {snapshot.buyerDisplayName || "Customer name not provided"}
-              </h3>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Customer details copied into this quotation draft
-              </p>
-              <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
-                <p className="flex min-w-0 items-center gap-2 break-words font-medium">
-                  <Phone
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-[var(--brand)]"
-                  />
-                  <span>{snapshot.buyerPhone || "—"}</span>
-                </p>
-                <p className="flex min-w-0 items-center gap-2 break-words font-medium">
-                  <Mail
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-[var(--brand)]"
-                  />
-                  <span>{snapshot.buyerEmail || "—"}</span>
-                </p>
-                <p className="flex min-w-0 items-center gap-2 break-words font-medium">
-                  <MapPin
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-[var(--brand)]"
-                  />
-                  <span>
-                    {indianStates.find(([code]) => code === snapshot.buyerStateCode)?.[1] ??
-                      "—"}
-                    {snapshot.buyerStateCode ? ` (${snapshot.buyerStateCode})` : ""}
-                  </span>
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="break-words font-bold text-[var(--ink)]">
+                    {snapshot.buyerDisplayName || "Customer name not provided"}
+                  </h3>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                    Customer details copied into this quotation draft
+                  </p>
+                </div>
+                {buyerEditing ? (
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBuyerEditing(false)}
+                      className="min-h-9 rounded-lg border border-[var(--line)] px-3 text-xs font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSnapshot((previous) => ({ ...previous, ...buyerDraft }));
+                        setBuyerEditing(false);
+                      }}
+                      className="min-h-9 rounded-lg bg-[var(--brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--brand-dark)]"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Edit buyer details"
+                    aria-expanded={buyerEditing}
+                    aria-controls="quotation-buyer-edit-fields"
+                    onClick={() => {
+                      setBuyerDraft({
+                        buyerDisplayName: snapshot.buyerDisplayName,
+                        buyerEmail: snapshot.buyerEmail,
+                        buyerPhone: snapshot.buyerPhone,
+                        buyerBillingAddress: snapshot.buyerBillingAddress,
+                        buyerStateCode: snapshot.buyerStateCode,
+                        buyerGstinApplicable: snapshot.buyerGstinApplicable,
+                        buyerGstin: snapshot.buyerGstin,
+                        buyerContactName: snapshot.buyerContactName,
+                      });
+                      setBuyerEditing(true);
+                    }}
+                    className="min-h-9 shrink-0 rounded-lg border border-[var(--line)] px-3 text-xs font-semibold text-[var(--brand-dark)] hover:bg-white"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
+              {buyerEditing ? (
+                <div
+                  id="quotation-buyer-edit-fields"
+                  className="mt-4 grid gap-3 sm:grid-cols-2"
+                >
+                  {buyerTextField("buyerDisplayName", "Buyer name")}
+                  {buyerTextField("buyerEmail", "Buyer email", { type: "email" })}
+                  {buyerTextField("buyerPhone", "Buyer phone")}
+                  {buyerTextField("buyerBillingAddress", "Buyer billing address", {
+                    rows: 2,
+                  })}
+                  <label
+                    className="block text-xs font-medium"
+                    htmlFor="quote-buyerStateCode"
+                  >
+                    Buyer state
+                    <select
+                      id="quote-buyerStateCode"
+                      className={inputClass}
+                      value={buyerDraft.buyerStateCode}
+                      onChange={(event) =>
+                        setBuyerDraft((previous) => ({
+                          ...previous,
+                          buyerStateCode: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select a state or territory</option>
+                      {indianStates.map(([code, name]) => (
+                        <option value={code} key={code}>
+                          {name} ({code})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label
+                    className="block text-xs font-medium"
+                    htmlFor="quote-buyerGstinApplicable"
+                  >
+                    Buyer GSTIN applicable?
+                    <select
+                      id="quote-buyerGstinApplicable"
+                      className={inputClass}
+                      value={buyerDraft.buyerGstinApplicable}
+                      onChange={(event) =>
+                        setBuyerDraft((previous) => ({
+                          ...previous,
+                          buyerGstinApplicable: event.target
+                            .value as BuyerSnapshotFields["buyerGstinApplicable"],
+                        }))
+                      }
+                    >
+                      <option value="unset">Select an answer</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </label>
+                  {buyerTextField("buyerGstin", "Buyer GSTIN")}
+                  {buyerTextField("buyerContactName", "Buyer contact name")}
+                  <p className="text-xs text-[var(--muted-foreground)] sm:col-span-2">
+                    Click Save to apply your changes, then choose Save draft below to keep
+                    them.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
+                    <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+                      <Phone
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-[var(--brand)]"
+                      />
+                      <span>{snapshot.buyerPhone || "—"}</span>
+                    </p>
+                    <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+                      <Mail
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-[var(--brand)]"
+                      />
+                      <span>{snapshot.buyerEmail || "—"}</span>
+                    </p>
+                    <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+                      <MapPin
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-[var(--brand)]"
+                      />
+                      <span>
+                        {indianStates.find(
+                          ([code]) => code === snapshot.buyerStateCode,
+                        )?.[1] ?? "—"}
+                        {snapshot.buyerStateCode ? ` (${snapshot.buyerStateCode})` : ""}
+                      </span>
+                    </p>
+                  </div>
+                  <dl className="mt-4 grid gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
+                    {[
+                      ["Buyer billing address", snapshot.buyerBillingAddress],
+                      [
+                        "Buyer GSTIN applicable?",
+                        snapshot.buyerGstinApplicable === "unset"
+                          ? "Not specified"
+                          : snapshot.buyerGstinApplicable === "yes"
+                            ? "Yes"
+                            : "No",
+                      ],
+                      ["Buyer GSTIN", snapshot.buyerGstin],
+                      ["Buyer contact name", snapshot.buyerContactName],
+                    ].map(([label, value]) => (
+                      <div key={label} className="min-w-0">
+                        <dt className="font-medium text-[var(--muted-foreground)]">
+                          {label}
+                        </dt>
+                        <dd className="mt-1 break-words whitespace-pre-line text-[var(--ink)]">
+                          {value || "—"}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              )}
             </div>
           </section>
 
           <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-start-1 lg:p-4">
             <SectionHeading
               number={2}
-              title="Seller and buyer snapshot"
-              description="These details were copied when the draft was created. Edit them here if needed."
+              title="Seller snapshot"
+              description="These seller details were copied when the draft was created. Edit them here if needed."
               icon={Building2}
             />
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3">
               <section className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)]/40 p-3 sm:p-4">
                 <h3 className="text-xs font-bold text-[var(--brand-dark)]">
                   Seller details
                 </h3>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {textField("sellerDisplayName", "Seller name")}
                   {textField("sellerContactEmail", "Seller email", { type: "email" })}
                   {textField("sellerContactPhone", "Seller phone")}
@@ -444,21 +725,6 @@ export function QuotationDraftEditor({
                   {stateField("sellerStateCode", "Seller state")}
                   {declarationField("sellerGstRegistered", "Seller GST registered?")}
                   {textField("sellerGstin", "Seller GSTIN")}
-                </div>
-              </section>
-              <section className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)]/40 p-3 sm:p-4">
-                <h3 className="text-xs font-bold text-[var(--brand-dark)]">
-                  Buyer details
-                </h3>
-                <div className="mt-3 space-y-3">
-                  {textField("buyerDisplayName", "Buyer name")}
-                  {textField("buyerEmail", "Buyer email", { type: "email" })}
-                  {textField("buyerPhone", "Buyer phone")}
-                  {textField("buyerBillingAddress", "Buyer billing address", { rows: 2 })}
-                  {stateField("buyerStateCode", "Buyer state")}
-                  {declarationField("buyerGstinApplicable", "Buyer GSTIN applicable?")}
-                  {textField("buyerGstin", "Buyer GSTIN")}
-                  {textField("buyerContactName", "Buyer contact name")}
                 </div>
               </section>
             </div>
@@ -534,7 +800,7 @@ export function QuotationDraftEditor({
                 <SectionHeading
                   number={4}
                   title="Ordered lines"
-                  description="Catalog items are copied as editable lines. One-off lines are also supported."
+                  description="Choose a saved item or enter one manually. Add optional material details under a main line."
                   icon={ListChecks}
                 />
               </div>
@@ -580,159 +846,284 @@ export function QuotationDraftEditor({
                   </thead>
                   <tbody>
                     {lines.map((line, index) => (
-                      <tr
-                        className="border-t border-[var(--line)] align-middle"
-                        key={line.clientId}
-                      >
-                        <td className="px-2 py-2 text-[var(--muted-foreground)]">
-                          {index + 1}
-                        </td>
-                        <td className="space-y-1 px-2 py-2">
-                          <select
-                            aria-label={`Catalog item for line ${index + 1}`}
-                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                            value={line.sourceCatalogItemId}
-                            onChange={(event) =>
-                              chooseCatalog(line.clientId, event.target.value)
-                            }
-                          >
-                            <option value="">One-off line</option>
-                            {line.sourceCatalogItemId &&
-                            !catalog.some(
-                              (item) => item.id === line.sourceCatalogItemId,
-                            ) ? (
-                              <option value={line.sourceCatalogItemId}>
-                                Previously copied catalog item
-                              </option>
-                            ) : null}
-                            {catalog.map((item) => (
-                              <option value={item.id} key={item.id}>
-                                {item.name}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            aria-label={`Description for line ${index + 1}`}
-                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                            value={line.description}
-                            onChange={(event) =>
-                              updateLine(line.clientId, "description", event.target.value)
-                            }
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <input
-                            aria-label={`HSN or SAC for line ${index + 1}`}
-                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                            value={line.hsnSac}
-                            onChange={(event) =>
-                              updateLine(line.clientId, "hsnSac", event.target.value)
-                            }
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <input
-                            aria-label={`Quantity for line ${index + 1}`}
-                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                            inputMode="decimal"
-                            value={line.quantity}
-                            onChange={(event) =>
-                              updateLine(line.clientId, "quantity", event.target.value)
-                            }
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <input
-                            aria-label={`Unit price before GST for line ${index + 1}`}
-                            className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                            inputMode="decimal"
-                            value={line.unitPriceRupees}
-                            onChange={(event) =>
-                              updateLine(
-                                line.clientId,
-                                "unitPriceRupees",
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="space-y-1">
+                      <Fragment key={line.clientId}>
+                        <tr className="border-t border-[var(--line)] align-middle">
+                          <td className="px-2 py-2 text-[var(--muted-foreground)]">
+                            {index + 1}
+                          </td>
+                          <td className="space-y-1 px-2 py-2">
                             <select
-                              aria-label={`GST category for line ${index + 1}`}
+                              aria-label={`Catalog item for line ${index + 1}`}
                               className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                              value={line.gstCategory}
-                              onChange={(event) => {
-                                const category = event.target
-                                  .value as QuoteLineInput["gstCategory"];
-                                setLines((previous) =>
-                                  previous.map((item) =>
-                                    item.clientId === line.clientId
-                                      ? {
-                                          ...item,
-                                          gstCategory: category,
-                                          gstRate:
-                                            category === "taxable" ? item.gstRate : "",
-                                        }
-                                      : item,
-                                  ),
-                                );
-                              }}
+                              value={line.sourceCatalogItemId}
+                              onChange={(event) =>
+                                chooseCatalog(line.clientId, event.target.value)
+                              }
                             >
-                              <option value="taxable">Taxable</option>
-                              <option value="exempt">Exempt</option>
-                              <option value="no_gst">No GST</option>
+                              <option value="">Enter manually</option>
+                              {line.sourceCatalogItemId &&
+                              !catalog.some(
+                                (item) => item.id === line.sourceCatalogItemId,
+                              ) ? (
+                                <option value={line.sourceCatalogItemId}>
+                                  Previously copied catalog item
+                                </option>
+                              ) : null}
+                              {catalog.map((item) => (
+                                <option value={item.id} key={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
                             </select>
-                            {line.gstCategory === "taxable" ? (
-                              <select
-                                aria-label={`GST rate for line ${index + 1}`}
-                                className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                                value={line.gstRate}
-                                onChange={(event) =>
-                                  updateLine(line.clientId, "gstRate", event.target.value)
-                                }
+                            <input
+                              aria-label={`Description for line ${index + 1}`}
+                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                              value={line.description}
+                              onChange={(event) =>
+                                updateLine(line.clientId, "description", event.target.value)
+                              }
+                            />
+                            {line.components.length === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => addComponent(line.clientId)}
+                                className="min-h-8 rounded-md px-1 text-left text-[11px] font-semibold text-[var(--brand-dark)] hover:underline"
                               >
-                                <option value="">Rate</option>
-                                {line.gstRate && !rates.includes(line.gstRate) ? (
-                                  <option value={line.gstRate}>
-                                    {line.gstRate}% retired — replace
-                                  </option>
-                                ) : null}
-                                {rates.map((rate) => (
-                                  <option key={rate} value={rate}>
-                                    {rate}%
-                                  </option>
-                                ))}
-                              </select>
+                                <Plus aria-hidden="true" className="mr-1 inline size-3" />
+                                Add material / subproduct
+                              </button>
                             ) : null}
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 text-right tabular-nums">
-                          {(() => {
-                            const total =
-                              state.preview?.lines.find(
-                                (item) => item.position === index + 1,
-                              )?.line_total_minor ??
-                              quote.lines.find((item) => item.position === index + 1)
-                                ?.line_total_minor;
-                            return total === undefined ? "—" : formatPaise(total);
-                          })()}
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            type="button"
-                            aria-label={`Remove line ${index + 1}`}
-                            onClick={() =>
-                              setLines((previous) =>
-                                previous.filter((item) => item.clientId !== line.clientId),
-                              )
-                            }
-                            className="min-h-9 min-w-9 rounded-md text-red-700 hover:bg-red-50"
-                          >
-                            ×
-                          </button>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              aria-label={`HSN or SAC for line ${index + 1}`}
+                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                              value={line.hsnSac}
+                              onChange={(event) =>
+                                updateLine(line.clientId, "hsnSac", event.target.value)
+                              }
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              aria-label={`Quantity for line ${index + 1}`}
+                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                              inputMode="decimal"
+                              value={line.quantity}
+                              onChange={(event) =>
+                                updateLine(line.clientId, "quantity", event.target.value)
+                              }
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              aria-label={`Unit price before GST for line ${index + 1}`}
+                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                              inputMode="decimal"
+                              value={line.unitPriceRupees}
+                              onChange={(event) =>
+                                updateLine(
+                                  line.clientId,
+                                  "unitPriceRupees",
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="space-y-1">
+                              <select
+                                aria-label={`GST category for line ${index + 1}`}
+                                className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                value={line.gstCategory}
+                                onChange={(event) => {
+                                  const category = event.target
+                                    .value as QuoteLineInput["gstCategory"];
+                                  setLines((previous) =>
+                                    previous.map((item) =>
+                                      item.clientId === line.clientId
+                                        ? {
+                                            ...item,
+                                            gstCategory: category,
+                                            gstRate:
+                                              category === "taxable" ? item.gstRate : "",
+                                          }
+                                        : item,
+                                    ),
+                                  );
+                                }}
+                              >
+                                <option value="taxable">Taxable</option>
+                                <option value="exempt">Exempt</option>
+                                <option value="no_gst">No GST</option>
+                              </select>
+                              {line.gstCategory === "taxable" ? (
+                                <select
+                                  aria-label={`GST rate for line ${index + 1}`}
+                                  className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                  value={line.gstRate}
+                                  onChange={(event) =>
+                                    updateLine(line.clientId, "gstRate", event.target.value)
+                                  }
+                                >
+                                  <option value="">Rate</option>
+                                  {line.gstRate && !rates.includes(line.gstRate) ? (
+                                    <option value={line.gstRate}>
+                                      {line.gstRate}% retired — replace
+                                    </option>
+                                  ) : null}
+                                  {rates.map((rate) => (
+                                    <option key={rate} value={rate}>
+                                      {rate}%
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 text-right tabular-nums">
+                            {(() => {
+                              const total =
+                                state.preview?.lines.find(
+                                  (item) => item.position === index + 1,
+                                )?.line_total_minor ??
+                                quote.lines.find((item) => item.position === index + 1)
+                                  ?.line_total_minor;
+                              return total === undefined ? "—" : formatPaise(total);
+                            })()}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              aria-label={`Remove line ${index + 1}`}
+                              onClick={() =>
+                                setLines((previous) =>
+                                  previous.filter(
+                                    (item) => item.clientId !== line.clientId,
+                                  ),
+                                )
+                              }
+                              className="min-h-9 min-w-9 rounded-md text-red-700 hover:bg-red-50"
+                            >
+                              ×
+                            </button>
+                          </td>
+                        </tr>
+                        {line.components.length ? (
+                          <tr className="border-t border-[var(--line)] bg-[var(--canvas)]/60">
+                            <td colSpan={8} className="px-3 py-3 sm:px-4">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-xs font-semibold text-[var(--ink)]">
+                                    Materials / subproducts for{" "}
+                                    {line.description || `line ${index + 1}`}
+                                  </p>
+                                  <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
+                                    Breakdown only. These amounts are not added to the
+                                    quotation total.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => addComponent(line.clientId)}
+                                  className="min-h-8 rounded-md border border-[var(--line)] bg-white px-2 text-[11px] font-semibold text-[var(--brand-dark)]"
+                                >
+                                  <Plus aria-hidden="true" className="mr-1 inline size-3" />
+                                  Add another
+                                </button>
+                              </div>
+                              <div className="mt-3 space-y-2">
+                                {line.components.map((component, componentIndex) => (
+                                  <div
+                                    key={component.clientId}
+                                    className="grid gap-2 rounded-lg border border-[var(--line)] bg-white p-2 sm:grid-cols-[minmax(0,2fr)_minmax(5rem,0.8fr)_minmax(5rem,0.8fr)_minmax(7rem,1fr)_auto]"
+                                  >
+                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                      Subproduct / material
+                                      <input
+                                        aria-label={`Subproduct or material ${componentIndex + 1} name for line ${index + 1}`}
+                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                        placeholder="e.g. Teak wood"
+                                        value={component.description}
+                                        onChange={(event) =>
+                                          updateComponent(
+                                            line.clientId,
+                                            component.clientId,
+                                            "description",
+                                            event.target.value,
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                      Quantity
+                                      <input
+                                        aria-label={`Quantity for subproduct ${componentIndex + 1} of line ${index + 1}`}
+                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                        inputMode="decimal"
+                                        value={component.quantity}
+                                        onChange={(event) =>
+                                          updateComponent(
+                                            line.clientId,
+                                            component.clientId,
+                                            "quantity",
+                                            event.target.value,
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                      Unit
+                                      <input
+                                        aria-label={`Unit for subproduct ${componentIndex + 1} of line ${index + 1}`}
+                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                        placeholder="optional"
+                                        value={component.unitLabel}
+                                        onChange={(event) =>
+                                          updateComponent(
+                                            line.clientId,
+                                            component.clientId,
+                                            "unitLabel",
+                                            event.target.value,
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                      Unit price (₹)
+                                      <input
+                                        aria-label={`Unit price for subproduct ${componentIndex + 1} of line ${index + 1}`}
+                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                        inputMode="decimal"
+                                        placeholder="0.00"
+                                        value={component.unitPriceRupees}
+                                        onChange={(event) =>
+                                          updateComponent(
+                                            line.clientId,
+                                            component.clientId,
+                                            "unitPriceRupees",
+                                            event.target.value,
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      aria-label={`Remove subproduct ${componentIndex + 1} from line ${index + 1}`}
+                                      onClick={() =>
+                                        removeComponent(line.clientId, component.clientId)
+                                      }
+                                      className="mt-4 min-h-8 min-w-8 self-start rounded-md text-red-700 hover:bg-red-50"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -751,40 +1142,72 @@ export function QuotationDraftEditor({
           </section>
 
           <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-span-2 lg:p-4">
-            <SectionHeading
-              number={5}
-              title="Terms and optional payment details"
-              description="Use the buttons to copy current business defaults into this draft."
-              icon={Wallet}
-            />
-            <div className="mt-4 flex flex-wrap gap-2">
+            <h2 className="m-0">
               <button
                 type="button"
-                onClick={() => updateField("terms", paymentDefaults.default_terms ?? "")}
-                className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
+                aria-expanded={optionalDetailsOpen}
+                aria-controls="quotation-optional-details"
+                onClick={() => setOptionalDetailsOpen((previous) => !previous)}
+                className="flex w-full items-center gap-2.5 text-left"
               >
-                Copy default terms
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--mint)] text-[var(--brand)]">
+                  <Wallet aria-hidden="true" className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-[var(--ink)]">
+                    5. Terms and optional payment details
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-4 text-[var(--muted-foreground)]">
+                    {optionalDetailsOpen
+                      ? "Optional details are open. Tap to hide them."
+                      : hasOptionalDetails
+                        ? "Optional details have been added. Tap to review them."
+                        : "Optional. Tap to add terms or payment details."}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`size-4 shrink-0 text-[var(--muted-foreground)] transition-transform ${optionalDetailsOpen ? "rotate-180" : ""}`}
+                />
               </button>
-              <button
-                type="button"
-                onClick={copyPaymentDefaults}
-                className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
-              >
-                Copy payment details
-              </button>
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-6">
-              <div className="md:col-span-3">
-                {textField("terms", "Terms", { rows: 2 })}
+            </h2>
+            <div
+              id="quotation-optional-details"
+              hidden={!optionalDetailsOpen}
+              className="mt-4 border-t border-[var(--line)] pt-4"
+            >
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Use the buttons to copy current business defaults into this draft.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateField("terms", paymentDefaults.default_terms ?? "")}
+                  className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
+                >
+                  Copy default terms
+                </button>
+                <button
+                  type="button"
+                  onClick={copyPaymentDefaults}
+                  className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-medium"
+                >
+                  Copy payment details
+                </button>
               </div>
-              <div className="md:col-span-3">
-                {textField("paymentInstructions", "Payment instructions", { rows: 2 })}
+              <div className="mt-3 grid gap-3 md:grid-cols-6">
+                <div className="md:col-span-3">
+                  {textField("terms", "Terms", { rows: 2 })}
+                </div>
+                <div className="md:col-span-3">
+                  {textField("paymentInstructions", "Payment instructions", { rows: 2 })}
+                </div>
+                {textField("sellerBankName", "Bank name")}
+                {textField("sellerBankAccountName", "Account holder")}
+                {textField("sellerBankAccountNumber", "Bank account number")}
+                {textField("sellerBankIfsc", "IFSC")}
+                {textField("sellerUpiId", "UPI ID")}
               </div>
-              {textField("sellerBankName", "Bank name")}
-              {textField("sellerBankAccountName", "Account holder")}
-              {textField("sellerBankAccountNumber", "Bank account number")}
-              {textField("sellerBankIfsc", "IFSC")}
-              {textField("sellerUpiId", "UPI ID")}
             </div>
           </section>
 
@@ -811,7 +1234,7 @@ export function QuotationDraftEditor({
               type="submit"
               name="intent"
               value="preview"
-              disabled={pending}
+              disabled={pending || buyerEditing}
               className="rounded-xl border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold disabled:opacity-60"
             >
               Preview calculation
@@ -820,7 +1243,7 @@ export function QuotationDraftEditor({
               type="submit"
               name="intent"
               value="save"
-              disabled={pending}
+              disabled={pending || buyerEditing}
               className="rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
               {pending ? "Working…" : "Save draft"}

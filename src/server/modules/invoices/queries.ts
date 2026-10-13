@@ -38,7 +38,7 @@ export type InvoiceItem = {
   source_quotation_item_id: string;
   position: number;
   description: string;
-  unit_label: string;
+  unit_label: string | null;
   hsn_sac: string | null;
   quantity: string;
   unit_price_minor: string;

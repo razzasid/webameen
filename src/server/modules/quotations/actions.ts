@@ -119,12 +119,7 @@ export async function editQuotationDraftAction(
         return { error: "This quotation is unavailable." };
       if (error.code === "23514")
         return { error: "This quotation is no longer an editable draft." };
-      if (error.code === "22023")
-        return {
-          error: error.message.includes("time zone")
-            ? "Select a valid document time zone."
-            : "Review the document details, lines, and currently configured GST rates.",
-        };
+      if (error.code === "22023") return { error: safeDraftValidationError(error.message) };
       return { error: "Could not calculate this draft. Please try again." };
     }
     preview = data as QuoteCalculation;
@@ -141,6 +136,51 @@ export async function editQuotationDraftAction(
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${quoteId}`);
   redirect(`/quotations/${quoteId}?saved=1`);
+}
+
+function safeDraftValidationError(message: string): string {
+  const detail = message.toLowerCase();
+  if (detail.includes("time zone")) return "Select a valid document time zone.";
+  if (
+    detail.includes("currently configured gst rate") ||
+    detail.includes("select a configured gst rate")
+  ) {
+    return "That GST rate is not currently available. Refresh the quotation and choose a rate from the list.";
+  }
+  if (detail.includes("gst rate applies only to taxable lines")) {
+    return "GST rates can only be used on taxable lines. Change the GST category or clear the rate.";
+  }
+  if (
+    detail.includes("seller and buyer states are required") ||
+    detail.includes("invalid quotation state or gst route")
+  ) {
+    return "Check the seller and buyer states and the GST treatment before saving.";
+  }
+  if (detail.includes("invalid validity date")) {
+    return "Enter a valid Valid through date, or clear the field.";
+  }
+  if (detail.includes("invalid place of supply state")) {
+    return "Select a valid place-of-supply state.";
+  }
+  if (detail.includes("invalid gstin format")) {
+    return "Check the seller and buyer GSTIN format.";
+  }
+  if (detail.includes("invalid document email")) {
+    return "Check the seller and buyer email addresses.";
+  }
+  if (detail.includes("quantity or price is out of range")) {
+    return "A line quantity or price is outside the supported range. Review the line values.";
+  }
+  if (detail.includes("quotation amount is out of range")) {
+    return "The quotation total is outside the supported range. Review the line prices and quantities.";
+  }
+  if (detail.includes("invalid quotation line")) {
+    return "Review each line’s description, quantity, price, and GST category.";
+  }
+  if (detail.includes("invalid document declaration")) {
+    return "Review the GST registration and place-of-supply declarations.";
+  }
+  return "Some quotation details are invalid. Review the document details and line items, then try again.";
 }
 
 export type QuotationWorkflowActionState = {

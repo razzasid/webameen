@@ -2,6 +2,7 @@
 
 import { ChevronDown, UsersRound } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import type { InvoiceLinkActionState } from "@/server/modules/invoices/actions";
 import {
   createInvoiceLinkAction,
@@ -94,6 +95,9 @@ export function InvoiceSharePanel({
     revokeInvoiceLinkAction,
     emptyState,
   );
+  useSubmissionErrorToast(createState);
+  useSubmissionErrorToast(rotateState);
+  useSubmissionErrorToast(revokeState);
   const unrevoked = links.find((link) => link.revoked_at === null);
   const now = Date.now();
   const active =

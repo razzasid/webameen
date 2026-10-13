@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 
 export function CatalogPublicationForm({
   action,
@@ -10,6 +11,7 @@ export function CatalogPublicationForm({
   published: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  useSubmissionErrorToast(state);
   return (
     <form action={formAction} className="mt-4">
       {state.error ? (

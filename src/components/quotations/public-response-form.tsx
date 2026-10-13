@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import {
   type PublicResponseState,
   respondToQuotationAction,
@@ -9,6 +10,7 @@ import {
 const initialState: PublicResponseState = {};
 export function PublicResponseForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState(respondToQuotationAction, initialState);
+  useSubmissionErrorToast(state);
   return (
     <form
       action={action}

@@ -30,14 +30,14 @@ describe("quotation draft input", () => {
     });
   });
 
-  it("rejects fourth-decimal quantities and missing line content", () => {
+  it("rejects invalid quantities while allowing lines without a unit", () => {
     expect(quoteLineSchema.safeParse({ ...baseLine, quantity: "1.2345" }).success).toBe(
       false,
     );
     expect(quoteLineSchema.safeParse({ ...baseLine, quantity: "0.000" }).success).toBe(
       false,
     );
-    expect(quoteLineSchema.safeParse({ ...baseLine, unitLabel: "" }).success).toBe(false);
+    expect(quoteLineSchema.safeParse({ ...baseLine, unitLabel: "" }).success).toBe(true);
     expect(quoteLinesSchema.safeParse(Array(101).fill(baseLine)).success).toBe(false);
   });
 

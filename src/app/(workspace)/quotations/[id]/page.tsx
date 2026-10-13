@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { QuotationInvoiceConversion } from "@/components/invoices/quotation-invoice-conversion";
 import { QuotationDraftEditor } from "@/components/quotations/quotation-draft-editor";
+import { QuotationLineComponents } from "@/components/quotations/quotation-line-components";
 import { QuotationWorkflowPanel } from "@/components/quotations/quotation-workflow-panel";
 import { getBusinessSettings } from "@/server/modules/business/settings-queries";
 import { listGstRateOptions } from "@/server/modules/catalog/queries";
@@ -391,6 +392,7 @@ export default async function QuotationDetailPage({
                             HSN/SAC {line.hsn_sac}
                           </p>
                         ) : null}
+                        <QuotationLineComponents components={line.components} />
                       </div>
                       <p className="shrink-0 text-right text-sm font-bold tabular-nums">
                         {formatPaise(line.line_total_minor)}
@@ -455,6 +457,7 @@ export default async function QuotationDetailPage({
                               HSN/SAC {line.hsn_sac}
                             </p>
                           ) : null}
+                          <QuotationLineComponents components={line.components} />
                         </td>
                         <td className="px-4 py-3 tabular-nums">
                           {line.quantity} {line.unit_label}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 
 type ErrorState<Field extends string> = {
   error?: string;
@@ -8,6 +9,7 @@ type ErrorState<Field extends string> = {
 };
 
 export function useFieldErrors<Field extends string>(state: ErrorState<Field>) {
+  useSubmissionErrorToast(state);
   const [dismissed, setDismissed] = useState<{
     source: ErrorState<Field>;
     fields: ReadonlySet<Field>;
