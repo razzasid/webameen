@@ -124,6 +124,93 @@ export const quoteLinesSchema = z
   .max(100, "A draft can contain up to 100 lines.");
 export type QuoteLineInput = z.infer<typeof quoteLineSchema>;
 
+export type QuoteShareBlocker = {
+  label: string;
+  target: string;
+};
+
+export function getQuoteShareBlockers(
+  snapshot: QuoteSnapshotInput,
+  lines: QuoteLineInput[],
+  configuredGstRates: string[],
+): QuoteShareBlocker[] {
+  const blockers: QuoteShareBlocker[] = [];
+  const add = (label: string, field: string) => {
+    blockers.push({ label, target: `quote-${field}` });
+  };
+  const gstinIsValid = (value: string) => gstinShape.test(value.trim().toUpperCase());
+
+  if (!snapshot.sellerDisplayName.trim()) add("Enter the seller name", "sellerDisplayName");
+  if (!snapshot.sellerPostalAddress.trim())
+    add("Enter the seller address", "sellerPostalAddress");
+  if (!snapshot.sellerStateCode) add("Select the seller state", "sellerStateCode");
+  if (snapshot.sellerGstRegistered === "unset") {
+    add("Answer whether the seller is GST registered", "sellerGstRegistered");
+  } else if (snapshot.sellerGstRegistered === "yes") {
+    if (!snapshot.sellerGstin.trim()) add("Enter the seller GSTIN", "sellerGstin");
+    else if (!gstinIsValid(snapshot.sellerGstin))
+      add("Correct the seller GSTIN", "sellerGstin");
+  }
+  if (
+    snapshot.sellerContactEmail.trim() &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(snapshot.sellerContactEmail)
+  ) {
+    add("Correct the seller email", "sellerContactEmail");
+  }
+
+  if (!snapshot.buyerDisplayName.trim()) add("Enter the customer name", "buyerDisplayName");
+  if (!snapshot.buyerBillingAddress.trim())
+    add("Enter the customer billing address", "buyerBillingAddress");
+  if (!snapshot.buyerStateCode) add("Select the customer state", "buyerStateCode");
+  if (snapshot.buyerGstinApplicable === "unset") {
+    add("Answer whether customer GSTIN applies", "buyerGstinApplicable");
+  } else if (snapshot.buyerGstinApplicable === "yes") {
+    if (!snapshot.buyerGstin.trim()) add("Enter the customer GSTIN", "buyerGstin");
+    else if (!gstinIsValid(snapshot.buyerGstin))
+      add("Correct the customer GSTIN", "buyerGstin");
+  }
+  if (
+    snapshot.buyerEmail.trim() &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(snapshot.buyerEmail)
+  ) {
+    add("Correct the customer email", "buyerEmail");
+  }
+
+  try {
+    if (!snapshot.documentTimeZone.trim()) throw new Error();
+    new Intl.DateTimeFormat("en", { timeZone: snapshot.documentTimeZone }).format(0);
+  } catch {
+    add("Enter a valid document time zone", "documentTimeZone");
+  }
+  if (snapshot.placeOfSupplyApplicable === "unset") {
+    add("Choose whether place of supply applies", "placeOfSupplyApplicable");
+  } else if (
+    snapshot.placeOfSupplyApplicable === "yes" &&
+    !snapshot.placeOfSupplyStateCode
+  ) {
+    add("Select the place-of-supply state", "placeOfSupplyStateCode");
+  }
+  if (snapshot.reverseChargeApplies === "unset") {
+    add("Choose whether reverse charge applies", "reverseChargeApplies");
+  }
+
+  if (lines.length === 0) {
+    add("Add at least one quotation line", "lines");
+  } else if (!quoteLinesSchema.safeParse(lines).success) {
+    add("Complete the required fields on each quotation line", "lines");
+  }
+  if (
+    lines.some(
+      (line) =>
+        line.gstCategory === "taxable" && !configuredGstRates.includes(line.gstRate.trim()),
+    )
+  ) {
+    add("Choose an available GST rate for each taxable line", "lines");
+  }
+
+  return blockers;
+}
+
 export type QuoteTotals = {
   subtotal_minor: string;
   taxable_subtotal_minor: string;

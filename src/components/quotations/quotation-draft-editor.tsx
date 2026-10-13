@@ -24,6 +24,7 @@ import type { DraftActionState } from "@/server/modules/quotations/actions";
 import type { CatalogChoice, QuoteDraft } from "@/server/modules/quotations/queries";
 import {
   type CalculatedLine,
+  getQuoteShareBlockers,
   type QuoteLineInput,
   type QuoteSnapshotInput,
   type QuoteTotals,
@@ -180,26 +181,7 @@ export function QuotationDraftEditor({
         snapshot.buyerStateCode,
       )
     : null;
-  const missingForShare = [
-    !snapshot.sellerDisplayName.trim() && "Seller name",
-    !snapshot.sellerPostalAddress.trim() && "Seller address",
-    !snapshot.sellerStateCode && "Seller state",
-    snapshot.sellerGstRegistered === "unset" && "Seller GST declaration",
-    snapshot.sellerGstRegistered === "yes" &&
-      !snapshot.sellerGstin.trim() &&
-      "Seller GSTIN",
-    !snapshot.buyerDisplayName.trim() && "Buyer name",
-    !snapshot.buyerBillingAddress.trim() && "Buyer address",
-    !snapshot.buyerStateCode && "Buyer state",
-    snapshot.buyerGstinApplicable === "unset" && "Buyer GSTIN declaration",
-    snapshot.buyerGstinApplicable === "yes" && !snapshot.buyerGstin.trim() && "Buyer GSTIN",
-    snapshot.placeOfSupplyApplicable === "unset" && "Place of supply declaration",
-    snapshot.placeOfSupplyApplicable === "yes" &&
-      !snapshot.placeOfSupplyStateCode &&
-      "Place of supply state",
-    snapshot.reverseChargeApplies === "unset" && "Reverse charge declaration",
-    lines.length === 0 && "At least one line",
-  ].filter(Boolean) as string[];
+  const missingForShare = getQuoteShareBlockers(snapshot, lines, rates);
   const documentReady = Boolean(
     snapshot.documentTimeZone.trim() &&
       snapshot.sellerStateCode &&
@@ -270,9 +252,10 @@ export function QuotationDraftEditor({
   }
   function stateField(field: keyof QuoteSnapshotInput, label: string) {
     return (
-      <label className="block text-xs font-medium" key={field}>
+      <label className="block text-xs font-medium" htmlFor={`quote-${field}`} key={field}>
         {label}
         <select
+          id={`quote-${field}`}
           className={inputClass}
           value={snapshot[field]}
           onChange={(event) => updateField(field, event.target.value)}
@@ -289,9 +272,10 @@ export function QuotationDraftEditor({
   }
   function declarationField(field: keyof QuoteSnapshotInput, label: string) {
     return (
-      <label className="block text-xs font-medium" key={field}>
+      <label className="block text-xs font-medium" htmlFor={`quote-${field}`} key={field}>
         {label}
         <select
+          id={`quote-${field}`}
           className={inputClass}
           value={snapshot[field]}
           onChange={(event) => updateField(field, event.target.value)}
@@ -488,7 +472,10 @@ export function QuotationDraftEditor({
               icon={Settings2}
             />
             <div className="grid gap-3 md:grid-cols-2">
-              {textField("validUntil", "Valid through", { type: "date" })}
+              {textField("validUntil", "Valid through", {
+                type: "date",
+                hint: "Optional. Leave blank if this quotation has no expiry date.",
+              })}
               {textField("documentTimeZone", "Document time zone", {
                 hint: "IANA zone, for example Asia/Kolkata.",
               })}
@@ -538,7 +525,10 @@ export function QuotationDraftEditor({
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-span-2 lg:p-4">
+          <section
+            id="quote-lines"
+            className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 lg:col-span-2 lg:p-4"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <SectionHeading
@@ -891,14 +881,20 @@ export function QuotationDraftEditor({
             </div>
             {missingForShare.length ? (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
-                <p className="font-semibold">
-                  Draft details still needed before future sharing
-                </p>
-                <p className="mt-1 leading-5">{missingForShare.join(" · ")}</p>
+                <p className="font-semibold">Complete these details before sharing</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4 leading-5">
+                  {missingForShare.map((blocker) => (
+                    <li key={`${blocker.target}-${blocker.label}`}>
+                      <a className="underline" href={`#${blocker.target}`}>
+                        {blocker.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : (
               <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-900">
-                Required draft details are ready for review.
+                Required details are complete. Save any changes before sharing.
               </p>
             )}
           </section>

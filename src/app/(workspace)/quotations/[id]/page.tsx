@@ -26,6 +26,11 @@ import {
   getQuotationWorkflow,
   listQuotationCatalogChoices,
 } from "@/server/modules/quotations/queries";
+import {
+  getQuoteShareBlockers,
+  savedLineToInput,
+  snapshotToInput,
+} from "@/server/modules/quotations/validation";
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
@@ -101,6 +106,11 @@ export default async function QuotationDetailPage({
     listGstRateOptions(),
     getInvoiceForQuotation(id),
   ]);
+  const shareBlockers = getQuoteShareBlockers(
+    snapshotToInput(quote.snapshot),
+    quote.lines.map(savedLineToInput),
+    rateOptions.map((option) => option.rate),
+  );
   const currentVersion = workflow.versions.find(
     (version) => version.id === workflow.current_version_id,
   );
@@ -492,6 +502,7 @@ export default async function QuotationDetailPage({
         workflow={workflow}
         shareRequestKey={randomUUID()}
         rotateRequestKey={randomUUID()}
+        shareBlockers={shareBlockers}
       />
       <QuotationInvoiceConversion
         quotationId={id}

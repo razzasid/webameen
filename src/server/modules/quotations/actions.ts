@@ -170,7 +170,7 @@ export async function shareQuotationAction(
       p_token_hash_hex: tokenHashHex,
       p_access_expires_at: null,
     });
-    if (error) return { error: safeWorkflowError(error.code) };
+    if (error) return { error: safeShareError(error.code, error.message) };
     const result = data as { created?: boolean };
     if (!result.created)
       return {
@@ -299,4 +299,34 @@ function safeWorkflowError(code: string | undefined): string {
   if (code === "23514" || code === "22023")
     return "This quotation cannot complete that action in its current state. Reload and review it.";
   return "The quotation could not be updated. Please try again.";
+}
+
+function safeShareError(code: string | undefined, message: string | undefined): string {
+  const detail = message?.toLowerCase() ?? "";
+  if (code === "42501" || code === "P0002") return "This quotation is unavailable.";
+  if (code === "22023") {
+    if (detail.includes("complete and review the quotation details"))
+      return "Complete the items in the sharing checklist, save the draft, then try again.";
+    if (detail.includes("correct the email address"))
+      return "Correct the seller or customer email in the draft, save it, then try again.";
+    if (detail.includes("add at least one quotation line"))
+      return "Add a quotation line and save the draft before sharing.";
+    if (detail.includes("currently configured catalog gst rate"))
+      return "Choose an available GST rate for each taxable line, save the draft, then try again.";
+    if (detail.includes("document image is unavailable"))
+      return "A quotation logo or signature is unavailable. Update the document settings, then try again.";
+    if (detail.includes("response deadline has passed"))
+      return "The Valid through date has passed. Choose a future date, save the draft, then try again.";
+    return "Some saved quotation details need attention. Review the checklist and save the draft.";
+  }
+  if (code === "23514") {
+    if (detail.includes("invoiced quotation cannot be shared"))
+      return "This quotation already has an invoice and cannot be shared again.";
+    if (detail.includes("only the current draft can be shared"))
+      return "This draft changed or is no longer current. Reload the quotation before sharing.";
+    return "This quotation changed while you were working. Reload and review the current draft.";
+  }
+  if (code === "40001")
+    return "This quotation changed while you were working. Reload and review the current draft.";
+  return "The quotation could not be shared. Please try again.";
 }

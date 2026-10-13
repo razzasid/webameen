@@ -9,6 +9,7 @@ import {
   shareQuotationAction,
 } from "@/server/modules/quotations/actions";
 import type { QuotationWorkflow } from "@/server/modules/quotations/queries";
+import type { QuoteShareBlocker } from "@/server/modules/quotations/validation";
 
 const initialState: QuotationWorkflowActionState = {};
 const buttonClass =
@@ -73,10 +74,12 @@ export function QuotationWorkflowPanel({
   workflow,
   shareRequestKey,
   rotateRequestKey,
+  shareBlockers,
 }: {
   workflow: QuotationWorkflow;
   shareRequestKey: string;
   rotateRequestKey: string;
+  shareBlockers: QuoteShareBlocker[];
 }) {
   const [shareState, shareAction, sharing] = useActionState(
     shareQuotationAction,
@@ -113,7 +116,34 @@ export function QuotationWorkflowPanel({
           <p className="text-sm text-[var(--muted-foreground)]">
             Sharing freezes this draft and creates a private link for the customer.
           </p>
-          <button type="submit" className={`${buttonClass} mt-3`} disabled={sharing}>
+          {shareBlockers.length ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-semibold">Complete these details before sharing:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {shareBlockers.map((blocker) => (
+                  <li key={`${blocker.target}-${blocker.label}`}>
+                    <a className="underline" href={`#${blocker.target}`}>
+                      {blocker.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3">
+                After filling them in, click <strong>Save draft</strong>. This checklist
+                checks the saved draft.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              Required details are complete. Save any new changes before sharing. Valid
+              through is optional.
+            </p>
+          )}
+          <button
+            type="submit"
+            className={`${buttonClass} mt-3`}
+            disabled={sharing || shareBlockers.length > 0}
+          >
             {sharing ? "Sharing…" : "Share quotation"}
           </button>
         </form>
