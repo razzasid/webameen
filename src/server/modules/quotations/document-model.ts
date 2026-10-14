@@ -1,3 +1,4 @@
+import { businessLogoPublicUrl } from "@/server/modules/business/logo-assets";
 import type { PublicQuotation } from "./public-broker";
 import type { SavedQuoteComponent } from "./validation";
 
@@ -26,6 +27,7 @@ export type QuotationDocument = {
     state_code: string | null;
     gst_registered: boolean;
     gstin: string | null;
+    logo_url?: string | null;
     bank_name: string | null;
     bank_account_name: string | null;
     bank_account_number: string | null;
@@ -101,6 +103,7 @@ export function toQuotationDocument(quotation: PublicQuotation): QuotationDocume
       state_code: text(seller, "state_code"),
       gst_registered: bool(seller, "gst_registered"),
       gstin: text(seller, "gstin"),
+      logo_url: businessLogoPublicUrl(text(seller, "logo_asset_key")),
       bank_name: text(seller, "bank_name"),
       bank_account_name: text(seller, "bank_account_name"),
       bank_account_number: text(seller, "bank_account_number"),

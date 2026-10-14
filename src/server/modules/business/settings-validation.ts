@@ -89,6 +89,10 @@ export type BusinessSettingsActionState = {
   values?: BusinessSettingsValues;
   saved?: boolean;
 };
+export type BusinessLogoActionState = {
+  error?: string;
+  saved?: boolean;
+};
 
 export function readBusinessSettings(formData: FormData): BusinessSettingsValues {
   return Object.fromEntries(
@@ -104,6 +108,7 @@ export type BusinessProfile = {
   postal_address: string | null;
   country_code: string;
   currency_code: string;
+  logo_asset_key?: string | null;
   state_code: string | null;
   gst_registered: boolean | null;
   gstin: string | null;

@@ -158,7 +158,7 @@ export function BusinessSettingsForm({ initialValues, action }: Props) {
             {input("postalAddress", "Business address", { rows: 3 })}
           </div>
           <p className="text-xs text-[var(--muted-foreground)] sm:col-span-2">
-            Country: India · Currency: INR (₹). These values are fixed for this prototype.
+            Country: India · Currency: INR (₹). These values cannot be changed.
           </p>
         </div>
       </section>

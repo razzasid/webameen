@@ -6,9 +6,13 @@ import {
   CreditCard,
   Hash,
 } from "lucide-react";
+import { BusinessLogoForm } from "@/components/business/business-logo-form";
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
 import { InvoiceNumberingSettings } from "@/components/invoices/invoice-numbering-settings";
-import { updateBusinessSettingsAction } from "@/server/modules/business/settings-actions";
+import {
+  updateBusinessLogoAction,
+  updateBusinessSettingsAction,
+} from "@/server/modules/business/settings-actions";
 import { getBusinessSettings } from "@/server/modules/business/settings-queries";
 import {
   documentReadiness,
@@ -51,7 +55,7 @@ function InfoCard({
 }
 
 export default async function SettingsPage() {
-  const [{ profile, selectableRateCount }, periods] = await Promise.all([
+  const [{ profile, logoUrl, selectableRateCount }, periods] = await Promise.all([
     getBusinessSettings(),
     listInvoiceNumberPeriods(),
   ]);
@@ -78,6 +82,7 @@ export default async function SettingsPage() {
             action={updateBusinessSettingsAction}
             initialValues={profileToValues(profile)}
           />
+          <BusinessLogoForm action={updateBusinessLogoAction} initialLogoUrl={logoUrl} />
           <InvoiceNumberingSettings
             periods={periods}
             action={configureInvoiceNumberPeriodAction}

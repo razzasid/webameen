@@ -255,8 +255,8 @@ export function QuotationWorkflowPanel({
         <Result state={revokeState} />
       </div>
       <p className="mt-5 text-xs text-[var(--muted-foreground)]">
-        Customer names are self-reported. This prototype records a response as evidence but
-        does not verify identity or create a digital signature.
+        Customer names are self-reported. Responses are recorded as evidence but do not
+        verify identity or create a digital signature.
       </p>
     </section>
   );

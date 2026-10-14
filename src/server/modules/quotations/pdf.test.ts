@@ -92,17 +92,66 @@ const quotation: PublicQuotation = {
 
 function searchablePdfPages(pdf: Buffer): string[] {
   const source = pdf.toString("latin1");
-  const streams = Array.from(
-    source.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g),
-    ([, stream]) => stream,
+  const objects = new Map(
+    Array.from(
+      source.matchAll(/(?:^|\n)(\d+) 0 obj\b([\s\S]*?)\nendobj/g),
+      ([, id, body]) => [Number(id), body ?? ""] as const,
+    ),
   );
-  return streams.map((stream) =>
-    Array.from(stream.matchAll(/\[([\s\S]*?)\]\s*TJ/g), ([, operands]) =>
-      Array.from(operands.matchAll(/<([\da-fA-F]+)>/g), ([, hex]) =>
-        Buffer.from(hex, "hex").toString("latin1"),
-      ).join(""),
-    ).join("\n"),
+  const maps = new Map<number, Map<number, string>>();
+  for (const [id, body] of objects) {
+    const unicodeId = body.match(/\/ToUnicode (\d+) 0 R/)?.[1];
+    if (!unicodeId) continue;
+    const cmap = objects.get(Number(unicodeId)) ?? "";
+    const glyphs = new Map<number, string>();
+    for (const [, start, , values] of cmap.matchAll(
+      /<([\da-fA-F]+)>\s*<([\da-fA-F]+)>\s*\[([\s\S]*?)\]/g,
+    )) {
+      const entries = Array.from((values ?? "").matchAll(/<([\da-fA-F\s]+)>/g), ([, hex]) =>
+        Array.from((hex ?? "").replaceAll(/\s/g, "").matchAll(/.{4}/g), ([unit]) =>
+          String.fromCharCode(Number.parseInt(unit, 16)),
+        ).join(""),
+      );
+      entries.forEach((value, offset) => {
+        glyphs.set(Number.parseInt(start ?? "0", 16) + offset, value);
+      });
+    }
+    maps.set(id, glyphs);
+  }
+  const fonts = new Map(
+    Array.from(
+      source.matchAll(/\/(F\d+) (\d+) 0 R/g),
+      ([, name, id]) => [name ?? "", maps.get(Number(id))] as const,
+    ),
   );
+  return Array.from(objects.values())
+    .filter((body) => /\/Type \/Page\b/.test(body))
+    .map((page) => {
+      const contentId = page.match(/\/Contents (\d+) 0 R/)?.[1];
+      const stream = objects.get(Number(contentId)) ?? "";
+      let font = "";
+      const text: string[] = [];
+      for (const [, fontName, operands] of stream.matchAll(
+        /\/(F\d+) [\d.]+ Tf|\[([\s\S]*?)\]\s*TJ/g,
+      )) {
+        if (fontName) {
+          font = fontName;
+          continue;
+        }
+        const glyphs = fonts.get(font);
+        text.push(
+          Array.from((operands ?? "").matchAll(/<([\da-fA-F]+)>/g), ([, hex]) =>
+            glyphs
+              ? Array.from(
+                  (hex ?? "").matchAll(/.{4}/g),
+                  ([code]) => glyphs.get(Number.parseInt(code, 16)) ?? "",
+                ).join("")
+              : Buffer.from(hex ?? "", "hex").toString("latin1"),
+          ).join(""),
+        );
+      }
+      return text.join("\n");
+    });
 }
 
 function searchablePdfText(pdf: Buffer): string {
@@ -119,7 +168,10 @@ describe("quotation PDF rendering", () => {
     expect(content).toContain("Tiny rounding fixture");
     expect(content).toContain("Frozen Buyer");
     expect(Number(pdf.toString("latin1").match(/\/Count (\d+)/)?.[1])).toBe(1);
-    expect(content).not.toContain("INR 0.01 INR");
+    expect(content).toContain("₹0.01");
+    expect(content).toContain("Signature over printed name");
+    expect(content).not.toContain("Approve quotation");
+    expect(content).not.toContain("Request changes");
   });
 
   it("includes frozen payment details and terms when present", async () => {
@@ -166,5 +218,42 @@ describe("quotation PDF rendering", () => {
       expect(page).toContain("Description");
     }
     expect(pdf.byteLength).toBeLessThan(4 * 1024 * 1024);
+    expect(searchablePdfText(pdf)).toContain("Service line 55");
+    for (const page of pages) {
+      expect(page).toMatch(/Service line|Quotation total|Acceptance/);
+    }
   });
+  it("keeps subproduct tables associated with their parent across pages", async () => {
+    const model = toQuotationDocument(quotation);
+    const parent = model.lines[0];
+    if (!parent) throw new Error("Missing parent line.");
+    parent.components = Array.from({ length: 20 }, (_, index) => ({
+      position: index + 1,
+      description: `Material ${index + 1} ${"with detailed specifications ".repeat(10)}`,
+      quantity: "1.5",
+      unit_label: "",
+      unit_price_minor: "12500",
+    }));
+    const pdf = await renderQuotationPdf(model);
+    const content = searchablePdfText(pdf);
+    expect(content).toContain("Material 20");
+    expect(content).toContain("item 1, continued");
+    expect(content).toContain("₹187.50");
+    expect(content).toContain("Breakdown only");
+  }, 15_000);
+
+  it("preserves long terms and payment instructions without losing their final lines", async () => {
+    const model = toQuotationDocument(quotation);
+    model.document.terms =
+      "Please review the delivery specifications before confirming. ".repeat(80) +
+      "\\nEnd of saved terms.";
+    model.seller.payment_instructions =
+      "Use the saved quotation reference for payment.\\nFinal payment instruction.";
+    const pdf = await renderQuotationPdf(model);
+    const content = searchablePdfText(pdf);
+    expect(content).toContain("Terms & conditions (continued)");
+    expect(content).toContain("End of saved terms.");
+    expect(content).toContain("Final payment instruction.");
+    expect(content).toContain("Acceptance");
+  }, 15_000);
 });

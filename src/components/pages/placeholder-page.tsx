@@ -20,9 +20,6 @@ export function PlaceholderPage({ title }: { title: string }) {
             {title}
           </h1>
         </div>
-        <span className="rounded-full border border-[#dbe7e1] bg-white px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)]">
-          Foundation placeholder
-        </span>
       </div>
 
       {title === "Dashboard" ? (
@@ -33,8 +30,8 @@ export function PlaceholderPage({ title }: { title: string }) {
               Your business workspace starts here.
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#527168]">
-              This foundation is ready for the product workflow. For now, use the navigation
-              to explore each placeholder screen.
+              Your business overview will appear here. Use the navigation to explore your
+              workspace.
             </p>
           </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -59,10 +56,9 @@ export function PlaceholderPage({ title }: { title: string }) {
           <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--mint)] text-xl text-[var(--brand)]">
             ◇
           </div>
-          <h2 className="mt-5 text-lg font-semibold">Ready for the next milestone</h2>
+          <h2 className="mt-5 text-lg font-semibold">Coming soon</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted-foreground)]">
-            {notes[title] ?? "This area is reserved for the next milestone."} No business
-            data or actions are connected on this screen yet.
+            {notes[title] ?? "This page will be available soon."}
           </p>
         </div>
       )}

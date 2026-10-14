@@ -140,7 +140,7 @@ export async function getLatestSharedQuotationDocument(
   const { data: version, error: versionError } = await supabase
     .from("quotation_versions")
     .select(
-      "id,version_number,state,valid_until,response_deadline_at,shared_at,seller_display_name,seller_contact_email,seller_contact_phone,seller_postal_address,seller_country_code,seller_state_code,seller_gst_registered,seller_gstin,buyer_display_name,buyer_contact_name,buyer_email,buyer_phone,buyer_billing_address,buyer_state_code,buyer_gstin_applicable,buyer_gstin,currency_code,currency_exponent,quantity_scale,calculation_rule_code,price_tax_mode,gst_auto_treatment,gst_treatment_override,gst_treatment,document_time_zone,place_of_supply_applicable,place_of_supply_state_code,place_of_supply_text,reverse_charge_applies,subtotal_minor,taxable_subtotal_minor,cgst_total_minor,sgst_total_minor,igst_total_minor,gst_total_minor,total_minor,seller_bank_name,seller_bank_account_name,seller_bank_account_number,seller_bank_ifsc,seller_upi_id,payment_instructions,terms",
+      "id,version_number,state,valid_until,response_deadline_at,shared_at,seller_display_name,seller_contact_email,seller_contact_phone,seller_postal_address,seller_country_code,seller_state_code,seller_gst_registered,seller_gstin,seller_logo_asset_key,buyer_display_name,buyer_contact_name,buyer_email,buyer_phone,buyer_billing_address,buyer_state_code,buyer_gstin_applicable,buyer_gstin,currency_code,currency_exponent,quantity_scale,calculation_rule_code,price_tax_mode,gst_auto_treatment,gst_treatment_override,gst_treatment,document_time_zone,place_of_supply_applicable,place_of_supply_state_code,place_of_supply_text,reverse_charge_applies,subtotal_minor,taxable_subtotal_minor,cgst_total_minor,sgst_total_minor,igst_total_minor,gst_total_minor,total_minor,seller_bank_name,seller_bank_account_name,seller_bank_account_number,seller_bank_ifsc,seller_upi_id,payment_instructions,terms",
     )
     .eq("business_id", context.business.id)
     .eq("quotation_id", id)
@@ -190,6 +190,7 @@ export async function getLatestSharedQuotationDocument(
       state_code: version.seller_state_code,
       gst_registered: version.seller_gst_registered,
       gstin: version.seller_gstin,
+      logo_asset_key: version.seller_logo_asset_key,
       bank_name: version.seller_bank_name,
       bank_account_name: version.seller_bank_account_name,
       bank_account_number: version.seller_bank_account_number,

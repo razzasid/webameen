@@ -1,71 +1,78 @@
 "use client";
 
-import { useActionState } from "react";
+import { Check, MessageSquare } from "lucide-react";
+import { useActionState, useState } from "react";
 import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import {
   type PublicResponseState,
   respondToQuotationAction,
 } from "@/server/modules/quotations/public-actions";
+import styles from "./quotation-document.module.css";
 
 const initialState: PublicResponseState = {};
 export function PublicResponseForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState(respondToQuotationAction, initialState);
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
   useSubmissionErrorToast(state);
   return (
-    <form
-      action={action}
-      className="mt-6 space-y-4 rounded-2xl border border-[var(--line)] bg-white p-5"
-    >
+    <form action={action} className={styles.responseForm}>
       <input type="hidden" name="token" value={token} />
-      <label className="block text-sm font-medium">
+      <label className={styles.fieldLabel}>
         Your name (optional)
         <input
           name="respondentName"
           maxLength={200}
           autoComplete="name"
-          className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          className={styles.field}
         />
       </label>
-      <label className="block text-sm font-medium">
+      <label className={styles.fieldLabel}>
         Note (optional)
         <textarea
           name="customerNote"
           maxLength={2000}
-          rows={3}
-          className="mt-1.5 w-full rounded-xl border border-[var(--line)] px-3 py-2.5"
+          rows={2}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          className={styles.field}
         />
       </label>
       {state.error ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className={styles.responseError}>
           {state.error}
         </p>
       ) : null}
       {state.message ? (
-        <p role="status" className="text-sm text-green-800">
+        <p role="status" className={styles.responseSuccess}>
           {state.message}
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-3">
+      <div className={styles.responseActions}>
         <button
           type="submit"
           name="kind"
           value="approved"
-          disabled={pending}
-          className="rounded-xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          disabled={pending || Boolean(state.message)}
+          className={styles.responseButton}
         >
+          <Check size={14} aria-hidden="true" />
           {pending ? "Sending…" : "Approve quotation"}
         </button>
         <button
           type="submit"
           name="kind"
           value="change_requested"
-          disabled={pending}
-          className="rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold disabled:opacity-60"
+          disabled={pending || Boolean(state.message)}
+          className={`${styles.responseButton} ${styles.secondaryButton}`}
         >
+          <MessageSquare size={14} aria-hidden="true" />
           Request changes
         </button>
       </div>
-      <p className="text-xs text-[var(--muted-foreground)]">
+      <p className={styles.responseHint}>
         Your name is self-reported and is not a verified signature. Only one response can be
         recorded for this version.
       </p>

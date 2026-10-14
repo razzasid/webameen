@@ -59,7 +59,25 @@ function createQuoteBrokerClient() {
 export async function readPublicQuotation(tokenHashHex: string) {
   const client = createQuoteBrokerClient();
   if (!client) return { data: null, error: new Error("Quote access is not configured.") };
-  return client.rpc("read_public_quotation", { p_token_hash_hex: tokenHashHex });
+  const { data, error } = await client.rpc("read_public_quotation", {
+    p_token_hash_hex: tokenHashHex,
+  });
+  if (error || !data) return { data, error };
+
+  const { data: logoAssetKey, error: logoError } = await client.rpc(
+    "read_public_quotation_logo_asset_key",
+    { p_token_hash_hex: tokenHashHex },
+  );
+  if (logoError) return { data: null, error: logoError };
+  const quote = data as Record<string, unknown>;
+  const seller = quote.seller as Record<string, unknown>;
+  return {
+    data: {
+      ...quote,
+      seller: { ...seller, logo_asset_key: logoAssetKey },
+    },
+    error: null,
+  };
 }
 
 export async function respondToPublicQuotation(input: {

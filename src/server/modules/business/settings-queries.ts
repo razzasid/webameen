@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessContext } from "./context";
+import { businessLogoPublicUrl } from "./logo-assets";
 import type { BusinessProfile } from "./settings-validation";
 
 export async function getBusinessSettings() {
@@ -12,7 +13,7 @@ export async function getBusinessSettings() {
     supabase
       .from("businesses")
       .select(
-        "id,display_name,contact_email,contact_phone,postal_address,country_code,currency_code,state_code,gst_registered,gstin,default_terms,time_zone,bank_name,bank_account_name,bank_account_number,bank_ifsc,upi_id,payment_instructions",
+        "id,display_name,contact_email,contact_phone,postal_address,country_code,currency_code,logo_asset_key,state_code,gst_registered,gstin,default_terms,time_zone,bank_name,bank_account_name,bank_account_number,bank_ifsc,upi_id,payment_instructions",
       )
       .eq("id", context.business.id)
       .single(),
@@ -22,6 +23,7 @@ export async function getBusinessSettings() {
   if (rates.error) throw new Error("Could not load configured GST rates.");
   return {
     profile: profile.data as BusinessProfile,
+    logoUrl: businessLogoPublicUrl(profile.data.logo_asset_key),
     selectableRateCount: rates.data?.length ?? 0,
   };
 }

@@ -18,8 +18,7 @@ export function QuotationInvoiceConversion({
 }) {
   return (
     <section className="mt-7 rounded-2xl border border-[var(--line)] bg-white p-5 md:p-7">
-      <p className="text-sm font-medium text-[var(--brand)]">Phase 9</p>
-      <h2 className="mt-1 text-xl font-semibold">Invoice conversion</h2>
+      <h2 className="text-xl font-semibold">Invoice conversion</h2>
       {existingInvoice ? (
         <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4">
           <p role="status" className="text-sm font-semibold text-green-900">
