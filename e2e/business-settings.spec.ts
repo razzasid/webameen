@@ -22,25 +22,29 @@ test("business settings save, reload and recover from field errors", async ({ pa
   await expect(page).toHaveURL(/\/login$/);
   await createWorkspace(page, "settings-owner");
   await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Business document setup" }),
+    page.getByText("Country: India · Currency: INR", { exact: false }),
   ).toBeVisible();
-  await expect(page.getByText("Country: India · Currency: INR")).toBeVisible();
 
   await page.getByLabel("Business name").fill("");
   await page.getByLabel("Contact email").fill("bad-email");
   await page.getByRole("button", { name: "Save settings" }).click();
-  await expect(page.getByText("Enter the business name.")).toBeVisible();
-  await expect(page.getByText("Enter a valid contact email.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter the business name.")).toBeVisible();
+  await expect(
+    page.locator("form").getByText("Enter a valid contact email."),
+  ).toBeVisible();
   await page.getByLabel("Business name").fill("Updated Settings Shop");
-  await expect(page.getByText("Enter the business name.")).toHaveCount(0);
-  await expect(page.getByText("Enter a valid contact email.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter the business name.")).toHaveCount(0);
+  await expect(
+    page.locator("form").getByText("Enter a valid contact email."),
+  ).toBeVisible();
   await page.getByLabel("Contact email").fill("settings@example.com");
   await page.getByLabel("Bank name").fill("Test Bank");
   await page.getByLabel("Default terms").fill("Due when agreed");
   await page.getByLabel("Document time zone").fill("Not/A_Zone");
   await page.getByRole("button", { name: "Save settings" }).click();
-  await expect(page.getByText(/^Review the settings,/)).toBeVisible();
+  await expect(page.locator("form").getByText(/^Review the settings,/)).toBeVisible();
   await expect(page.getByLabel("Bank name")).toHaveValue("Test Bank");
   await page.getByLabel("Document time zone").fill("Asia/Kolkata");
   await page.getByRole("button", { name: "Save settings" }).click();

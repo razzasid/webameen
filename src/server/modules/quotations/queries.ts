@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getBusinessContext } from "@/server/modules/business/context";
 import { isUuid } from "@/server/shared/uuid";
 import type { PublicQuotation } from "./public-broker";
+import type { QuotationHeadings } from "./template-headings";
 import type {
   CalculatedLine,
   QuoteSnapshot,
@@ -41,6 +42,7 @@ export type QuoteDraft = {
   snapshot: QuoteSnapshot;
   totals: QuoteTotals;
   lines: SavedQuoteLine[];
+  template_headings?: Partial<QuotationHeadings>;
 };
 export type QuotationWorkflow = {
   quotation_id: string;
@@ -77,6 +79,10 @@ export type CustomerChoice = {
   email: string | null;
   phone: string | null;
   state_code: string | null;
+  billing_address?: string | null;
+  contact_name?: string | null;
+  gstin_applicable?: boolean | null;
+  gstin?: string | null;
 };
 export type CatalogChoice = {
   id: string;
@@ -140,7 +146,7 @@ export async function getLatestSharedQuotationDocument(
   const { data: version, error: versionError } = await supabase
     .from("quotation_versions")
     .select(
-      "id,version_number,state,valid_until,response_deadline_at,shared_at,seller_display_name,seller_contact_email,seller_contact_phone,seller_postal_address,seller_country_code,seller_state_code,seller_gst_registered,seller_gstin,seller_logo_asset_key,buyer_display_name,buyer_contact_name,buyer_email,buyer_phone,buyer_billing_address,buyer_state_code,buyer_gstin_applicable,buyer_gstin,currency_code,currency_exponent,quantity_scale,calculation_rule_code,price_tax_mode,gst_auto_treatment,gst_treatment_override,gst_treatment,document_time_zone,place_of_supply_applicable,place_of_supply_state_code,place_of_supply_text,reverse_charge_applies,subtotal_minor,taxable_subtotal_minor,cgst_total_minor,sgst_total_minor,igst_total_minor,gst_total_minor,total_minor,seller_bank_name,seller_bank_account_name,seller_bank_account_number,seller_bank_ifsc,seller_upi_id,payment_instructions,terms",
+      "id,version_number,state,valid_until,response_deadline_at,shared_at,template_headings,seller_display_name,seller_contact_email,seller_contact_phone,seller_postal_address,seller_country_code,seller_state_code,seller_gst_registered,seller_gstin,seller_logo_asset_key,buyer_display_name,buyer_contact_name,buyer_email,buyer_phone,buyer_billing_address,buyer_state_code,buyer_gstin_applicable,buyer_gstin,currency_code,currency_exponent,quantity_scale,calculation_rule_code,price_tax_mode,gst_auto_treatment,gst_treatment_override,gst_treatment,document_time_zone,place_of_supply_applicable,place_of_supply_state_code,place_of_supply_text,reverse_charge_applies,subtotal_minor,taxable_subtotal_minor,cgst_total_minor,sgst_total_minor,igst_total_minor,gst_total_minor,total_minor,seller_bank_name,seller_bank_account_name,seller_bank_account_number,seller_bank_ifsc,seller_upi_id,payment_instructions,terms",
     )
     .eq("business_id", context.business.id)
     .eq("quotation_id", id)
@@ -172,6 +178,7 @@ export async function getLatestSharedQuotationDocument(
   };
   return {
     reference: quotation.reference,
+    template_headings: version.template_headings,
     version_number: version.version_number,
     state: version.state,
     revision_in_preparation: quotation.current_version_id !== version.id,
@@ -251,7 +258,9 @@ export async function listQuotationCustomers(): Promise<CustomerChoice[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id,display_name,email,phone,state_code")
+    .select(
+      "id,display_name,email,phone,state_code,billing_address,contact_name,gstin_applicable,gstin",
+    )
     .eq("business_id", context.business.id)
     .is("archived_at", null)
     .order("display_name")

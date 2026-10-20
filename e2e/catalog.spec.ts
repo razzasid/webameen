@@ -32,8 +32,14 @@ test("catalog is protected and an owner can create, search, view, and edit an it
   await expect(page.getByRole("heading", { name: "Add catalog item" })).toBeVisible();
 
   await page.getByRole("button", { name: "Create item" }).click();
-  await expect(page.getByText("Enter an item name.")).toBeVisible();
-  await expect(page.getByText("Select a configured GST rate.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter an item name.")).toBeVisible();
+  await expect(page.locator("#unitLabel-error")).toHaveText("Enter a unit label.");
+  await expect(
+    page.getByRole("region", { name: "Notifications" }).getByText("Enter an item name."),
+  ).toBeVisible();
+  await expect(
+    page.locator("form").getByText("Select a configured GST rate."),
+  ).toBeVisible();
 
   await page.getByLabel("Name").fill("Monthly bookkeeping");
   await page.getByLabel("Service", { exact: true }).check();
@@ -51,10 +57,17 @@ test("catalog is protected and an owner can create, search, view, and edit an it
   await expect(page.getByText("998221")).toBeVisible();
 
   await page.goto("/catalog");
-  await page.getByLabel("Search catalog").fill("bookkeeping");
+  await page
+    .getByRole("searchbox", { name: "Search products and services" })
+    .fill("bookkeeping");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page).toHaveURL(/\/catalog\?q=bookkeeping$/);
-  await page.getByRole("link", { name: /Monthly bookkeeping/ }).click();
+  const itemRow = page
+    .getByRole("table")
+    .getByRole("row")
+    .filter({ hasText: "Monthly bookkeeping" });
+  await expect(itemRow).toHaveCount(1);
+  await itemRow.getByRole("link").first().click();
   await expect(page).toHaveURL(itemUrl);
   await page.getByRole("link", { name: "Edit item" }).click();
   await expect(page.getByRole("heading", { name: "Edit catalog item" })).toBeVisible({
@@ -80,6 +93,7 @@ test("changing an item URL cannot expose another business catalog item", async (
   await createWorkspace(pageA, "catalog-a");
   await pageA.goto("/catalog/new");
   await pageA.getByLabel("Name").fill("Private A service");
+  await pageA.getByLabel("Unit label").fill("hour");
   await pageA.getByLabel("Default GST category").selectOption("exempt");
   await pageA.getByRole("button", { name: "Create item" }).click();
   await expect(pageA).toHaveURL(/\/catalog\/[0-9a-f-]+$/i, { timeout: 20_000 });

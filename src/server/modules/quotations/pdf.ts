@@ -14,6 +14,7 @@ import {
   quotationTotalRows,
   splitQuotationDescription,
 } from "./document-presentation";
+import { resolveQuotationHeadings } from "./template-headings";
 
 const MAX_LINES = 100;
 const MAX_TEXT_LENGTH = 12_000;
@@ -41,6 +42,7 @@ async function fetchLogo(url: string | null) {
 type TextBlock = { lines: string[]; height: number; size: number; bold: boolean };
 
 export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buffer> {
+  const headings = resolveQuotationHeadings(quote.headings);
   const textValues = [
     quote.reference,
     quote.seller.display_name,
@@ -228,7 +230,7 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
 
   const columns = [
     { title: "#", width: 28, align: "center" as const },
-    { title: "Description", width: 176, align: "left" as const },
+    { title: headings.itemDescription, width: 176, align: "left" as const },
     { title: "HSN/SAC", width: 53, align: "center" as const },
     { title: "Qty", width: 47, align: "center" as const },
     { title: "Unit price", width: 70, align: "right" as const },
@@ -241,9 +243,21 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   );
 
   const tableHeader = () => {
-    pdf.save().roundedRect(left, y, width, 25, 5).fill(green);
+    const height = Math.max(
+      25,
+      ...columns.map(
+        (column) =>
+          layoutText(
+            column.title,
+            column.width - 14,
+            column.title === "HSN/SAC" ? 6.6 : 7.5,
+            true,
+          ).height + 14,
+      ),
+    );
+    pdf.save().roundedRect(left, y, width, height, 5).fill(green);
     pdf
-      .rect(left, y + 20, width, 5)
+      .rect(left, y + height - 5, width, 5)
       .fill(green)
       .restore();
     columns.forEach((column, index) => {
@@ -258,7 +272,7 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
         column.align,
       );
     });
-    y += 25;
+    y += height;
   };
 
   const nextPage = (withTable = false) => {
@@ -333,18 +347,20 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   });
 
   y = headerHeight + 17;
-  text("QUOTATION", left, y, width, 27, true);
-  text("Prepared for your review.", left, y + 38, width, 8.5, false, muted);
-  rule(left, y + 55, right);
+  const titleBlock = layoutText(headings.documentTitle, width, 27, true);
+  const titleHeight = Math.max(38, titleBlock.height);
+  drawText(titleBlock, left, y, width);
+  text("Prepared for your review.", left, y + titleHeight, width, 8.5, false, muted);
+  rule(left, y + titleHeight + 17, right);
   pdf
     .save()
     .lineWidth(2)
     .strokeColor("#11835c")
-    .moveTo(left, y + 55)
-    .lineTo(left + 29, y + 55)
+    .moveTo(left, y + titleHeight + 17)
+    .lineTo(left + 29, y + titleHeight + 17)
     .stroke()
     .restore();
-  y += 70;
+  y += titleHeight + 32;
 
   const metadata = [
     ["Quotation No.", quote.reference],
@@ -379,8 +395,11 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
     ...row,
     block: layoutText(row.value, 188, row.bold ? 9 : 8, row.bold),
   }));
+  const customerTitle = layoutText(headings.customerTitle, 200, 8, true);
   const buyerHeight =
-    buyerBlocks.reduce((sum, row) => sum + Math.max(12, row.block.height) + 3, 0) + 28;
+    buyerBlocks.reduce((sum, row) => sum + Math.max(12, row.block.height) + 3, 0) +
+    customerTitle.height +
+    16;
   ensureSpace(Math.max(metaHeight + 12, buyerHeight));
   let metaY = y + 7;
   metaBlocks.forEach((row) => {
@@ -390,8 +409,8 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   });
   const buyerX = right - 225;
   pdf.save().roundedRect(buyerX, y, 225, buyerHeight, 6).fill("#f4f6f7").restore();
-  text("Bill to", buyerX + 12, y + 10, 200, 8, true, green);
-  let buyerY = y + 24;
+  drawText(customerTitle, buyerX + 12, y + 10, 200, green);
+  let buyerY = y + customerTitle.height + 12;
   buyerBlocks.forEach((row) => {
     icon(row.kind, buyerX + 12, buyerY + 1);
     drawText(row.block, buyerX + 30, buyerY, 188);
@@ -400,7 +419,8 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   y += Math.max(metaHeight + 12, buyerHeight) + 11;
 
   const supplyBlock = layoutText(quotationSupplyDetails(quote).join("\n"), width - 66, 7.5);
-  const supplyHeight = Math.max(44, supplyBlock.height + 24);
+  const detailsTitle = layoutText(headings.detailsTitle, width - 65, 8.8, true);
+  const supplyHeight = Math.max(44, supplyBlock.height + detailsTitle.height + 18);
   ensureSpace(supplyHeight + 14);
   pdf.save().roundedRect(left, y, width, supplyHeight, 6).fill("#eff7f3").restore();
   pdf
@@ -409,8 +429,8 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
     .fill("#e5f2eb")
     .restore();
   icon("file", left + 16, y + supplyHeight / 2 - 9, 18);
-  text("Quotation details", left + 51, y + 9, width - 65, 8.8, true);
-  drawText(supplyBlock, left + 51, y + 22, width - 65, muted);
+  drawText(detailsTitle, left + 51, y + 9, width - 65);
+  drawText(supplyBlock, left + 51, y + 9 + detailsTitle.height, width - 65, muted);
   y += supplyHeight + 10;
   ensureSpace(70);
   tableHeader();
@@ -511,7 +531,13 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
       });
       const first = remaining[0];
       if (!first) break;
-      const headingHeight = 46;
+      const materialTitle = layoutText(
+        `${headings.materialsTitle} - item ${item.position}${componentIndex ? ", continued" : ""}`,
+        width - 69,
+        8,
+        true,
+      );
+      const headingHeight = materialTitle.height + 34;
       ensureSpace(headingHeight + first.height + 20, true);
       const selected: typeof remaining = [];
       let rowsHeight = 0;
@@ -530,24 +556,17 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
         .fillAndStroke("#f7f9f8", lineColor)
         .restore();
       icon("box", left + 23, cardY + 10, 14);
-      text(
-        `Materials / subproducts - item ${item.position}${componentIndex ? ", continued" : ""}`,
-        left + 45,
-        cardY + 8,
-        width - 69,
-        8,
-        true,
-      );
+      drawText(materialTitle, left + 45, cardY + 8, width - 69);
       text(
         "Breakdown only - these amounts are not added to the quotation total.",
         left + 45,
-        cardY + 21,
+        cardY + 10 + materialTitle.height,
         width - 69,
         6.6,
         false,
         muted,
       );
-      const nestedHeaderY = cardY + 30;
+      const nestedHeaderY = cardY + 19 + materialTitle.height;
       pdf
         .save()
         .rect(left + 24, nestedHeaderY, nestedWidth, 17)
@@ -588,7 +607,14 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
 
   y += 12;
   const totalRows = quotationTotalRows(quote);
-  const totalHeight = totalRows.length * 16 + 34;
+  const grandTitle = layoutText(
+    `${headings.totalTitle} (${quote.document.currency_code})`,
+    115,
+    8.2,
+    true,
+  );
+  const grandHeight = Math.max(31, grandTitle.height + 18);
+  const totalHeight = totalRows.length * 16 + grandHeight + 3;
   ensureSpace(totalHeight);
   const totalX = right - 222;
   pdf.save().roundedRect(totalX, y, 222, totalHeight, 6).fill("#f4f6f7").restore();
@@ -606,16 +632,9 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
     );
   });
   const grandY = y + totalRows.length * 16 + 3;
-  pdf.save().roundedRect(totalX, grandY, 222, 31, 6).fill("#eaf5ef");
+  pdf.save().roundedRect(totalX, grandY, 222, grandHeight, 6).fill("#eaf5ef");
   pdf.rect(totalX, grandY, 222, 8).fill("#eaf5ef").restore();
-  text(
-    `Quotation total (${quote.document.currency_code})`,
-    totalX + 11,
-    grandY + 9,
-    126,
-    8.2,
-    true,
-  );
+  drawText(grandTitle, totalX + 11, grandY + 9, 115);
   const grandAmount = formatPaise(quote.totals.total_minor);
   let grandAmountSize = 11;
   pdf.font("QuoteBold").fontSize(grandAmountSize);
@@ -640,15 +659,17 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   const payments = quotationPaymentDetails(quote);
   const sections = [
     quote.document.terms
-      ? { title: "Terms & conditions", value: quote.document.terms }
+      ? { title: headings.termsTitle, value: quote.document.terms }
       : null,
-    payments.length ? { title: "Payment details", value: payments.join("\n") } : null,
+    payments.length ? { title: headings.paymentTitle, value: payments.join("\n") } : null,
   ].filter((section): section is { title: string; value: string } => Boolean(section));
 
+  const acceptanceTitle = layoutText(headings.acceptanceTitle, 240, 10, true);
+  const acceptanceHeight = acceptanceTitle.height + 75;
   const acceptance = (top: number) => {
     const x = right - 240;
-    text("Acceptance", x, top, 240, 10, true, green);
-    const boxY = top + 17;
+    drawText(acceptanceTitle, x, top, 240, green);
+    const boxY = top + acceptanceTitle.height + 5;
     pdf.save().roundedRect(x, boxY, 240, 68, 6).fill("#eff7f3").restore();
     text("Please confirm your acceptance of this quotation.", x + 11, boxY + 10, 218, 7.3);
     rule(x + 11, boxY + 44, x + 135, "#52645b");
@@ -659,20 +680,21 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   const sectionBlocks = sections.map((section) => ({
     ...section,
     block: layoutText(section.value, 242, 7.5),
+    titleBlock: layoutText(section.title, 242, 10, true),
   }));
   const sectionHeight = sectionBlocks.reduce(
-    (sum, section) => sum + 24 + section.block.height,
+    (sum, section) => sum + section.titleBlock.height + 10 + section.block.height,
     0,
   );
   if (sectionHeight <= 180) {
-    ensureSpace(Math.max(sectionHeight, 85) + 13);
+    ensureSpace(Math.max(sectionHeight, acceptanceHeight) + 13);
     rule(left, y, right, "#a5b5ae");
     y += 13;
     let sectionY = y;
     sectionBlocks.forEach((section) => {
-      text(section.title, left, sectionY, 242, 10, true, green);
-      drawText(section.block, left, sectionY + 20, 242, muted);
-      sectionY += 24 + section.block.height;
+      drawText(section.titleBlock, left, sectionY, 242, green);
+      drawText(section.block, left, sectionY + section.titleBlock.height + 6, 242, muted);
+      sectionY += section.titleBlock.height + 10 + section.block.height;
     });
     if (sections.length) {
       pdf
@@ -680,32 +702,39 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
         .lineWidth(0.6)
         .strokeColor(lineColor)
         .moveTo(right - 254, y)
-        .lineTo(right - 254, y + Math.max(sectionHeight, 85))
+        .lineTo(right - 254, y + Math.max(sectionHeight, acceptanceHeight))
         .stroke()
         .restore();
     }
     acceptance(y);
-    y += Math.max(sectionHeight, 85);
+    y += Math.max(sectionHeight, acceptanceHeight);
   } else {
     for (const section of sections) {
       const block = layoutText(section.value, width, 8);
-      ensureSpace(40);
+      const sectionTitle = layoutText(section.title, width, 10, true);
+      ensureSpace(sectionTitle.height + 32);
       rule(left, y, right);
       y += 13;
-      text(section.title, left, y, width, 10, true, green);
-      y += 22;
+      drawText(sectionTitle, left, y, width, green);
+      y += sectionTitle.height + 7;
       for (const row of block.lines) {
         if (y + 12 > bottom) {
           nextPage();
-          text(`${section.title} (continued)`, left, y, width, 10, true, green);
-          y += 22;
+          const continuedTitle = layoutText(
+            `${section.title} (continued)`,
+            width,
+            10,
+            true,
+          );
+          drawText(continuedTitle, left, y, width, green);
+          y += continuedTitle.height + 7;
         }
         text(row, left, y, width, 8, false, muted);
         y += 12;
       }
       y += 15;
     }
-    ensureSpace(105);
+    ensureSpace(acceptanceHeight);
     acceptance(y);
   }
 

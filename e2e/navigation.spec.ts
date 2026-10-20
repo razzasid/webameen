@@ -57,14 +57,11 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
     "/payments",
     "/settings",
   ];
-  for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1440]) {
+  const viewportWidths = [320, 375, 390, 430, 768, 1024, 1280, 1440];
+  await page.goto("/dashboard");
+  for (const width of viewportWidths) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/dashboard");
     await expect(page.getByRole("main")).toBeVisible();
-    const hasHorizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth,
-    );
-    expect(hasHorizontalOverflow, `dashboard overflows at ${width}px`).toBe(false);
     if (width < 768) {
       await expect(
         page.getByRole("navigation", { name: "Mobile navigation" }),
@@ -75,10 +72,18 @@ test("workspace navigation opens the catalog alongside existing workspace pages"
     } else {
       await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
     }
-    for (const path of responsiveRoutes) {
-      await page.goto(path);
-      if (path === "/products") await expect(page).toHaveURL(/\/catalog$/);
-      await expect(page.getByRole("main")).toBeVisible();
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(hasHorizontalOverflow, `dashboard overflows at ${width}px`).toBe(false);
+  }
+
+  for (const path of responsiveRoutes) {
+    await page.goto(path);
+    if (path === "/products") await expect(page).toHaveURL(/\/catalog$/);
+    await expect(page.getByRole("main")).toBeVisible();
+    for (const width of viewportWidths) {
+      await page.setViewportSize({ width, height: 900 });
       const routeHasHorizontalOverflow = await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth,
       );

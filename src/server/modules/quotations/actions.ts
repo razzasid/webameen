@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { isUuid } from "@/server/shared/uuid";
+import { quotationHeadingsSchema } from "./template-headings";
 import { createQuotationToken } from "./token";
 import {
   type QuoteCalculation,
@@ -60,6 +61,68 @@ export type DraftActionState = {
   previewed?: boolean;
 };
 
+export async function saveNewQuotationAction(
+  _previous: DraftActionState,
+  formData: FormData,
+): Promise<DraftActionState> {
+  await requireAuthenticatedUser();
+  const requestKey = String(formData.get("requestKey") ?? "");
+  const customerId = String(formData.get("customerId") ?? "");
+  if (!isUuid(requestKey) || !isUuid(customerId))
+    return { error: "Select a customer for this quotation." };
+  let snapshot: ReturnType<typeof quoteSnapshotSchema.safeParse>;
+  let lines: ReturnType<typeof quoteLinesSchema.safeParse>;
+  let headings: ReturnType<typeof quotationHeadingsSchema.safeParse>;
+  try {
+    snapshot = quoteSnapshotSchema.safeParse(safeJson(formData.get("snapshotJson")));
+    lines = quoteLinesSchema.safeParse(safeJson(formData.get("linesJson")));
+    headings = quotationHeadingsSchema.safeParse(safeJson(formData.get("headingsJson")));
+  } catch {
+    return { error: "The quotation form is incomplete. Your entries have been kept." };
+  }
+  if (!snapshot.success)
+    return { error: snapshot.error.issues[0]?.message ?? "Review the document details." };
+  if (!lines.success) {
+    const issue = lines.error.issues[0];
+    return {
+      error: `${typeof issue?.path[0] === "number" ? `Line ${issue.path[0] + 1}: ` : ""}${issue?.message ?? "Review the items."}`,
+    };
+  }
+  if (!headings.success)
+    return { error: headings.error.issues[0]?.message ?? "Review the template headings." };
+  const preview = formData.get("intent") === "preview";
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc(
+      preview ? "preview_new_quotation_draft" : "create_quotation_draft_with_content",
+      {
+        ...(preview ? {} : { p_request_key: requestKey }),
+        p_customer_id: customerId,
+        p_snapshot: { ...toRpcSnapshot(snapshot.data), template_headings: headings.data },
+        p_lines: toRpcLines(lines.data),
+      },
+    );
+    if (error)
+      return {
+        error:
+          error.code === "22023"
+            ? safeDraftValidationError(error.message)
+            : "Could not save this quotation. Your entries have been kept; please try again.",
+      };
+    if (preview) return { preview: data as QuoteCalculation, previewed: true };
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "quotation.create.save",
+        error,
+        "Quotation creation is temporarily unavailable. Your entries have been kept.",
+      ),
+    };
+  }
+  revalidatePath("/quotations");
+  redirect(`/quotations/${requestKey}?saved=1`);
+}
+
 function safeJson(value: FormDataEntryValue | null): unknown {
   if (typeof value !== "string" || value.length > 100_000) throw new Error("Invalid input");
   return JSON.parse(value) as unknown;
@@ -99,6 +162,16 @@ export async function editQuotationDraftAction(
     return { error: `${lineNumber ? `Line ${lineNumber}: ` : ""}${issue.message}` };
   }
 
+  let headings: ReturnType<typeof quotationHeadingsSchema.safeParse>;
+  try {
+    headings = quotationHeadingsSchema.safeParse(
+      formData.has("headingsJson") ? safeJson(formData.get("headingsJson")) : {},
+    );
+  } catch {
+    return { error: "Review the quotation template headings." };
+  }
+  if (!headings.success)
+    return { error: headings.error.issues[0]?.message ?? "Review the template headings." };
   const intent = formData.get("intent") === "preview" ? "preview" : "save";
   let preview: QuoteCalculation | null = null;
   try {
@@ -108,7 +181,10 @@ export async function editQuotationDraftAction(
       {
         p_quotation_id: quoteId,
         p_expected_edit_sequence: sequence,
-        p_snapshot: toRpcSnapshot(snapshot.data),
+        p_snapshot: {
+          ...toRpcSnapshot(snapshot.data),
+          ...(formData.has("headingsJson") ? { template_headings: headings.data } : {}),
+        },
         p_lines: toRpcLines(lines.data),
       },
     );

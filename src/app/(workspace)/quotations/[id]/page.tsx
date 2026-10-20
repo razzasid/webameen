@@ -27,6 +27,7 @@ import {
   getQuotationWorkflow,
   listQuotationCatalogChoices,
 } from "@/server/modules/quotations/queries";
+import { resolveQuotationHeadings } from "@/server/modules/quotations/template-headings";
 import {
   getQuoteShareBlockers,
   savedLineToInput,
@@ -101,6 +102,7 @@ export default async function QuotationDetailPage({
     getQuotationWorkflow(id),
   ]);
   const { saved } = await searchParams;
+  const headings = resolveQuotationHeadings(quote.template_headings);
   const [{ profile }, catalog, rateOptions, existingInvoice] = await Promise.all([
     getBusinessSettings(),
     listQuotationCatalogChoices(),
@@ -369,9 +371,14 @@ export default async function QuotationDetailPage({
             </div>
 
             <div className="border-t border-[var(--line)] px-4 py-4 sm:px-6">
-              <div className="mb-3 flex items-center gap-2">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
                 <CalendarDays aria-hidden="true" className="size-4 text-[var(--brand)]" />
-                <h3 className="font-bold text-[var(--ink)]">Quotation lines</h3>
+                <h3 className="break-words font-bold text-[var(--ink)]">
+                  {headings.itemDescription}
+                </h3>
+                <p className="ml-auto text-sm font-semibold text-[var(--brand)]">
+                  {headings.totalTitle}: {formatPaise(quote.totals.total_minor)}
+                </p>
               </div>
               <div className="space-y-3 sm:hidden">
                 {quote.lines.map((line) => (

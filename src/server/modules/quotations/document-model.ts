@@ -1,5 +1,6 @@
 import { businessLogoPublicUrl } from "@/server/modules/business/logo-assets";
 import type { PublicQuotation } from "./public-broker";
+import { type QuotationHeadings, resolveQuotationHeadings } from "./template-headings";
 import type { SavedQuoteComponent } from "./validation";
 
 type JsonRecord = Record<string, string | number | boolean | null>;
@@ -18,6 +19,7 @@ export type QuotationDocument = {
   version_number: number;
   state: string;
   valid_until: string | null;
+  headings?: QuotationHeadings;
   seller: {
     display_name: string;
     email: string | null;
@@ -94,6 +96,7 @@ export function toQuotationDocument(quotation: PublicQuotation): QuotationDocume
     version_number: quotation.version_number,
     state: quotation.state,
     valid_until: quotation.valid_until,
+    headings: resolveQuotationHeadings(quotation.template_headings),
     seller: {
       display_name: text(seller, "display_name") ?? "",
       email: text(seller, "email"),

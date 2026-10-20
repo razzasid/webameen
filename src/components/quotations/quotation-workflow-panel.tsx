@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { Check, Copy, LoaderCircle } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import type { QuotationWorkflowActionState } from "@/server/modules/quotations/actions";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/server/modules/quotations/actions";
 import type { QuotationWorkflow } from "@/server/modules/quotations/queries";
 import type { QuoteShareBlocker } from "@/server/modules/quotations/validation";
+import styles from "./quotation-workflow-panel.module.css";
 
 const initialState: QuotationWorkflowActionState = {};
 const buttonClass =
@@ -37,7 +39,7 @@ function Result({ state }: { state: QuotationWorkflowActionState }) {
           <p className="mt-1 text-xs text-green-900">
             It is shown once. If it is lost, create a replacement link.
           </p>
-          <ShareLink token={state.rawToken} />
+          <ShareLink key={state.rawToken} token={state.rawToken} />
         </div>
       ) : null}
     </>
@@ -47,26 +49,90 @@ function Result({ state }: { state: QuotationWorkflowActionState }) {
 function ShareLink({ token }: { token: string }) {
   const url = `/q/${token}`;
   const [shareUrl, setShareUrl] = useState(url);
+  const [copyState, setCopyState] = useState<{
+    status: "idle" | "copying" | "copied" | "error";
+    attempt: number;
+    error?: string;
+  }>({ status: "idle", attempt: 0 });
+  const linkInput = useRef<HTMLInputElement>(null);
+  const copying = useRef(false);
+  const attempt = useRef(0);
+  useSubmissionErrorToast(copyState);
   useEffect(() => setShareUrl(new URL(url, window.location.origin).toString()), [url]);
+  useEffect(() => {
+    if (copyState.status !== "copied") return;
+    const timeout = window.setTimeout(() => {
+      setCopyState((current) =>
+        current === copyState ? { status: "idle", attempt: current.attempt } : current,
+      );
+    }, 3000);
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
+
+  async function copyLink() {
+    if (copying.current) return;
+    copying.current = true;
+    const currentAttempt = ++attempt.current;
+    setCopyState({ status: "copying", attempt: currentAttempt });
+    try {
+      await navigator.clipboard.writeText(new URL(url, window.location.origin).toString());
+      setCopyState({ status: "copied", attempt: currentAttempt });
+    } catch {
+      setCopyState({
+        status: "error",
+        attempt: currentAttempt,
+        error: "Couldn’t copy the link. Copy the selected link manually, or try again.",
+      });
+      linkInput.current?.focus();
+      linkInput.current?.select();
+    } finally {
+      copying.current = false;
+    }
+  }
+
+  const copied = copyState.status === "copied";
   return (
-    <div className="mt-3 flex gap-2">
-      <input
-        aria-label="Quotation link"
-        readOnly
-        value={shareUrl}
-        className="min-w-0 flex-1 rounded-lg border border-green-300 bg-white px-3 py-2 text-xs"
-      />
-      <button
-        type="button"
-        onClick={() =>
-          void navigator.clipboard.writeText(
-            new URL(url, window.location.origin).toString(),
-          )
-        }
-        className={secondaryClass}
+    <div className="mt-3">
+      <div className="flex gap-2">
+        <input
+          ref={linkInput}
+          aria-label="Quotation link"
+          readOnly
+          value={shareUrl}
+          className="min-w-0 flex-1 rounded-lg border border-green-300 bg-white px-3 py-2 text-xs"
+        />
+        <button
+          type="button"
+          onClick={copyLink}
+          disabled={copyState.status === "copying"}
+          aria-busy={copyState.status === "copying"}
+          className={`inline-flex min-w-[124px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-4 py-3 text-sm font-semibold transition-colors duration-200 disabled:opacity-60 motion-safe:active:scale-95 motion-reduce:transition-none ${copied ? "border-emerald-700 bg-emerald-700 text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:bg-emerald-50"}`}
+        >
+          {copied ? (
+            <Check
+              key={copyState.attempt}
+              aria-hidden="true"
+              className={`size-4 ${styles.copySuccess}`}
+            />
+          ) : copyState.status === "copying" ? (
+            <LoaderCircle aria-hidden="true" className="size-4 motion-safe:animate-spin" />
+          ) : (
+            <Copy aria-hidden="true" className="size-4" />
+          )}
+          {copied ? "Copied!" : copyState.status === "copying" ? "Copying…" : "Copy"}
+        </button>
+      </div>
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={`mt-1 min-h-5 text-xs ${copyState.error ? "text-red-700" : "text-emerald-800"}`}
       >
-        Copy
-      </button>
+        {copied
+          ? "Link copied to clipboard."
+          : (copyState.error ??
+            (copyState.status === "copying" ? "Copying quotation link…" : ""))}
+      </p>
     </div>
   );
 }

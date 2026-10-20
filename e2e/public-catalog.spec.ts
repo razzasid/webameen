@@ -26,10 +26,10 @@ async function createWorkspace(page: Page, prefix: string) {
   await page.getByLabel("State or territory").selectOption("29");
   await page.getByLabel("No", { exact: true }).check();
   await page.getByRole("button", { name: "Create business" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });
   await page.goto("/catalog");
   const href = await page
-    .getByRole("link", { name: "Open public catalog" })
+    .getByRole("link", { name: "Open catalog", exact: true })
     .getAttribute("href");
   expect(href).toMatch(/^\/c\/catalog-[0-9a-f-]+$/);
   return { email, href: href as string };
@@ -178,10 +178,12 @@ test("owner edits update public details, and unpublishing removes items from a s
   page,
 }) => {
   await ownerA.goto(`/catalog/${productA}/edit`);
-  await ownerA.getByLabel("Description").fill("Updated public product description.");
-  await expect(ownerA.getByLabel("Description")).toHaveValue(
-    "Updated public product description.",
-  );
+  const description = ownerA.getByLabel("Description");
+  await expect(description).toHaveValue("Details about A public product.");
+  await description.fill("");
+  await expect(description).toHaveValue("");
+  await description.fill("Updated public product description.");
+  await expect(description).toHaveValue("Updated public product description.");
   await ownerA.getByRole("button", { name: "Save changes" }).click();
   await expect(ownerA).toHaveURL(new RegExp(`/catalog/${productA}$`), { timeout: 20_000 });
   await page.goto(`${catalogA}/${productA}`);
@@ -204,8 +206,7 @@ test("owner edits update public details, and unpublishing removes items from a s
   await expect(page.getByRole("heading", { name: "No items available yet" })).toBeVisible();
   await ownerA.goto("/catalog");
   await ownerA.reload();
-  await expect(ownerA.getByRole("link", { name: "Open public catalog" })).toHaveAttribute(
-    "href",
-    catalogA,
-  );
+  await expect(
+    ownerA.getByRole("link", { name: "Open catalog", exact: true }),
+  ).toHaveAttribute("href", catalogA);
 });

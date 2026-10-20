@@ -27,6 +27,7 @@ export type PublicQuotationLine = {
 };
 
 export type PublicQuotation = {
+  template_headings?: unknown;
   reference: string;
   version_number: number;
   state: string;

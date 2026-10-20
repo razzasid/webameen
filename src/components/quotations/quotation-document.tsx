@@ -16,6 +16,7 @@ import {
   quotationTotalRows,
   splitQuotationDescription,
 } from "@/server/modules/quotations/document-presentation";
+import { resolveQuotationHeadings } from "@/server/modules/quotations/template-headings";
 import styles from "./quotation-document.module.css";
 
 const quotationFont = localFont({
@@ -47,6 +48,7 @@ export function QuotationDocumentView({
   notice?: ReactNode;
 }) {
   const seller = quote.seller;
+  const headings = resolveQuotationHeadings(quote.headings);
   const buyer = quote.buyer;
   const payments = quotationPaymentDetails(quote);
   const hasTerms = Boolean(quote.document.terms || payments.length);
@@ -96,7 +98,7 @@ export function QuotationDocumentView({
       </header>
 
       <div className={styles.body}>
-        <h1 className={styles.title}>QUOTATION</h1>
+        <h1 className={styles.title}>{headings.documentTitle}</h1>
         <p className={styles.subtitle}>Prepared for your review.</p>
         <div className={styles.divider} />
         <section className={styles.metadata} aria-label="Quotation and buyer details">
@@ -111,7 +113,7 @@ export function QuotationDocumentView({
             <dd className="capitalize">{quote.state.replaceAll("_", " ")}</dd>
           </dl>
           <div className={styles.billTo}>
-            <h2 className={styles.eyebrow}>Bill to</h2>
+            <h2 className={styles.eyebrow}>{headings.customerTitle}</h2>
             <div className={styles.buyerContact}>
               <div className={styles.contactRow}>
                 <UserRound size={19} aria-hidden="true" />
@@ -143,7 +145,7 @@ export function QuotationDocumentView({
             <FileText size={25} aria-hidden="true" />
           </div>
           <div>
-            <h2 className={styles.detailsTitle}>Quotation details</h2>
+            <h2 className={styles.detailsTitle}>{headings.detailsTitle}</h2>
             <p className={styles.detailsText}>{quotationSupplyDetails(quote).join("\n")}</p>
           </div>
         </section>
@@ -167,7 +169,7 @@ export function QuotationDocumentView({
             <thead>
               <tr>
                 <th scope="col">#</th>
-                <th scope="col">Description</th>
+                <th scope="col">{headings.itemDescription}</th>
                 <th scope="col">HSN/SAC</th>
                 <th scope="col">Qty</th>
                 <th scope="col">Unit price</th>
@@ -237,7 +239,7 @@ export function QuotationDocumentView({
                             <div className={styles.materialsHeading}>
                               <Box size={23} aria-hidden="true" />
                               <div>
-                                <h3>Materials / subproducts</h3>
+                                <h3>{headings.materialsTitle}</h3>
                                 <p>
                                   Breakdown only — these amounts are not added to the
                                   quotation total.
@@ -322,7 +324,9 @@ export function QuotationDocumentView({
               ))}
             </dl>
             <div className={styles.grandTotal}>
-              <span>Quotation total ({quote.document.currency_code})</span>
+              <span>
+                {headings.totalTitle} ({quote.document.currency_code})
+              </span>
               <strong>{formatPaise(quote.totals.total_minor)}</strong>
             </div>
           </div>
@@ -333,13 +337,13 @@ export function QuotationDocumentView({
             <div className={styles.terms}>
               {quote.document.terms ? (
                 <section>
-                  <h2 className={styles.sectionTitle}>Terms &amp; conditions</h2>
+                  <h2 className={styles.sectionTitle}>{headings.termsTitle}</h2>
                   <p className={styles.termsText}>{quote.document.terms}</p>
                 </section>
               ) : null}
               {payments.length ? (
                 <section className={styles.payment}>
-                  <h2 className={styles.sectionTitle}>Payment details</h2>
+                  <h2 className={styles.sectionTitle}>{headings.paymentTitle}</h2>
                   <p className={styles.termsText}>{payments.join("\n")}</p>
                 </section>
               ) : null}
@@ -348,7 +352,7 @@ export function QuotationDocumentView({
           <section
             className={`${styles.acceptance} ${!hasTerms ? styles.acceptanceOnly : ""}`}
           >
-            <h2 className={styles.sectionTitle}>Acceptance</h2>
+            <h2 className={styles.sectionTitle}>{headings.acceptanceTitle}</h2>
             <div className={styles.acceptanceCard}>
               <p className={styles.acceptanceText}>
                 Please review this quotation and confirm your response.

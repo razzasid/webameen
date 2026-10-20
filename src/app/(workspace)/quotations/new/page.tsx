@@ -1,12 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { ArrowLeft, FileText } from "lucide-react";
 import Link from "next/link";
-import { NewQuotationForm } from "@/components/quotations/new-quotation-form";
-import { createQuotationAction } from "@/server/modules/quotations/actions";
-import { listQuotationCustomers } from "@/server/modules/quotations/queries";
+import { QuotationDraftEditor } from "@/components/quotations/quotation-draft-editor";
+import { getBusinessSettings } from "@/server/modules/business/settings-queries";
+import { listGstRateOptions } from "@/server/modules/catalog/queries";
+import { saveNewQuotationAction } from "@/server/modules/quotations/actions";
+import { newQuotationDraft } from "@/server/modules/quotations/new-draft";
+import {
+  listQuotationCatalogChoices,
+  listQuotationCustomers,
+} from "@/server/modules/quotations/queries";
 
 export default async function NewQuotationPage() {
-  const customers = await listQuotationCustomers();
+  const [customers, catalog, rates, { profile }] = await Promise.all([
+    listQuotationCustomers(),
+    listQuotationCatalogChoices(),
+    listGstRateOptions(),
+    getBusinessSettings(),
+  ]);
+  const quote = newQuotationDraft(profile, randomUUID());
   return (
     <section className="space-y-5 sm:space-y-6">
       <nav aria-label="Breadcrumb" className="flex min-h-10 items-center gap-2 text-sm">
@@ -26,15 +38,17 @@ export default async function NewQuotationPage() {
           New quotation
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)] sm:text-base">
-          Select a customer to create a draft. Their current details will be copied into the
-          quotation for your review.
+          Choose a customer, add your items, and save your quotation below.
         </p>
       </header>
       {customers.length ? (
-        <NewQuotationForm
+        <QuotationDraftEditor
+          quote={quote}
           customers={customers}
-          requestKey={randomUUID()}
-          action={createQuotationAction}
+          catalog={catalog}
+          rates={rates.map((rate) => rate.rate)}
+          paymentDefaults={profile}
+          action={saveNewQuotationAction}
         />
       ) : (
         <div className="flex max-w-3xl flex-col items-start gap-4 rounded-2xl border border-dashed border-[var(--line)] bg-white p-5 sm:flex-row sm:items-center sm:p-6">

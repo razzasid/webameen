@@ -1,4 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
+import { searchablePdfText } from "./pdf-text";
+import { applyBuyerAndOpenTax, startQuotation } from "./quotation-helpers";
 
 async function fetchPdfFromOwnerPage(page: Page, url: string) {
   return page.evaluate(async (href) => {
@@ -9,21 +11,6 @@ async function fetchPdfFromOwnerPage(page: Page, url: string) {
       bytes: Array.from(new Uint8Array(await response.arrayBuffer())),
     };
   }, url);
-}
-
-function searchablePdfText(pdf: Buffer): string {
-  const streams = Array.from(
-    pdf.toString("latin1").matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g),
-    ([, stream]) => stream,
-  );
-  const textOperations = streams.flatMap((stream) =>
-    Array.from(stream.matchAll(/\[([\s\S]*?)\]\s*TJ/g), ([, operands]) =>
-      Array.from(operands.matchAll(/<([\da-fA-F]+)>/g), ([, hex]) =>
-        Buffer.from(hex, "hex").toString("latin1"),
-      ).join(""),
-    ),
-  );
-  return textOperations.join("\n");
 }
 
 async function createWorkspace(page: Page) {
@@ -69,28 +56,27 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
   await page.getByRole("button", { name: "Create customer" }).click();
   await expect(page).toHaveURL(/\/customers\/[0-9a-f-]+$/i, { timeout: 20_000 });
 
-  await page.goto("/quotations/new");
-  await page
-    .getByRole("combobox", { name: "Customer", exact: true })
-    .selectOption({ label: "Invoice Demo Buyer" });
-  await page.getByRole("button", { name: "Create draft" }).click();
-  await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
-  const quotationUrl = page.url();
+  const quotationUrl = await startQuotation(page, "Invoice Demo Buyer");
   await page.getByLabel("Seller address").fill("Seller address");
   await page.getByLabel("Buyer billing address").fill("Buyer address");
   await page.getByLabel("Seller state").selectOption("29");
   await page.getByLabel("Buyer state").selectOption("29");
   await page.getByLabel("Seller GST registered?").selectOption("no");
   await page.getByLabel("Buyer GSTIN applicable?").selectOption("no");
-  await page.getByRole("button", { name: "Add line" }).click();
-  await page.getByLabel("Description").fill("Approved project service");
-  await page.getByLabel("Unit", { exact: true }).fill("day");
-  await page.getByLabel("Quantity").fill("1");
-  await page.getByLabel("Unit price before GST (₹)").fill("100.00");
-  await page.getByLabel("GST rate").selectOption("18");
+  await applyBuyerAndOpenTax(page);
+  await page
+    .getByLabel("Description for line 1", { exact: true })
+    .fill("Approved project service");
+  await page.getByLabel("Unit for line 1", { exact: true }).fill("day");
+  await page.getByLabel("Quantity for line 1", { exact: true }).fill("1");
+  await page.getByLabel("Unit price before GST for line 1", { exact: true }).fill("100.00");
+  await page.getByLabel("GST rate for line 1", { exact: true }).selectOption("18");
   await page.getByLabel("Place of supply applies?").selectOption("no");
   await page.getByLabel("Reverse charge applies?").selectOption("no");
-  await page.getByRole("button", { name: "Save draft" }).click();
+  await page
+    .locator("#quotation-draft-form")
+    .getByRole("button", { name: "Save draft", exact: true })
+    .click();
   await expect(page).toHaveURL(`${quotationUrl}?saved=1`, { timeout: 20_000 });
   await page.getByRole("button", { name: "Share quotation" }).click();
   const linkField = page.getByRole("textbox", { name: "Quotation link" });
@@ -128,28 +114,29 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
       "Your response has been recorded.",
     );
 
-    await page.goto("/quotations/new");
-    await page
-      .getByRole("combobox", { name: "Customer", exact: true })
-      .selectOption({ label: "Invoice Demo Buyer" });
-    await page.getByRole("button", { name: "Create draft" }).click();
-    await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
-    const secondQuotationUrl = page.url();
+    const secondQuotationUrl = await startQuotation(page, "Invoice Demo Buyer");
     await page.getByLabel("Seller address").fill("Seller address");
     await page.getByLabel("Buyer billing address").fill("Buyer address");
     await page.getByLabel("Seller state").selectOption("29");
     await page.getByLabel("Buyer state").selectOption("29");
     await page.getByLabel("Seller GST registered?").selectOption("no");
     await page.getByLabel("Buyer GSTIN applicable?").selectOption("no");
-    await page.getByRole("button", { name: "Add line" }).click();
-    await page.getByLabel("Description").fill("Second approved project service");
-    await page.getByLabel("Unit", { exact: true }).fill("day");
-    await page.getByLabel("Quantity").fill("2");
-    await page.getByLabel("Unit price before GST (₹)").fill("75.00");
-    await page.getByLabel("GST rate").selectOption("18");
+    await applyBuyerAndOpenTax(page);
+    await page
+      .getByLabel("Description for line 1", { exact: true })
+      .fill("Second approved project service");
+    await page.getByLabel("Unit for line 1", { exact: true }).fill("day");
+    await page.getByLabel("Quantity for line 1", { exact: true }).fill("2");
+    await page
+      .getByLabel("Unit price before GST for line 1", { exact: true })
+      .fill("75.00");
+    await page.getByLabel("GST rate for line 1", { exact: true }).selectOption("18");
     await page.getByLabel("Place of supply applies?").selectOption("no");
     await page.getByLabel("Reverse charge applies?").selectOption("no");
-    await page.getByRole("button", { name: "Save draft" }).click();
+    await page
+      .locator("#quotation-draft-form")
+      .getByRole("button", { name: "Save draft", exact: true })
+      .click();
     await expect(page).toHaveURL(`${secondQuotationUrl}?saved=1`, { timeout: 20_000 });
     await page.getByRole("button", { name: "Share quotation" }).click();
     const secondLinkField = page.getByRole("textbox", { name: "Quotation link" });
@@ -195,7 +182,9 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
       .getByRole("heading", { level: 1 })
       .first()
       .innerText();
-    await expect(page.getByText("Approved project service")).toBeVisible();
+    await expect(
+      page.getByRole("table").getByText("Approved project service"),
+    ).toBeVisible();
     const invoiceUrl = page.url();
     const ownerPdfResponse = await fetchPdfFromOwnerPage(
       page,
@@ -275,15 +264,15 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
       receiptPage.getByRole("button", { name: "Print or save receipt" }),
     ).toBeVisible();
     await expect(
-      blockedPage.getByText("The payment no longer fits", { exact: false }),
+      blockedPage.locator("form").getByText("The payment no longer fits", { exact: false }),
     ).toBeVisible();
     await receiptPage.getByRole("link", { name: "Payments", exact: true }).click();
     await expect(
       receiptPage.getByRole("heading", { name: "Payments", exact: true }),
     ).toBeVisible();
     await expect(
-      receiptPage.getByRole("link", { name: partialReceiptReference, exact: true }),
-    ).toBeVisible();
+      receiptPage.getByRole("table").getByRole("link", { name: "Receipt", exact: true }),
+    ).toHaveAttribute("href", new URL(partialReceiptUrl).pathname);
 
     await invoicePage.goto(invoiceUrl);
     await expect(invoicePage.getByText("₹48.00", { exact: true })).toBeVisible();
@@ -318,7 +307,7 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
     ).toBeVisible();
     await invoicePage.goto(invoiceUrl);
     await expect(
-      invoicePage.getByRole("heading", { name: "paid", exact: true }),
+      invoicePage.getByRole("heading", { name: "Paid", exact: true }),
     ).toBeVisible();
     await expect(invoicePage.getByText("₹0.00", { exact: true }).first()).toBeVisible();
 

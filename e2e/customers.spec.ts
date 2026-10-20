@@ -28,18 +28,24 @@ test("customers are session protected and an authenticated owner can create, fin
   await page.goto("/customers");
   await expect(page.getByRole("heading", { name: "Customers", exact: true })).toBeVisible();
   await expect(page.getByText("No customers yet")).toBeVisible();
-  await page.getByRole("link", { name: "Add customer" }).click();
+  await page
+    .getByRole("heading", { name: "No customers yet", exact: true })
+    .locator("..")
+    .getByRole("link", { name: "Add customer", exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: "Add customer" })).toBeVisible();
 
   await page.getByRole("button", { name: "Create customer" }).click();
-  await expect(page.getByText("Enter the customer name.")).toBeVisible();
-  await expect(page.getByText("Select a state or territory.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter the customer name.")).toBeVisible();
+  await expect(
+    page.locator("form").getByText("Select a state or territory."),
+  ).toBeVisible();
 
   await page.getByLabel("Customer name").fill("Northwind Parts");
   await page.getByLabel("State or territory").selectOption("29");
   await page.getByLabel("Yes", { exact: true }).check();
   await page.getByRole("button", { name: "Create customer" }).click();
-  await expect(page.getByText("Enter the GSTIN.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter the GSTIN.")).toBeVisible();
   await expect(page.getByLabel("Customer name")).toHaveValue("Northwind Parts");
   await expect(page.getByLabel("State or territory")).toHaveValue("29");
   await expect(page.getByLabel("Yes", { exact: true })).toBeChecked();
@@ -54,7 +60,9 @@ test("customers are session protected and an authenticated owner can create, fin
   });
   const customerUrl = page.url();
   await expect(page.getByRole("heading", { name: "Northwind Parts" })).toBeVisible();
-  await expect(page.getByText("27ABCDE1234F1Z5")).toBeVisible();
+  await expect(
+    page.getByRole("definition").filter({ hasText: "27ABCDE1234F1Z5" }),
+  ).toBeVisible();
   await expect(page.getByText(/GSTIN starts with 27/)).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Document and payment history" }),
@@ -65,10 +73,10 @@ test("customers are session protected and an authenticated owner can create, fin
   const search = page.getByLabel("Search customers");
   await search.fill("Northwind");
   await search.press("Enter");
-  await expect(page).toHaveURL(/\/customers\?q=Northwind$/);
-  await expect(page.getByRole("link", { name: /Northwind Parts/ })).toHaveCount(1);
-  await expect(page.getByRole("link", { name: /Northwind Parts/ })).toBeVisible();
-  await page.getByRole("link", { name: /Northwind Parts/ }).click();
+  await expect(page).toHaveURL(/\/customers\?q=Northwind&/);
+  const customerRow = page.getByRole("row").filter({ hasText: "Northwind Parts" });
+  await expect(customerRow).toHaveCount(1);
+  await customerRow.getByRole("link", { name: "Open", exact: true }).click();
   await expect(page).toHaveURL(customerUrl);
   await page.getByRole("link", { name: "Edit customer" }).click();
   await expect(page.getByRole("heading", { name: "Edit customer" })).toBeVisible({
@@ -85,29 +93,34 @@ test("customers are session protected and an authenticated owner can create, fin
 test("changing a customer URL ID cannot expose another business record", async ({
   browser,
 }) => {
-  const pageA = await browser.newPage();
-  await createWorkspace(pageA, "customer-a");
-  await pageA.goto("/customers/new");
-  await expect(pageA.getByRole("heading", { name: "Add customer" })).toBeVisible({
-    timeout: 20_000,
-  });
-  await pageA.getByLabel("Customer name").fill("Private A Customer");
-  await pageA.getByLabel("State or territory").selectOption("29");
-  await pageA.getByRole("button", { name: "Create customer" }).click();
-  await expect(pageA).toHaveURL(/\/customers\/[0-9a-f-]+$/i, {
-    timeout: 20_000,
-  });
-  const privateUrl = pageA.url();
+  const contextA = await browser.newContext();
+  const contextB = await browser.newContext();
+  try {
+    const pageA = await contextA.newPage();
+    await createWorkspace(pageA, "customer-a");
+    await pageA.goto("/customers/new");
+    await expect(pageA.getByRole("heading", { name: "Add customer" })).toBeVisible({
+      timeout: 20_000,
+    });
+    await pageA.getByLabel("Customer name").fill("Private A Customer");
+    await pageA.getByLabel("State or territory").selectOption("29");
+    await pageA.getByRole("button", { name: "Create customer" }).click();
+    await expect(pageA).toHaveURL(/\/customers\/[0-9a-f-]+$/i, {
+      timeout: 20_000,
+    });
+    const privateUrl = pageA.url();
 
-  const pageB = await browser.newPage();
-  await createWorkspace(pageB, "customer-b");
-  const response = await pageB.goto(privateUrl);
-  expect(response?.status()).toBe(404);
-  expect(await response?.text()).toContain(
-    "This customer is unavailable in your business.",
-  );
-  expect(await response?.text()).not.toContain("Private A Customer");
-  await expect(pageB.getByRole("heading", { name: "Private A Customer" })).toHaveCount(0);
-  await pageA.close();
-  await pageB.close();
+    const pageB = await contextB.newPage();
+    await createWorkspace(pageB, "customer-b");
+    const response = await pageB.goto(privateUrl);
+    expect(response?.status()).toBe(404);
+    expect(await response?.text()).toContain(
+      "This customer is unavailable in your business.",
+    );
+    expect(await response?.text()).not.toContain("Private A Customer");
+    await expect(pageB.getByRole("heading", { name: "Private A Customer" })).toHaveCount(0);
+  } finally {
+    await contextA.close();
+    await contextB.close();
+  }
 });

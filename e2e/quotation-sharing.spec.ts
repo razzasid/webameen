@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { applyBuyerAndOpenTax, startQuotation } from "./quotation-helpers";
 
 async function createWorkspace(page: Page, prefix: string) {
   const email = `${prefix}-${Date.now()}@example.com`;
@@ -30,28 +31,27 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
   await page.getByRole("button", { name: "Create customer" }).click();
   await expect(page).toHaveURL(/\/customers\/[0-9a-f-]+$/i, { timeout: 20_000 });
 
-  await page.goto("/quotations/new");
-  await page
-    .getByRole("combobox", { name: "Customer", exact: true })
-    .selectOption({ label: "Quotation Guest" });
-  await page.getByRole("button", { name: "Create draft" }).click();
-  await expect(page).toHaveURL(/\/quotations\/[0-9a-f-]+$/i, { timeout: 20_000 });
-  const quoteUrl = page.url();
+  const quoteUrl = await startQuotation(page, "Quotation Guest");
   await page.getByLabel("Seller address").fill("Seller address");
   await page.getByLabel("Buyer billing address").fill("Buyer address");
   await page.getByLabel("Seller state").selectOption("29");
   await page.getByLabel("Buyer state").selectOption("29");
   await page.getByLabel("Seller GST registered?").selectOption("no");
   await page.getByLabel("Buyer GSTIN applicable?").selectOption("no");
-  await page.getByRole("button", { name: "Add line" }).click();
-  await page.getByLabel("Description").fill("Accountless customer consultation");
-  await page.getByLabel("Unit", { exact: true }).fill("hour");
-  await page.getByLabel("Quantity").fill("2");
-  await page.getByLabel("Unit price before GST (₹)").fill("100.00");
-  await page.getByLabel("GST rate").selectOption("18");
+  await applyBuyerAndOpenTax(page);
+  await page
+    .getByLabel("Description for line 1", { exact: true })
+    .fill("Accountless customer consultation");
+  await page.getByLabel("Unit for line 1", { exact: true }).fill("hour");
+  await page.getByLabel("Quantity for line 1", { exact: true }).fill("2");
+  await page.getByLabel("Unit price before GST for line 1", { exact: true }).fill("100.00");
+  await page.getByLabel("GST rate for line 1", { exact: true }).selectOption("18");
   await page.getByLabel("Place of supply applies?").selectOption("no");
   await page.getByLabel("Reverse charge applies?").selectOption("no");
-  await page.getByRole("button", { name: "Save draft" }).click();
+  await page
+    .locator("#quotation-draft-form")
+    .getByRole("button", { name: "Save draft", exact: true })
+    .click();
   await expect(page).toHaveURL(`${quoteUrl}?saved=1`, { timeout: 20_000 });
 
   await page.getByRole("button", { name: "Share quotation" }).click();
@@ -93,21 +93,24 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
           .filter({ hasText: "Your response has been recorded." })
           .count(),
         conflict: await customerPage
-          .getByRole("alert")
+          .locator("form [role=alert]")
           .filter({ hasText: "A response has already been recorded for this version." })
           .count(),
         unavailable: await customerPage
-          .getByRole("alert")
+          .locator("form [role=alert]")
           .filter({ hasText: "This quotation link is unavailable." })
           .count(),
       })),
     );
   await expect
-    .poll(async () =>
-      (await readResponseResults()).reduce(
-        (count, result) => count + result.recorded + result.conflict + result.unavailable,
-        0,
-      ),
+    .poll(
+      async () =>
+        (await readResponseResults()).reduce(
+          (count, result) =>
+            count + result.recorded + result.conflict + result.unavailable,
+          0,
+        ),
+      { timeout: 30_000 },
     )
     .toBe(2);
   const responseResults = await readResponseResults();
@@ -129,7 +132,7 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
     "The business is preparing a revised quotation.",
   );
   await expect(guestPage.getByRole("button", { name: "Approve quotation" })).toHaveCount(0);
-  await expect(page.getByLabel("Description")).toHaveValue(
+  await expect(page.getByLabel("Description for line 1", { exact: true })).toHaveValue(
     "Accountless customer consultation",
   );
   await page.getByRole("button", { name: "Share quotation" }).click();
@@ -155,7 +158,7 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
     .getByRole("status")
     .filter({ hasText: "Your response has been recorded." });
   const revokedBeforeResponse = guestPage
-    .getByRole("alert")
+    .locator("form [role=alert]")
     .filter({ hasText: "This quotation link is unavailable." });
   await expect
     .poll(

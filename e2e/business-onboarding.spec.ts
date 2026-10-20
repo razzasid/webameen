@@ -17,9 +17,9 @@ test("onboarding needs a session, and a new owner is sent to setup", async ({ pa
   await expect(page).toHaveURL(/\/onboarding\/business$/);
 
   await page.getByRole("button", { name: "Create business" }).click();
-  await expect(page.getByText("Enter the business name.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter the business name.")).toBeVisible();
   await expect(
-    page.getByText("Select whether the business is GST registered."),
+    page.locator("form").getByText("Select whether the business is GST registered."),
   ).toBeVisible();
 
   await page.getByLabel("Business name").fill("Webameen Test Shop");
@@ -32,7 +32,7 @@ test("onboarding needs a session, and a new owner is sent to setup", async ({ pa
   await expect(page.getByLabel("Yes", { exact: true })).toBeChecked();
   await expect(page.getByLabel("GSTIN")).toBeVisible();
   await page.getByRole("button", { name: "Create business" }).click();
-  await expect(page.getByText("Enter the GSTIN.")).toBeVisible();
+  await expect(page.locator("form").getByText("Enter the GSTIN.")).toBeVisible();
   await expect(page.getByLabel("State or territory")).toHaveValue("29");
 
   await page.getByLabel("GSTIN").fill("27abcde1234f1z5");
