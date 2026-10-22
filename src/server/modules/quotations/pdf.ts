@@ -435,7 +435,58 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
   ensureSpace(70);
   tableHeader();
 
-  for (const item of quote.lines) {
+  const pdfRows: Array<
+    | { kind: "category"; id: string; name: string }
+    | { kind: "line"; line: QuotationDocument["lines"][number] }
+    | { kind: "subtotal"; id: string; name: string; amount: string }
+  > = (quote.item_categories ?? []).length
+    ? (quote.item_categories ?? []).flatMap((category) => {
+        const categoryLines = quote.lines.filter(
+          (line) => line.category_id === category.id,
+        );
+        return [
+          { kind: "category" as const, id: category.id, name: category.name },
+          ...categoryLines.map((line) => ({ kind: "line" as const, line })),
+          {
+            kind: "subtotal" as const,
+            id: category.id,
+            name: category.name,
+            amount: categoryLines
+              .reduce((sum, line) => sum + BigInt(line.line_total_minor), BigInt(0))
+              .toString(),
+          },
+        ];
+      })
+    : quote.lines.map((line) => ({ kind: "line" as const, line }));
+
+  for (const [rowIndex, row] of pdfRows.entries()) {
+    if (row.kind === "category") {
+      const heading = layoutText(row.name, width - 24, 8.5, true);
+      const height = Math.max(24, heading.height + 14);
+      ensureSpace(height + 30, true);
+      pdf.save().roundedRect(left, y, width, height, 4).fill("#eaf4ef").restore();
+      drawText(heading, left + 11, y + 7, width - 22, green);
+      y += height + 3;
+      continue;
+    }
+    if (row.kind === "subtotal") {
+      ensureSpace(24, true);
+      rule(left, y, right);
+      text(
+        `${row.name} subtotal (including applicable GST)`,
+        left + 8,
+        y + 7,
+        width - 125,
+        7.5,
+        true,
+        ink,
+        "right",
+      );
+      text(formatPaise(row.amount), right - 108, y + 7, 100, 7.5, true, ink, "right");
+      y += 23;
+      continue;
+    }
+    const item = row.line;
     const description = splitQuotationDescription(item.description);
     const title = layoutText(description.title, 160, 8.3, true);
     const detail = description.detail ? layoutText(description.detail, 160, 7.2) : null;
@@ -474,7 +525,7 @@ export async function renderQuotationPdf(quote: QuotationDocument): Promise<Buff
       ...blocks.map((block) => block.height),
     );
     const rowHeight = contentHeight + 14 + (taxBlock ? taxBlock.height + 2 : 0);
-    ensureSpace(rowHeight, true);
+    ensureSpace(rowHeight + (pdfRows[rowIndex + 1]?.kind === "subtotal" ? 24 : 0), true);
     const rowY = y;
     rule(left, rowY, right);
     columns.forEach((column, index) => {

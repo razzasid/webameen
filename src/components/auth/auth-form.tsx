@@ -1,5 +1,6 @@
 "use client";
 
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFieldErrors } from "@/components/forms/use-field-errors";
@@ -17,6 +18,7 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const isLogin = mode === "login";
   const { dismissField, fieldError, generalError } = useFieldErrors<"email" | "password">(
     state,
@@ -93,21 +95,37 @@ export function AuthForm({ action, initialNotice, mode }: AuthFormProps) {
           <label className="block" htmlFor="auth-password">
             <span className="mb-1.5 block text-sm font-medium">Password</span>
           </label>
-          <input
-            aria-describedby={passwordError ? "auth-password-error" : undefined}
-            aria-invalid={Boolean(passwordError)}
-            autoComplete={isLogin ? "current-password" : "new-password"}
-            className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] sm:px-3.5 sm:text-sm"
-            id="auth-password"
-            name="password"
-            onChange={(event) => {
-              setPassword(event.target.value);
-              dismissField("password");
-            }}
-            placeholder={isLogin ? "Enter your password" : "At least 6 characters"}
-            value={password}
-            type="password"
-          />
+          <div className="relative">
+            <input
+              aria-describedby={passwordError ? "auth-password-error" : undefined}
+              aria-invalid={Boolean(passwordError)}
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white px-3 py-3 pr-16 text-base outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] sm:px-3.5 sm:pr-16 sm:text-sm"
+              id="auth-password"
+              name="password"
+              onChange={(event) => {
+                setPassword(event.target.value);
+                dismissField("password");
+              }}
+              placeholder={isLogin ? "Enter your password" : "At least 6 characters"}
+              value={password}
+              type={showPassword ? "text" : "password"}
+            />
+            <button
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-1 inline-flex min-w-12 items-center justify-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--muted-foreground)] transition hover:bg-[var(--canvas)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              onClick={() => setShowPassword((visible) => !visible)}
+              type="button"
+            >
+              {showPassword ? (
+                <EyeOff aria-hidden="true" className="size-4" />
+              ) : (
+                <Eye aria-hidden="true" className="size-4" />
+              )}
+              <span>{showPassword ? "Hide" : "Show"}</span>
+            </button>
+          </div>
           {passwordError ? (
             <p
               className="mt-1.5 text-sm text-red-700"

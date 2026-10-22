@@ -7,7 +7,7 @@ test("onboarding needs a session, and a new owner is sent to setup", async ({ pa
   await page.goto("/signup");
   const email = `business-${Date.now()}@example.com`;
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill("Webameen-Test-123");
+  await page.getByRole("textbox", { name: "Password" }).fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
   // Account creation and the dashboard-to-onboarding redirect can exceed 5s in dev.
   await expect(page).toHaveURL(/\/onboarding\/business$/, { timeout: 20_000 });

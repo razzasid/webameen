@@ -17,7 +17,7 @@ async function createWorkspace(page: Page) {
   const email = `invoice-${Date.now()}@example.com`;
   await page.goto("/signup");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill("Webameen-Test-123");
+  await page.getByRole("textbox", { name: "Password" }).fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/(?:dashboard|onboarding\/business)$/, {
     timeout: 30_000,

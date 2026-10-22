@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   type AuthActionState,
   credentialFieldErrors,
+  isKnownLoginErrorCode,
+  isKnownSignupErrorCode,
   loginCredentialsSchema,
   newPasswordSchema,
   readCredentials,
@@ -37,7 +39,15 @@ export async function loginAction(
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.signInWithPassword(credentials.data);
     if (error) {
-      return { error: safeLoginError(error.code) };
+      return {
+        error: isKnownLoginErrorCode(error.code)
+          ? safeLoginError(error.code)
+          : reportSafeFailure(
+              "auth.login",
+              error,
+              "We couldn't sign you in right now. Please try again.",
+            ),
+      };
     }
   } catch (error) {
     return {
@@ -83,11 +93,25 @@ export async function signupAction(
     });
 
     if (error) {
-      return { error: safeSignupError() };
+      return {
+        error: isKnownSignupErrorCode(error.code)
+          ? safeSignupError(error.code)
+          : reportSafeFailure(
+              "auth.signup",
+              error,
+              "We couldn't create the account right now. Please try again.",
+            ),
+      };
     }
     hasSession = Boolean(data.session);
   } catch (error) {
-    return { error: reportSafeFailure("auth.signup", error, safeSignupError()) };
+    return {
+      error: reportSafeFailure(
+        "auth.signup",
+        error,
+        "We couldn't connect to the account service. Check your connection and try again.",
+      ),
+    };
   }
 
   if (hasSession) {

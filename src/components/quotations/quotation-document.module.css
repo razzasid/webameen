@@ -245,6 +245,23 @@
 .items td:nth-child(2) {
   text-align: left;
 }
+.categoryHeading td {
+  padding: 10px 13px;
+  border-top: 2px solid var(--quote-line);
+  background: #eaf4ef;
+  color: var(--quote-green);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+}
+.categorySubtotal td {
+  padding: 9px 11px;
+  background: #f5f8f6;
+  font-weight: 700;
+}
+.categorySubtotal td:first-child {
+  text-align: right;
+}
 .items .amount {
   text-align: right;
   white-space: nowrap;

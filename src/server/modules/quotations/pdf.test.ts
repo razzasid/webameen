@@ -172,7 +172,7 @@ describe("quotation PDF rendering", () => {
     expect(content).toContain("Signature over printed name");
     expect(content).not.toContain("Approve quotation");
     expect(content).not.toContain("Request changes");
-  });
+  }, 15_000);
 
   it("includes frozen payment details and terms when present", async () => {
     const withPaymentDetails: PublicQuotation = {

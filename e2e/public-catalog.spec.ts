@@ -16,7 +16,7 @@ async function createWorkspace(page: Page, prefix: string) {
   const email = `${prefix.toLowerCase().replaceAll(" ", "-")}-${Date.now()}@example.com`;
   await page.goto("/signup");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill("Webameen-Test-123");
+  await page.getByRole("textbox", { name: "Password" }).fill("Webameen-Test-123");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/onboarding\/business$/, { timeout: 20_000 });
   await page.getByLabel("Business name").fill(`${prefix} Business`);

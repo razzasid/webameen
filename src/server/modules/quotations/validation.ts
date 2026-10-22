@@ -114,6 +114,7 @@ export type SavedQuoteComponent = {
 export const quoteLineSchema = z
   .object({
     clientId: z.string(),
+    categoryId: z.uuid().optional(),
     sourceCatalogItemId: z.union([z.literal(""), z.uuid()]),
     description: z.string().trim().min(1, "Enter a line description.").max(10000),
     unitLabel: z.string().trim().max(1000),
@@ -168,6 +169,29 @@ export const quoteLinesSchema = z
   .array(quoteLineSchema)
   .max(100, "A draft can contain up to 100 lines.");
 export type QuoteLineInput = z.infer<typeof quoteLineSchema>;
+
+export const quoteCategoriesSchema = z
+  .array(
+    z.object({
+      id: z.uuid(),
+      name: z.string().trim().min(1, "Enter a category name.").max(120),
+    }),
+  )
+  .max(50, "A quotation can contain up to 50 main categories.")
+  .superRefine((categories, context) => {
+    const ids = new Set<string>();
+    for (const [index, category] of categories.entries()) {
+      if (ids.has(category.id)) {
+        context.addIssue({
+          code: "custom",
+          path: [index, "id"],
+          message: "Each category must be unique.",
+        });
+      }
+      ids.add(category.id);
+    }
+  });
+export type QuoteCategoryInput = z.infer<typeof quoteCategoriesSchema>[number];
 
 export type QuoteShareBlocker = {
   label: string;
@@ -336,6 +360,7 @@ export function toRpcSnapshot(value: QuoteSnapshotInput) {
 
 export function toRpcLines(lines: QuoteLineInput[]) {
   return lines.map((line) => ({
+    category_id: line.categoryId ?? null,
     source_catalog_item_id: line.sourceCatalogItemId || null,
     description: line.description,
     unit_label: line.unitLabel.trim() || null,
@@ -398,6 +423,7 @@ export function snapshotToInput(snapshot: QuoteSnapshot): QuoteSnapshotInput {
 
 export function savedLineToInput(line: {
   id: string;
+  category_id?: string | null;
   source_catalog_item_id: string | null;
   description: string;
   unit_label: string | null;
@@ -412,6 +438,7 @@ export function savedLineToInput(line: {
   const normalizedFraction = fraction?.replace(/0+$/, "");
   return {
     clientId: line.id,
+    categoryId: line.category_id ?? undefined,
     sourceCatalogItemId: line.source_catalog_item_id ?? "",
     description: line.description,
     unitLabel: line.unit_label ?? "",

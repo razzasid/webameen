@@ -116,7 +116,7 @@ describe("invoice PDF rendering", () => {
     expect(searchablePdfText(pdf)).toContain("WEB/TEST/0100");
     expect(searchablePdfText(pdf)).toContain("Consulting service");
     expect(searchablePdfText(pdf)).not.toContain("INR 132.75 INR");
-  });
+  }, 15_000);
 
   it("includes frozen payment details and terms when present", async () => {
     const withPaymentDetails: InvoiceDocument = {

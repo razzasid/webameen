@@ -24,10 +24,12 @@ export type PublicQuotationLine = {
   igst_amount_minor: string;
   line_total_minor: string;
   components?: SavedQuoteComponent[];
+  category_id?: string | null;
 };
 
 export type PublicQuotation = {
   template_headings?: unknown;
+  item_categories?: Array<{ id: string; name: string }>;
   reference: string;
   version_number: number;
   state: string;

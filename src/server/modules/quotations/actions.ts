@@ -10,6 +10,7 @@ import { quotationHeadingsSchema } from "./template-headings";
 import { createQuotationToken } from "./token";
 import {
   type QuoteCalculation,
+  quoteCategoriesSchema,
   quoteLinesSchema,
   quoteSnapshotSchema,
   toRpcLines,
@@ -72,10 +73,12 @@ export async function saveNewQuotationAction(
     return { error: "Select a customer for this quotation." };
   let snapshot: ReturnType<typeof quoteSnapshotSchema.safeParse>;
   let lines: ReturnType<typeof quoteLinesSchema.safeParse>;
+  let categories: ReturnType<typeof quoteCategoriesSchema.safeParse>;
   let headings: ReturnType<typeof quotationHeadingsSchema.safeParse>;
   try {
     snapshot = quoteSnapshotSchema.safeParse(safeJson(formData.get("snapshotJson")));
     lines = quoteLinesSchema.safeParse(safeJson(formData.get("linesJson")));
+    categories = quoteCategoriesSchema.safeParse(safeJson(formData.get("categoriesJson")));
     headings = quotationHeadingsSchema.safeParse(safeJson(formData.get("headingsJson")));
   } catch {
     return { error: "The quotation form is incomplete. Your entries have been kept." };
@@ -90,15 +93,37 @@ export async function saveNewQuotationAction(
   }
   if (!headings.success)
     return { error: headings.error.issues[0]?.message ?? "Review the template headings." };
+  if (!categories.success)
+    return { error: categories.error.issues[0]?.message ?? "Review the main categories." };
+  if (
+    lines.data.some(
+      (line) =>
+        !line.categoryId ||
+        !categories.data.some((category) => category.id === line.categoryId),
+    )
+  )
+    return { error: "Assign every subcategory item to a main category." };
   const preview = formData.get("intent") === "preview";
   try {
     const supabase = await createSupabaseServerClient();
+    if (!preview) {
+      const { error: categorySchemaError } = await supabase
+        .from("quotation_versions")
+        .select("item_categories")
+        .limit(0);
+      if (categorySchemaError)
+        return { error: quotationCategoryStorageError(categorySchemaError) };
+    }
     const { data, error } = await supabase.rpc(
       preview ? "preview_new_quotation_draft" : "create_quotation_draft_with_content",
       {
         ...(preview ? {} : { p_request_key: requestKey }),
         p_customer_id: customerId,
-        p_snapshot: { ...toRpcSnapshot(snapshot.data), template_headings: headings.data },
+        p_snapshot: {
+          ...toRpcSnapshot(snapshot.data),
+          template_headings: headings.data,
+          item_categories: categories.data,
+        },
         p_lines: toRpcLines(lines.data),
       },
     );
@@ -128,6 +153,17 @@ function safeJson(value: FormDataEntryValue | null): unknown {
   return JSON.parse(value) as unknown;
 }
 
+function quotationCategoryStorageError(error: { code?: string; message: string }) {
+  const message = error.message.toLowerCase();
+  const missingCategoryColumn =
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    (message.includes("item_categories") && message.includes("schema cache"));
+  return missingCategoryColumn
+    ? "Quotation categories cannot be saved yet. Apply the pending quotation categories database update, then try again. Your entries have been kept."
+    : "Could not verify quotation category storage. Your entries have been kept; try again.";
+}
+
 export async function editQuotationDraftAction(
   _previous: DraftActionState,
   formData: FormData,
@@ -144,9 +180,11 @@ export async function editQuotationDraftAction(
   }
   let rawSnapshot: unknown;
   let rawLines: unknown;
+  let rawCategories: unknown;
   try {
     rawSnapshot = safeJson(formData.get("snapshotJson"));
     rawLines = safeJson(formData.get("linesJson"));
+    rawCategories = safeJson(formData.get("categoriesJson"));
   } catch {
     return { error: "The quotation form is incomplete. Please try again." };
   }
@@ -161,6 +199,17 @@ export async function editQuotationDraftAction(
     const lineNumber = typeof issue.path[0] === "number" ? issue.path[0] + 1 : null;
     return { error: `${lineNumber ? `Line ${lineNumber}: ` : ""}${issue.message}` };
   }
+  const categories = quoteCategoriesSchema.safeParse(rawCategories);
+  if (!categories.success)
+    return { error: categories.error.issues[0]?.message ?? "Review the main categories." };
+  if (
+    lines.data.some(
+      (line) =>
+        !line.categoryId ||
+        !categories.data.some((category) => category.id === line.categoryId),
+    )
+  )
+    return { error: "Assign every subcategory item to a main category." };
 
   let headings: ReturnType<typeof quotationHeadingsSchema.safeParse>;
   try {
@@ -176,6 +225,14 @@ export async function editQuotationDraftAction(
   let preview: QuoteCalculation | null = null;
   try {
     const supabase = await createSupabaseServerClient();
+    if (intent === "save") {
+      const { error: categorySchemaError } = await supabase
+        .from("quotation_versions")
+        .select("item_categories")
+        .limit(0);
+      if (categorySchemaError)
+        return { error: quotationCategoryStorageError(categorySchemaError) };
+    }
     const { data, error } = await supabase.rpc(
       intent === "preview" ? "preview_quotation_draft" : "save_quotation_draft",
       {
@@ -183,6 +240,7 @@ export async function editQuotationDraftAction(
         p_expected_edit_sequence: sequence,
         p_snapshot: {
           ...toRpcSnapshot(snapshot.data),
+          item_categories: categories.data,
           ...(formData.has("headingsJson") ? { template_headings: headings.data } : {}),
         },
         p_lines: toRpcLines(lines.data),

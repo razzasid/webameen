@@ -69,6 +69,7 @@ export type QuotationDocument = {
   };
   lines: Array<{
     position: number;
+    category_id?: string | null;
     description: string;
     unit_label: string;
     hsn_sac: string | null;
@@ -84,6 +85,7 @@ export type QuotationDocument = {
     line_total_minor: string;
     components: SavedQuoteComponent[];
   }>;
+  item_categories?: Array<{ id: string; name: string }>;
 };
 
 export function toQuotationDocument(quotation: PublicQuotation): QuotationDocument {
@@ -97,6 +99,7 @@ export function toQuotationDocument(quotation: PublicQuotation): QuotationDocume
     state: quotation.state,
     valid_until: quotation.valid_until,
     headings: resolveQuotationHeadings(quotation.template_headings),
+    item_categories: quotation.item_categories ?? [],
     seller: {
       display_name: text(seller, "display_name") ?? "",
       email: text(seller, "email"),
@@ -149,6 +152,7 @@ export function toQuotationDocument(quotation: PublicQuotation): QuotationDocume
       const record = lineFields as JsonRecord;
       return {
         position: Number(record.position ?? 0),
+        category_id: text(record, "category_id"),
         description: text(record, "description") ?? "",
         unit_label: text(record, "unit_label") ?? "",
         hsn_sac: text(record, "hsn_sac"),

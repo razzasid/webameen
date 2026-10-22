@@ -52,6 +52,32 @@ export function QuotationDocumentView({
   const buyer = quote.buyer;
   const payments = quotationPaymentDetails(quote);
   const hasTerms = Boolean(quote.document.terms || payments.length);
+  const itemCategories = quote.item_categories ?? [];
+  const documentRows: Array<
+    | { kind: "category"; id: string; name: string }
+    | { kind: "line"; line: QuotationDocument["lines"][number] }
+    | { kind: "subtotal"; id: string; name: string; amount: string }
+  > = itemCategories.length
+    ? itemCategories.flatMap((category) => {
+        const categoryLines = quote.lines.filter(
+          (line) => line.category_id === category.id,
+        );
+        const amount = categoryLines.reduce(
+          (sum, line) => sum + BigInt(line.line_total_minor),
+          BigInt(0),
+        );
+        return [
+          { kind: "category" as const, id: category.id, name: category.name },
+          ...categoryLines.map((line) => ({ kind: "line" as const, line })),
+          {
+            kind: "subtotal" as const,
+            id: category.id,
+            name: category.name,
+            amount: amount.toString(),
+          },
+        ];
+      })
+    : quote.lines.map((line) => ({ kind: "line" as const, line }));
 
   return (
     <article
@@ -178,7 +204,23 @@ export function QuotationDocumentView({
               </tr>
             </thead>
             <tbody>
-              {quote.lines.map((line) => {
+              {documentRows.map((row) => {
+                if (row.kind === "category") {
+                  return (
+                    <tr key={`category-${row.id}`} className={styles.categoryHeading}>
+                      <td colSpan={7}>{row.name}</td>
+                    </tr>
+                  );
+                }
+                if (row.kind === "subtotal") {
+                  return (
+                    <tr key={`subtotal-${row.id}`} className={styles.categorySubtotal}>
+                      <td colSpan={6}>{row.name} subtotal (including applicable GST)</td>
+                      <td className={styles.amount}>{formatPaise(row.amount)}</td>
+                    </tr>
+                  );
+                }
+                const line = row.line;
                 const description = splitQuotationDescription(line.description);
                 const gst = quotationGstLabel(line);
                 const taxes = [

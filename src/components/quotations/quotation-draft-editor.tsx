@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  ArrowDown,
+  ArrowUp,
   Building2,
   CheckCircle2,
   ChevronDown,
@@ -14,6 +16,7 @@ import {
   Phone,
   Plus,
   Settings2,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import { Fragment, useActionState, useState } from "react";
@@ -38,6 +41,7 @@ import {
 import {
   type CalculatedLine,
   getQuoteShareBlockers,
+  type QuoteCategoryInput as QuoteCategoryFormInput,
   type QuoteComponentInput,
   type QuoteLineInput,
   type QuoteSnapshotInput,
@@ -64,6 +68,10 @@ type BuyerTextField = Exclude<
 
 const inputClass =
   "mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-white px-2.5 py-2 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] lg:!min-h-8 lg:py-1 lg:text-xs";
+const reorderActionClass =
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#a9cbbf] bg-white text-[#075b4b] shadow-sm transition-colors hover:border-[#08745d] hover:bg-[#eaf5f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#08745d] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:border-[#dce5e1] disabled:bg-[#f5f8f6] disabled:text-[#9aa8a2] disabled:shadow-none";
+const deleteActionClass =
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#e6b8b8] bg-white text-[#b42318] shadow-sm transition-colors hover:border-[#c82b22] hover:bg-[#fff1f0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c82b22] focus-visible:ring-offset-1";
 const emptyLine = (): QuoteLineInput => ({
   clientId: crypto.randomUUID(),
   sourceCatalogItemId: "",
@@ -75,6 +83,10 @@ const emptyLine = (): QuoteLineInput => ({
   gstCategory: "taxable",
   gstRate: "",
   components: [],
+});
+const emptyCategory = (name = "Main category"): QuoteCategoryFormInput => ({
+  id: crypto.randomUUID(),
+  name,
 });
 const emptyComponent = (): QuoteComponentInput => ({
   clientId: crypto.randomUUID(),
@@ -230,10 +242,16 @@ export function QuotationDraftEditor({
       buyerContactName: initial.buyerContactName,
     };
   });
+  const [categories, setCategories] = useState<QuoteCategoryFormInput[]>(() =>
+    quote.item_categories?.length ? quote.item_categories : [emptyCategory()],
+  );
   const [lines, setLines] = useState<QuoteLineInput[]>(() =>
     quote.lines.length
-      ? quote.lines.map(savedLineToInput)
-      : [{ ...emptyLine(), clientId: quote.id }],
+      ? quote.lines.map((savedLine) => {
+          const line = savedLineToInput(savedLine);
+          return { ...line, categoryId: line.categoryId ?? categories[0]?.id };
+        })
+      : [{ ...emptyLine(), clientId: quote.id, categoryId: categories[0]?.id }],
   );
   const [state, formAction, pending] = useActionState(action, {});
   useSubmissionErrorToast(state);
@@ -248,6 +266,16 @@ export function QuotationDraftEditor({
     snapshot.gstTreatmentOverride ||
     (autoRoute === "CGST + SGST" ? "cgst_sgst" : autoRoute === "IGST" ? "igst" : "");
   const estimate = estimateQuotationTotal(lines, finalRoute);
+  const categoryTotal = (categoryId: string): string | null => {
+    const categoryLines = lines.flatMap((line, index) =>
+      line.categoryId === categoryId ? [estimate.lineTotals[index]] : [],
+    );
+    if (categoryLines.some((amount) => amount === null || amount === undefined))
+      return null;
+    return categoryLines
+      .reduce((sum, amount) => sum + BigInt(amount ?? "0"), BigInt(0))
+      .toString();
+  };
   const sellerWarning = snapshot.sellerStateCode
     ? gstinStateWarning(
         snapshot.sellerGstin.trim().toUpperCase() || null,
@@ -409,6 +437,50 @@ export function QuotationDraftEditor({
       previous.map((line) => (line.clientId === id ? { ...line, [field]: value } : line)),
     );
   }
+  function addCategory() {
+    setCategories((previous) => [
+      ...previous,
+      emptyCategory(`Main category ${previous.length + 1}`),
+    ]);
+  }
+  function updateCategory(id: string, name: string) {
+    setCategories((previous) =>
+      previous.map((category) => (category.id === id ? { ...category, name } : category)),
+    );
+  }
+  function moveCategory(id: string, direction: -1 | 1) {
+    setCategories((previous) => {
+      const index = previous.findIndex((category) => category.id === id);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= previous.length) return previous;
+      const copy = [...previous];
+      [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+      return copy;
+    });
+  }
+  function removeCategory(id: string) {
+    setCategories((previous) => previous.filter((category) => category.id !== id));
+    setLines((previous) => previous.filter((line) => line.categoryId !== id));
+  }
+  function addSubcategory(categoryId: string) {
+    setLines((previous) => [...previous, { ...emptyLine(), categoryId }]);
+  }
+  function moveSubcategory(id: string, direction: -1 | 1) {
+    setLines((previous) => {
+      const index = previous.findIndex((line) => line.clientId === id);
+      if (index < 0) return previous;
+      const categoryId = previous[index]?.categoryId;
+      const candidates = previous
+        .map((line, at) => (line.categoryId === categoryId ? at : -1))
+        .filter((at) => at >= 0);
+      const position = candidates.indexOf(index);
+      const target = candidates[position + direction];
+      if (target === undefined) return previous;
+      const copy = [...previous];
+      [copy[index], copy[target]] = [copy[target], copy[index]];
+      return copy;
+    });
+  }
   function chooseCatalog(id: string, catalogId: string) {
     const item = catalog.find((choice) => choice.id === catalogId);
     setLines((previous) =>
@@ -498,6 +570,7 @@ export function QuotationDraftEditor({
       <input type="hidden" name="editSequence" value={quote.edit_sequence} />
       <input type="hidden" name="snapshotJson" value={JSON.stringify(snapshot)} />
       <input type="hidden" name="linesJson" value={JSON.stringify(lines)} />
+      <input type="hidden" name="categoriesJson" value={JSON.stringify(categories)} />
       {state.error ? (
         <p
           role="alert"
@@ -882,7 +955,7 @@ export function QuotationDraftEditor({
                 <SectionHeading
                   number={4}
                   title={headings.itemDescription}
-                  description="Choose a saved item or enter one manually. Add optional material details under a main line."
+                  description="Group priced quotation items under editable main category headings."
                   icon={ListChecks}
                 />
               </div>
@@ -901,25 +974,26 @@ export function QuotationDraftEditor({
               </div>
               <button
                 type="button"
-                onClick={() => setLines((previous) => [...previous, emptyLine()])}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--brand-dark)]"
+                disabled={categories.length >= 50}
+                onClick={addCategory}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-40"
               >
                 <Plus aria-hidden="true" className="size-4" />
-                Add New Line
+                Add Main Category
               </button>
             </div>
-            {lines.length ? (
+            {categories.length ? (
               <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)]">
-                <table className="w-full min-w-[760px] table-fixed text-left text-xs">
+                <table className="w-full min-w-[900px] table-fixed text-left text-xs">
                   <colgroup>
                     <col className="w-[4%]" />
-                    <col className="w-[30%]" />
-                    <col className="w-[11%]" />
+                    <col className="w-[24%]" />
                     <col className="w-[10%]" />
-                    <col className="w-[15%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[11%]" />
                     <col className="w-[12%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[5%]" />
+                    <col className="w-[15%]" />
                   </colgroup>
                   <thead className="bg-[var(--canvas)] text-[var(--muted-foreground)]">
                     <tr>
@@ -940,287 +1014,429 @@ export function QuotationDraftEditor({
                     </tr>
                   </thead>
                   <tbody>
-                    {lines.map((line, index) => (
-                      <Fragment key={line.clientId}>
-                        <tr className="border-t border-[var(--line)] align-middle">
-                          <td className="px-2 py-2 text-[var(--muted-foreground)]">
-                            {index + 1}
-                          </td>
-                          <td className="space-y-1 px-2 py-2">
-                            <select
-                              aria-label={`Catalog item for line ${index + 1}`}
-                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                              value={line.sourceCatalogItemId}
-                              onChange={(event) =>
-                                chooseCatalog(line.clientId, event.target.value)
-                              }
-                            >
-                              <option value="">Enter manually</option>
-                              {line.sourceCatalogItemId &&
-                              !catalog.some(
-                                (item) => item.id === line.sourceCatalogItemId,
-                              ) ? (
-                                <option value={line.sourceCatalogItemId}>
-                                  Previously copied catalog item
-                                </option>
-                              ) : null}
-                              {catalog.map((item) => (
-                                <option value={item.id} key={item.id}>
-                                  {item.name}
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              aria-label={`Description for line ${index + 1}`}
-                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                              value={line.description}
-                              onChange={(event) =>
-                                updateLine(line.clientId, "description", event.target.value)
-                              }
-                            />
-                            {line.components.length === 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => addComponent(line.clientId)}
-                                className="min-h-8 rounded-md px-1 text-left text-[11px] font-semibold text-[var(--brand-dark)] hover:underline"
-                              >
-                                <Plus aria-hidden="true" className="mr-1 inline size-3" />
-                                Add material / subproduct
-                              </button>
-                            ) : null}
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              aria-label={`HSN or SAC for line ${index + 1}`}
-                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                              value={line.hsnSac}
-                              onChange={(event) =>
-                                updateLine(line.clientId, "hsnSac", event.target.value)
-                              }
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              aria-label={`Quantity for line ${index + 1}`}
-                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                              inputMode="decimal"
-                              value={line.quantity}
-                              onChange={(event) =>
-                                updateLine(line.clientId, "quantity", event.target.value)
-                              }
-                            />
-                            <input
-                              aria-label={`Unit for line ${index + 1}`}
-                              className={`${inputClass} mt-1 min-h-8 py-1 text-xs`}
-                              placeholder="Unit (optional)"
-                              value={line.unitLabel}
-                              onChange={(event) =>
-                                updateLine(line.clientId, "unitLabel", event.target.value)
-                              }
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              aria-label={`Unit price before GST for line ${index + 1}`}
-                              className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                              inputMode="decimal"
-                              value={line.unitPriceRupees}
-                              onChange={(event) =>
-                                updateLine(
-                                  line.clientId,
-                                  "unitPriceRupees",
-                                  event.target.value,
-                                )
-                              }
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <div className="space-y-1">
-                              <select
-                                aria-label={`GST category for line ${index + 1}`}
-                                className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                                value={line.gstCategory}
-                                onChange={(event) => {
-                                  const category = event.target
-                                    .value as QuoteLineInput["gstCategory"];
-                                  setLines((previous) =>
-                                    previous.map((item) =>
-                                      item.clientId === line.clientId
-                                        ? {
-                                            ...item,
-                                            gstCategory: category,
-                                            gstRate:
-                                              category === "taxable" ? item.gstRate : "",
-                                          }
-                                        : item,
-                                    ),
-                                  );
-                                }}
-                              >
-                                <option value="taxable">Taxable</option>
-                                <option value="exempt">Exempt</option>
-                                <option value="no_gst">No GST</option>
-                              </select>
-                              {line.gstCategory === "taxable" ? (
-                                <select
-                                  aria-label={`GST rate for line ${index + 1}`}
-                                  className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
-                                  value={line.gstRate}
+                    {categories.map((category, categoryIndex) => (
+                      <Fragment key={category.id}>
+                        <tr className="border-t-2 border-[var(--line)] bg-[var(--mint)]/70">
+                          <td colSpan={8} className="px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label className="min-w-[12rem] flex-1 text-[11px] font-semibold text-[var(--brand-dark)]">
+                                Main category
+                                <input
+                                  aria-label={`Main category ${categoryIndex + 1} name`}
+                                  className={`${inputClass} mt-1 min-h-8 py-1 text-xs`}
+                                  maxLength={120}
+                                  value={category.name}
                                   onChange={(event) =>
-                                    updateLine(line.clientId, "gstRate", event.target.value)
+                                    updateCategory(category.id, event.target.value)
                                   }
-                                >
-                                  <option value="">Rate</option>
-                                  {line.gstRate && !rates.includes(line.gstRate) ? (
-                                    <option value={line.gstRate}>
-                                      {line.gstRate}% retired — replace
-                                    </option>
-                                  ) : null}
-                                  {rates.map((rate) => (
-                                    <option key={rate} value={rate}>
-                                      {rate}%
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 text-right tabular-nums">
-                            {estimate.lineTotals[index]
-                              ? formatPaise(estimate.lineTotals[index])
-                              : "—"}
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              type="button"
-                              aria-label={`Remove line ${index + 1}`}
-                              onClick={() =>
-                                setLines((previous) =>
-                                  previous.filter(
-                                    (item) => item.clientId !== line.clientId,
-                                  ),
-                                )
-                              }
-                              className="min-h-9 min-w-9 rounded-md text-red-700 hover:bg-red-50"
-                            >
-                              ×
-                            </button>
-                          </td>
-                        </tr>
-                        {line.components.length ? (
-                          <tr className="border-t border-[var(--line)] bg-[var(--canvas)]/60">
-                            <td colSpan={8} className="px-3 py-3 sm:px-4">
-                              <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                  <p className="text-xs font-semibold text-[var(--ink)]">
-                                    {headings.materialsTitle} for{" "}
-                                    {line.description || `line ${index + 1}`}
-                                  </p>
-                                  <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
-                                    Breakdown only. These amounts are not added to the
-                                    quotation total.
-                                  </p>
-                                </div>
+                                />
+                              </label>
+                              <div className="flex items-center gap-1.5 self-end">
                                 <button
                                   type="button"
-                                  onClick={() => addComponent(line.clientId)}
-                                  className="min-h-8 rounded-md border border-[var(--line)] bg-white px-2 text-[11px] font-semibold text-[var(--brand-dark)]"
+                                  aria-label={`Move main category ${categoryIndex + 1} up`}
+                                  title="Move category up"
+                                  disabled={categoryIndex === 0}
+                                  onClick={() => moveCategory(category.id, -1)}
+                                  className={reorderActionClass}
                                 >
-                                  <Plus aria-hidden="true" className="mr-1 inline size-3" />
-                                  Add another
+                                  <ArrowUp aria-hidden="true" className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Move main category ${categoryIndex + 1} down`}
+                                  title="Move category down"
+                                  disabled={categoryIndex === categories.length - 1}
+                                  onClick={() => moveCategory(category.id, 1)}
+                                  className={reorderActionClass}
+                                >
+                                  <ArrowDown aria-hidden="true" className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => addSubcategory(category.id)}
+                                  disabled={lines.length >= 100}
+                                  className="inline-flex min-h-8 items-center gap-1 rounded-md border border-[var(--line)] bg-white px-2 text-[11px] font-semibold text-[var(--brand-dark)]"
+                                >
+                                  <Plus aria-hidden="true" className="size-3" /> Add New
+                                  Line
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Delete main category ${categoryIndex + 1} and its items`}
+                                  title="Delete category and its items"
+                                  onClick={() => removeCategory(category.id)}
+                                  className={deleteActionClass}
+                                >
+                                  <Trash2 aria-hidden="true" className="size-4" />
                                 </button>
                               </div>
-                              <div className="mt-3 space-y-2">
-                                {line.components.map((component, componentIndex) => (
-                                  <div
-                                    key={component.clientId}
-                                    className="grid gap-2 rounded-lg border border-[var(--line)] bg-white p-2 sm:grid-cols-[minmax(0,2fr)_minmax(5rem,0.8fr)_minmax(5rem,0.8fr)_minmax(7rem,1fr)_auto]"
+                            </div>
+                          </td>
+                        </tr>
+                        {lines.map((line, index) =>
+                          line.categoryId === category.id ? (
+                            <Fragment key={line.clientId}>
+                              <tr className="border-t border-[var(--line)] align-middle">
+                                <td className="px-2 py-2 text-[var(--muted-foreground)]">
+                                  {index + 1}
+                                </td>
+                                <td className="space-y-1 px-2 py-2">
+                                  <select
+                                    aria-label={`Catalog item for line ${index + 1}`}
+                                    className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                    value={line.sourceCatalogItemId}
+                                    onChange={(event) =>
+                                      chooseCatalog(line.clientId, event.target.value)
+                                    }
                                   >
-                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
-                                      Subproduct / material
-                                      <input
-                                        aria-label={`Subproduct or material ${componentIndex + 1} name for line ${index + 1}`}
-                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
-                                        placeholder="e.g. Teak wood"
-                                        value={component.description}
-                                        onChange={(event) =>
-                                          updateComponent(
-                                            line.clientId,
-                                            component.clientId,
-                                            "description",
-                                            event.target.value,
-                                          )
-                                        }
-                                      />
-                                    </label>
-                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
-                                      Quantity
-                                      <input
-                                        aria-label={`Quantity for subproduct ${componentIndex + 1} of line ${index + 1}`}
-                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
-                                        inputMode="decimal"
-                                        value={component.quantity}
-                                        onChange={(event) =>
-                                          updateComponent(
-                                            line.clientId,
-                                            component.clientId,
-                                            "quantity",
-                                            event.target.value,
-                                          )
-                                        }
-                                      />
-                                    </label>
-                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
-                                      Unit
-                                      <input
-                                        aria-label={`Unit for subproduct ${componentIndex + 1} of line ${index + 1}`}
-                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
-                                        placeholder="optional"
-                                        value={component.unitLabel}
-                                        onChange={(event) =>
-                                          updateComponent(
-                                            line.clientId,
-                                            component.clientId,
-                                            "unitLabel",
-                                            event.target.value,
-                                          )
-                                        }
-                                      />
-                                    </label>
-                                    <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
-                                      Unit price (₹)
-                                      <input
-                                        aria-label={`Unit price for subproduct ${componentIndex + 1} of line ${index + 1}`}
-                                        className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
-                                        inputMode="decimal"
-                                        placeholder="0.00"
-                                        value={component.unitPriceRupees}
-                                        onChange={(event) =>
-                                          updateComponent(
-                                            line.clientId,
-                                            component.clientId,
-                                            "unitPriceRupees",
-                                            event.target.value,
-                                          )
-                                        }
-                                      />
-                                    </label>
+                                    <option value="">Enter manually</option>
+                                    {line.sourceCatalogItemId &&
+                                    !catalog.some(
+                                      (item) => item.id === line.sourceCatalogItemId,
+                                    ) ? (
+                                      <option value={line.sourceCatalogItemId}>
+                                        Previously copied catalog item
+                                      </option>
+                                    ) : null}
+                                    {catalog.map((item) => (
+                                      <option value={item.id} key={item.id}>
+                                        {item.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    aria-label={`Description for line ${index + 1}`}
+                                    className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                    value={line.description}
+                                    onChange={(event) =>
+                                      updateLine(
+                                        line.clientId,
+                                        "description",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                  {line.components.length === 0 ? (
                                     <button
                                       type="button"
-                                      aria-label={`Remove subproduct ${componentIndex + 1} from line ${index + 1}`}
-                                      onClick={() =>
-                                        removeComponent(line.clientId, component.clientId)
-                                      }
-                                      className="mt-4 min-h-8 min-w-8 self-start rounded-md text-red-700 hover:bg-red-50"
+                                      onClick={() => addComponent(line.clientId)}
+                                      className="min-h-8 rounded-md px-1 text-left text-[11px] font-semibold text-[var(--brand-dark)] hover:underline"
                                     >
-                                      ×
+                                      <Plus
+                                        aria-hidden="true"
+                                        className="mr-1 inline size-3"
+                                      />
+                                      Add material / subproduct
+                                    </button>
+                                  ) : null}
+                                </td>
+                                <td className="px-2 py-2">
+                                  <input
+                                    aria-label={`HSN or SAC for line ${index + 1}`}
+                                    className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                    value={line.hsnSac}
+                                    onChange={(event) =>
+                                      updateLine(
+                                        line.clientId,
+                                        "hsnSac",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <input
+                                    aria-label={`Quantity for line ${index + 1}`}
+                                    className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                    inputMode="decimal"
+                                    value={line.quantity}
+                                    onChange={(event) =>
+                                      updateLine(
+                                        line.clientId,
+                                        "quantity",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                  <input
+                                    aria-label={`Unit for line ${index + 1}`}
+                                    className={`${inputClass} mt-1 min-h-8 py-1 text-xs`}
+                                    placeholder="Unit (optional)"
+                                    value={line.unitLabel}
+                                    onChange={(event) =>
+                                      updateLine(
+                                        line.clientId,
+                                        "unitLabel",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <input
+                                    aria-label={`Unit price before GST for line ${index + 1}`}
+                                    className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                    inputMode="decimal"
+                                    value={line.unitPriceRupees}
+                                    onChange={(event) =>
+                                      updateLine(
+                                        line.clientId,
+                                        "unitPriceRupees",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <div className="space-y-1">
+                                    <select
+                                      aria-label={`GST category for line ${index + 1}`}
+                                      className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                      value={line.gstCategory}
+                                      onChange={(event) => {
+                                        const category = event.target
+                                          .value as QuoteLineInput["gstCategory"];
+                                        setLines((previous) =>
+                                          previous.map((item) =>
+                                            item.clientId === line.clientId
+                                              ? {
+                                                  ...item,
+                                                  gstCategory: category,
+                                                  gstRate:
+                                                    category === "taxable"
+                                                      ? item.gstRate
+                                                      : "",
+                                                }
+                                              : item,
+                                          ),
+                                        );
+                                      }}
+                                    >
+                                      <option value="taxable">Taxable</option>
+                                      <option value="exempt">Exempt</option>
+                                      <option value="no_gst">No GST</option>
+                                    </select>
+                                    {line.gstCategory === "taxable" ? (
+                                      <select
+                                        aria-label={`GST rate for line ${index + 1}`}
+                                        className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
+                                        value={line.gstRate}
+                                        onChange={(event) =>
+                                          updateLine(
+                                            line.clientId,
+                                            "gstRate",
+                                            event.target.value,
+                                          )
+                                        }
+                                      >
+                                        <option value="">Rate</option>
+                                        {line.gstRate && !rates.includes(line.gstRate) ? (
+                                          <option value={line.gstRate}>
+                                            {line.gstRate}% retired — replace
+                                          </option>
+                                        ) : null}
+                                        {rates.map((rate) => (
+                                          <option key={rate} value={rate}>
+                                            {rate}%
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : null}
+                                  </div>
+                                </td>
+                                <td className="px-2 py-2 text-right tabular-nums">
+                                  {estimate.lineTotals[index]
+                                    ? formatPaise(estimate.lineTotals[index])
+                                    : "—"}
+                                </td>
+                                <td className="px-1 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      type="button"
+                                      aria-label={`Move subcategory item ${index + 1} up`}
+                                      title="Move item up"
+                                      onClick={() => moveSubcategory(line.clientId, -1)}
+                                      disabled={
+                                        lines.filter(
+                                          (item) => item.categoryId === category.id,
+                                        )[0]?.clientId === line.clientId
+                                      }
+                                      className={reorderActionClass}
+                                    >
+                                      <ArrowUp aria-hidden="true" className="size-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label={`Move subcategory item ${index + 1} down`}
+                                      title="Move item down"
+                                      onClick={() => moveSubcategory(line.clientId, 1)}
+                                      disabled={
+                                        lines
+                                          .filter((item) => item.categoryId === category.id)
+                                          .at(-1)?.clientId === line.clientId
+                                      }
+                                      className={reorderActionClass}
+                                    >
+                                      <ArrowDown aria-hidden="true" className="size-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label={`Remove line ${index + 1}`}
+                                      title="Delete item"
+                                      onClick={() =>
+                                        setLines((previous) =>
+                                          previous.filter(
+                                            (item) => item.clientId !== line.clientId,
+                                          ),
+                                        )
+                                      }
+                                      className={deleteActionClass}
+                                    >
+                                      <Trash2 aria-hidden="true" className="size-4" />
                                     </button>
                                   </div>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        ) : null}
+                                </td>
+                              </tr>
+                              {line.components.length ? (
+                                <tr className="border-t border-[var(--line)] bg-[var(--canvas)]/60">
+                                  <td colSpan={8} className="px-3 py-3 sm:px-4">
+                                    <div className="flex flex-wrap items-start justify-between gap-2">
+                                      <div>
+                                        <p className="text-xs font-semibold text-[var(--ink)]">
+                                          {headings.materialsTitle} for{" "}
+                                          {line.description || `line ${index + 1}`}
+                                        </p>
+                                        <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
+                                          Breakdown only. These amounts are not added to the
+                                          quotation total.
+                                        </p>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => addComponent(line.clientId)}
+                                        className="min-h-8 rounded-md border border-[var(--line)] bg-white px-2 text-[11px] font-semibold text-[var(--brand-dark)]"
+                                      >
+                                        <Plus
+                                          aria-hidden="true"
+                                          className="mr-1 inline size-3"
+                                        />
+                                        Add another
+                                      </button>
+                                    </div>
+                                    <div className="mt-3 space-y-2">
+                                      {line.components.map((component, componentIndex) => (
+                                        <div
+                                          key={component.clientId}
+                                          className="grid gap-2 rounded-lg border border-[var(--line)] bg-white p-2 sm:grid-cols-[minmax(0,2fr)_minmax(5rem,0.8fr)_minmax(5rem,0.8fr)_minmax(7rem,1fr)_auto]"
+                                        >
+                                          <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                            Subproduct / material
+                                            <input
+                                              aria-label={`Subproduct or material ${componentIndex + 1} name for line ${index + 1}`}
+                                              className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                              placeholder="e.g. Teak wood"
+                                              value={component.description}
+                                              onChange={(event) =>
+                                                updateComponent(
+                                                  line.clientId,
+                                                  component.clientId,
+                                                  "description",
+                                                  event.target.value,
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                            Quantity
+                                            <input
+                                              aria-label={`Quantity for subproduct ${componentIndex + 1} of line ${index + 1}`}
+                                              className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                              inputMode="decimal"
+                                              value={component.quantity}
+                                              onChange={(event) =>
+                                                updateComponent(
+                                                  line.clientId,
+                                                  component.clientId,
+                                                  "quantity",
+                                                  event.target.value,
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                            Unit
+                                            <input
+                                              aria-label={`Unit for subproduct ${componentIndex + 1} of line ${index + 1}`}
+                                              className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                              placeholder="optional"
+                                              value={component.unitLabel}
+                                              onChange={(event) =>
+                                                updateComponent(
+                                                  line.clientId,
+                                                  component.clientId,
+                                                  "unitLabel",
+                                                  event.target.value,
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                            Unit price (₹)
+                                            <input
+                                              aria-label={`Unit price for subproduct ${componentIndex + 1} of line ${index + 1}`}
+                                              className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
+                                              inputMode="decimal"
+                                              placeholder="0.00"
+                                              value={component.unitPriceRupees}
+                                              onChange={(event) =>
+                                                updateComponent(
+                                                  line.clientId,
+                                                  component.clientId,
+                                                  "unitPriceRupees",
+                                                  event.target.value,
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            aria-label={`Remove subproduct ${componentIndex + 1} from line ${index + 1}`}
+                                            title="Delete material"
+                                            onClick={() =>
+                                              removeComponent(
+                                                line.clientId,
+                                                component.clientId,
+                                              )
+                                            }
+                                            className={`mt-4 self-start ${deleteActionClass}`}
+                                          >
+                                            <Trash2 aria-hidden="true" className="size-4" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </Fragment>
+                          ) : null,
+                        )}
+                        <tr className="border-t border-[var(--line)] bg-[var(--canvas)]/60">
+                          <td
+                            colSpan={6}
+                            className="px-3 py-2 text-right text-xs font-semibold"
+                          >
+                            {category.name || "Main category"} subtotal (including
+                            applicable GST)
+                          </td>
+                          <td className="px-2 py-2 text-right text-xs font-bold tabular-nums">
+                            {categoryTotal(category.id) === null
+                              ? "—"
+                              : formatPaise(categoryTotal(category.id) ?? "0")}
+                          </td>
+                          <td />
+                        </tr>
                       </Fragment>
                     ))}
                   </tbody>
