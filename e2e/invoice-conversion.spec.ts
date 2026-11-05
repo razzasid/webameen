@@ -67,7 +67,7 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
   await page
     .getByLabel("Description for line 1", { exact: true })
     .fill("Approved project service");
-  await page.getByLabel("Unit for line 1", { exact: true }).fill("day");
+  await page.getByLabel("Unit for line 1", { exact: true }).selectOption("day");
   await page.getByLabel("Quantity for line 1", { exact: true }).fill("1");
   await page.getByLabel("Unit price before GST for line 1", { exact: true }).fill("100.00");
   await page.getByLabel("GST rate for line 1", { exact: true }).selectOption("18");
@@ -125,7 +125,7 @@ test("approved quotations allocate concurrent numbers and reopen the same snapsh
     await page
       .getByLabel("Description for line 1", { exact: true })
       .fill("Second approved project service");
-    await page.getByLabel("Unit for line 1", { exact: true }).fill("day");
+    await page.getByLabel("Unit for line 1", { exact: true }).selectOption("day");
     await page.getByLabel("Quantity for line 1", { exact: true }).fill("2");
     await page
       .getByLabel("Unit price before GST for line 1", { exact: true })

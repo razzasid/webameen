@@ -20,7 +20,7 @@ const emptyValues: InvoiceNumberPeriodValues = {
   startingNumber: "1",
 };
 const inputClass =
-  "mt-1.5 min-h-11 w-full rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/15";
+  "mt-1.5 min-h-11 w-full rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#94a3b8] focus:ring-0";
 
 export function InvoiceNumberingSettings({
   periods,

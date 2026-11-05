@@ -199,7 +199,7 @@ export function QuotationsList({ quotations }: { quotations: QuoteSummary[] }) {
             />
             <span className="sr-only">Search quotations</span>
             <input
-              className="h-11 w-full rounded-lg border border-[var(--line)] bg-white pl-10 pr-3 text-sm placeholder:text-[var(--muted-foreground)] focus:border-[var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/15"
+              className="h-11 w-full rounded-lg border border-[var(--line)] bg-white pl-10 pr-3 text-sm placeholder:text-[var(--muted-foreground)] focus:border-[#94a3b8] focus:outline-none focus:ring-0"
               onChange={(event) => updateSearch(event.target.value)}
               placeholder="Search customer or quotation ID..."
               type="search"

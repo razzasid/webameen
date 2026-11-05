@@ -29,7 +29,7 @@ export function CustomerDirectoryFilters({
         />
         <span className="sr-only">Search customers by name, phone, or email</span>
         <input
-          className="h-11 w-full rounded-lg border border-[var(--line)] bg-white pl-10 pr-3 text-sm placeholder:text-[var(--muted-foreground)] focus:border-[var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/15"
+          className="h-11 w-full rounded-lg border border-[var(--line)] bg-white pl-10 pr-3 text-sm placeholder:text-[var(--muted-foreground)] focus:border-[#94a3b8] focus:outline-none focus:ring-0"
           maxLength={100}
           name="q"
           placeholder="Search name, phone, or email..."

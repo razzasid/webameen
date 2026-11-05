@@ -130,7 +130,7 @@ export default async function CatalogPage({
               maxLength={100}
               defaultValue={search}
               placeholder="Search by name, description, or HSN/SAC"
-              className="min-h-11 w-full rounded-lg border border-[var(--line)] bg-white py-2 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-3 focus:ring-[var(--ring)]/20"
+              className="min-h-11 w-full rounded-lg border border-[var(--line)] bg-white py-2 pl-10 pr-3 text-sm outline-none transition focus:border-[#94a3b8] focus:ring-0"
             />
           </label>
           <div className="flex items-center gap-2">

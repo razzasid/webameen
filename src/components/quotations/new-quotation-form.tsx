@@ -69,7 +69,7 @@ export function NewQuotationForm({
             name="customerId"
             value={customerId}
             onChange={(event) => setCustomerId(event.target.value)}
-            className="mt-1.5 min-h-12 w-full rounded-lg border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--mint)]"
+            className="mt-1.5 min-h-12 w-full rounded-lg border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none focus:border-[#94a3b8] focus:ring-0"
           >
             <option value="">Select a customer</option>
             {customers.map((customer) => (

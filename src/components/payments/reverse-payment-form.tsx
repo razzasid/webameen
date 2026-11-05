@@ -7,7 +7,7 @@ import {
 } from "@/server/modules/payments/actions";
 
 const inputClass =
-  "mt-1.5 min-h-11 w-full resize-y rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]";
+  "mt-1.5 min-h-11 w-full resize-y rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#94a3b8] focus:ring-0";
 
 export function ReversePaymentForm({
   invoiceId,

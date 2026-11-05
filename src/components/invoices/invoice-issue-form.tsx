@@ -10,7 +10,7 @@ import {
 
 const initialState: IssueInvoiceActionState = {};
 const inputClass =
-  "mt-1.5 w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]";
+  "mt-1.5 w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-3 text-sm outline-none focus:border-[#94a3b8] focus:ring-0";
 
 export function InvoiceIssueForm({ quotationId }: { quotationId: string }) {
   const [state, formAction, pending] = useActionState(

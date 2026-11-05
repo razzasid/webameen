@@ -42,7 +42,7 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
   await page
     .getByLabel("Description for line 1", { exact: true })
     .fill("Accountless customer consultation");
-  await page.getByLabel("Unit for line 1", { exact: true }).fill("hour");
+  await page.getByLabel("Unit for line 1", { exact: true }).selectOption("hour");
   await page.getByLabel("Quantity for line 1", { exact: true }).fill("2");
   await page.getByLabel("Unit price before GST for line 1", { exact: true }).fill("100.00");
   await page.getByLabel("GST rate for line 1", { exact: true }).selectOption("18");
@@ -106,8 +106,7 @@ test("guest reads the shared frozen quote, then revision sharing revokes the old
     .poll(
       async () =>
         (await readResponseResults()).reduce(
-          (count, result) =>
-            count + result.recorded + result.conflict + result.unavailable,
+          (count, result) => count + result.recorded + result.conflict + result.unavailable,
           0,
         ),
       { timeout: 30_000 },

@@ -46,7 +46,7 @@ test("owner creates, previews, saves and reopens an exact quotation draft", asyn
   await page
     .getByLabel("Description for line 1", { exact: true })
     .fill("Consulting service");
-  await page.getByLabel("Unit for line 1", { exact: true }).fill("each");
+  await page.getByLabel("Unit for line 1", { exact: true }).selectOption("each");
   await page.getByLabel("Quantity for line 1", { exact: true }).fill("1");
   await page
     .getByLabel("Unit price before GST for line 1", { exact: true })
@@ -144,21 +144,24 @@ test("owner creates, previews, saves and reopens an exact quotation draft", asyn
       .click(),
   ]);
   await expect
-    .poll(async () => {
-      const saved =
-        Number(page.url().endsWith("?saved=1")) +
-        Number(secondTab.url().endsWith("?saved=1"));
-      const conflict =
-        (await page
-          .locator("form [role=alert]")
-          .filter({ hasText: "changed elsewhere" })
-          .count()) +
-        (await secondTab
-          .locator("form [role=alert]")
-          .filter({ hasText: "changed elsewhere" })
-          .count());
-      return `${saved}:${conflict}`;
-    }, { timeout: 30_000 })
+    .poll(
+      async () => {
+        const saved =
+          Number(page.url().endsWith("?saved=1")) +
+          Number(secondTab.url().endsWith("?saved=1"));
+        const conflict =
+          (await page
+            .locator("form [role=alert]")
+            .filter({ hasText: "changed elsewhere" })
+            .count()) +
+          (await secondTab
+            .locator("form [role=alert]")
+            .filter({ hasText: "changed elsewhere" })
+            .count());
+        return `${saved}:${conflict}`;
+      },
+      { timeout: 30_000 },
+    )
     .toBe("1:1");
   await secondTab.close();
 });

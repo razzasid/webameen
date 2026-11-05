@@ -20,6 +20,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { Fragment, useActionState, useState } from "react";
+import { CustomSelect } from "@/components/quotations/custom-select";
+import { UnitSelect } from "@/components/quotations/unit-select";
 import { useSubmissionErrorToast } from "@/components/ui/toast-provider";
 import type { BusinessProfile } from "@/server/modules/business/settings-validation";
 import { indianStates } from "@/server/modules/business/states";
@@ -67,11 +69,17 @@ type BuyerTextField = Exclude<
 >;
 
 const inputClass =
-  "mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-white px-2.5 py-2 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] lg:!min-h-8 lg:py-1 lg:text-xs";
+  "mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-white px-2.5 py-2 text-sm outline-none focus:border-[#94a3b8] focus:ring-0 lg:!min-h-8 lg:py-1 lg:text-xs";
 const reorderActionClass =
   "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#a9cbbf] bg-white text-[#075b4b] shadow-sm transition-colors hover:border-[#08745d] hover:bg-[#eaf5f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#08745d] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:border-[#dce5e1] disabled:bg-[#f5f8f6] disabled:text-[#9aa8a2] disabled:shadow-none";
 const deleteActionClass =
   "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#e6b8b8] bg-white text-[#b42318] shadow-sm transition-colors hover:border-[#c82b22] hover:bg-[#fff1f0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c82b22] focus-visible:ring-offset-1";
+const GST_CATEGORY_OPTIONS = [
+  { value: "taxable", label: "Taxable" },
+  { value: "exempt", label: "Exempt" },
+  { value: "no_gst", label: "No GST" },
+];
+
 const emptyLine = (): QuoteLineInput => ({
   clientId: crypto.randomUUID(),
   sourceCatalogItemId: "",
@@ -1159,17 +1167,13 @@ export function QuotationDraftEditor({
                                       )
                                     }
                                   />
-                                  <input
+                                  <UnitSelect
                                     aria-label={`Unit for line ${index + 1}`}
                                     className={`${inputClass} mt-1 min-h-8 py-1 text-xs`}
                                     placeholder="Unit (optional)"
                                     value={line.unitLabel}
-                                    onChange={(event) =>
-                                      updateLine(
-                                        line.clientId,
-                                        "unitLabel",
-                                        event.target.value,
-                                      )
+                                    onChange={(value) =>
+                                      updateLine(line.clientId, "unitLabel", value)
                                     }
                                   />
                                 </td>
@@ -1190,13 +1194,14 @@ export function QuotationDraftEditor({
                                 </td>
                                 <td className="px-2 py-2">
                                   <div className="space-y-1">
-                                    <select
+                                    <CustomSelect
                                       aria-label={`GST category for line ${index + 1}`}
                                       className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
                                       value={line.gstCategory}
-                                      onChange={(event) => {
-                                        const category = event.target
-                                          .value as QuoteLineInput["gstCategory"];
+                                      options={GST_CATEGORY_OPTIONS}
+                                      onChange={(value) => {
+                                        const category =
+                                          value as QuoteLineInput["gstCategory"];
                                         setLines((previous) =>
                                           previous.map((item) =>
                                             item.clientId === line.clientId
@@ -1212,36 +1217,32 @@ export function QuotationDraftEditor({
                                           ),
                                         );
                                       }}
-                                    >
-                                      <option value="taxable">Taxable</option>
-                                      <option value="exempt">Exempt</option>
-                                      <option value="no_gst">No GST</option>
-                                    </select>
+                                    />
                                     {line.gstCategory === "taxable" ? (
-                                      <select
+                                      <CustomSelect
                                         aria-label={`GST rate for line ${index + 1}`}
                                         className={`${inputClass} mt-0 min-h-8 py-1 text-xs`}
                                         value={line.gstRate}
-                                        onChange={(event) =>
-                                          updateLine(
-                                            line.clientId,
-                                            "gstRate",
-                                            event.target.value,
-                                          )
+                                        placeholder="Rate"
+                                        options={[
+                                          { value: "", label: "Rate" },
+                                          ...(line.gstRate && !rates.includes(line.gstRate)
+                                            ? [
+                                                {
+                                                  value: line.gstRate,
+                                                  label: `${line.gstRate}% retired — replace`,
+                                                },
+                                              ]
+                                            : []),
+                                          ...rates.map((rate) => ({
+                                            value: rate,
+                                            label: `${rate}%`,
+                                          })),
+                                        ]}
+                                        onChange={(value) =>
+                                          updateLine(line.clientId, "gstRate", value)
                                         }
-                                      >
-                                        <option value="">Rate</option>
-                                        {line.gstRate && !rates.includes(line.gstRate) ? (
-                                          <option value={line.gstRate}>
-                                            {line.gstRate}% retired — replace
-                                          </option>
-                                        ) : null}
-                                        {rates.map((rate) => (
-                                          <option key={rate} value={rate}>
-                                            {rate}%
-                                          </option>
-                                        ))}
-                                      </select>
+                                      />
                                     ) : null}
                                   </div>
                                 </td>
@@ -1364,19 +1365,23 @@ export function QuotationDraftEditor({
                                               }
                                             />
                                           </label>
-                                          <label className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                                          <label
+                                            htmlFor={`unit-subproduct-${line.clientId}-${component.clientId}`}
+                                            className="text-[10px] font-medium text-[var(--muted-foreground)]"
+                                          >
                                             Unit
-                                            <input
+                                            <UnitSelect
+                                              id={`unit-subproduct-${line.clientId}-${component.clientId}`}
                                               aria-label={`Unit for subproduct ${componentIndex + 1} of line ${index + 1}`}
                                               className={`${inputClass} mt-0.5 min-h-8 py-1 text-xs`}
                                               placeholder="optional"
                                               value={component.unitLabel}
-                                              onChange={(event) =>
+                                              onChange={(value) =>
                                                 updateComponent(
                                                   line.clientId,
                                                   component.clientId,
                                                   "unitLabel",
-                                                  event.target.value,
+                                                  value,
                                                 )
                                               }
                                             />

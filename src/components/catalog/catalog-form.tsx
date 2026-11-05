@@ -4,6 +4,7 @@ import { Box, FileText, IndianRupee, Lightbulb, PackageCheck, Wrench } from "luc
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { useFieldErrors } from "@/components/forms/use-field-errors";
+import { COMMON_UNITS } from "@/components/quotations/unit-select";
 import type { GstRateOption } from "@/server/modules/catalog/queries";
 import type {
   CatalogActionState,
@@ -22,21 +23,9 @@ type Props = {
 type CatalogValues = Record<CatalogField, string>;
 
 const inputClass =
-  "mt-1.5 min-h-11 w-full min-w-0 rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]";
+  "mt-1.5 min-h-11 w-full min-w-0 rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[#94a3b8] focus:ring-0";
 
-const unitSuggestions = [
-  "nos",
-  "kg",
-  "g",
-  "litre",
-  "meter",
-  "hour",
-  "day",
-  "month",
-  "service",
-  "box",
-  "piece",
-];
+const unitSuggestions = Array.from(COMMON_UNITS);
 
 const tips = [
   "Use a clear, specific item name.",

@@ -134,6 +134,15 @@ th {
   outline-offset: 2px;
 }
 
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+}
+
 a {
   color: inherit;
   text-decoration: none;

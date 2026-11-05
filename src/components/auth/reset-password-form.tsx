@@ -54,7 +54,7 @@ export function ResetPasswordForm({ action, invalidLink }: ResetPasswordFormProp
             aria-describedby={passwordError ? "new-password-error" : undefined}
             aria-invalid={Boolean(passwordError)}
             autoComplete="new-password"
-            className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-[#9aa6a2] focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed] sm:px-3.5 sm:text-sm"
+            className="w-full min-w-0 rounded-xl border border-[var(--line)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-[#9aa6a2] focus:border-[#94a3b8] focus:ring-0 sm:px-3.5 sm:text-sm"
             id="new-password"
             name="password"
             onChange={(event) => {

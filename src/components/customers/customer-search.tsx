@@ -41,7 +41,7 @@ export function CustomerSearch({ initialSearch }: { initialSearch: string }) {
           onChange={(event) => setValue(event.target.value)}
           maxLength={100}
           placeholder="Search name, phone, or email"
-          className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none focus:border-[#77a99a] focus:ring-4 focus:ring-[#e6f2ed]"
+          className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none focus:border-[#94a3b8] focus:ring-0"
         />
         {value.trim() !== initialSearch ? (
           <p role="status" className="mt-2 text-xs text-[var(--muted-foreground)]">
