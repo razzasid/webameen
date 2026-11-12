@@ -54,6 +54,13 @@ export function WorkspaceShell({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Button asChild className="gap-1.5 px-3 sm:px-4" size="sm" variant="outline">
+              <Link href="/invoices/new">
+                <Plus aria-hidden="true" />
+                <span className="sm:hidden">Invoice</span>
+                <span className="hidden sm:inline">New invoice</span>
+              </Link>
+            </Button>
             <Button asChild className="gap-1.5 px-3 sm:px-4" size="sm">
               <Link href="/quotations/new">
                 <Plus aria-hidden="true" />

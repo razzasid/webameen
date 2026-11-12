@@ -1,12 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { isUuid } from "@/server/shared/uuid";
 import { createInvoiceToken } from "./token";
+import {
+  type DirectInvoiceCalculation,
+  directInvoiceLinesSchema,
+  directInvoiceSnapshotSchema,
+  toDirectInvoiceRpcLines,
+  toDirectInvoiceRpcSnapshot,
+} from "./validation";
 
 function isCalendarDate(value: string): boolean {
   const parsed = new Date(`${value}T00:00:00.000Z`);
@@ -340,4 +348,154 @@ export async function revokeInvoiceLinkAction(
   }
   revalidatePath(`/invoices/${invoiceId}`);
   return { message: "The invoice link has been revoked." };
+}
+
+function safeJson(value: FormDataEntryValue | null): unknown {
+  if (typeof value !== "string" || value.length > 100_000) throw new Error("Invalid input");
+  return JSON.parse(value) as unknown;
+}
+
+export type DirectInvoiceActionState = {
+  error?: string;
+  preview?: DirectInvoiceCalculation;
+  previewed?: boolean;
+  invoiceId?: string;
+};
+
+export async function createDirectInvoiceAction(
+  _previous: DirectInvoiceActionState,
+  formData: FormData,
+): Promise<DirectInvoiceActionState> {
+  await requireAuthenticatedUser();
+  const requestKey = String(formData.get("requestKey") ?? "");
+  const customerId = String(formData.get("customerId") ?? "");
+  const dueOnRaw = String(formData.get("dueOn") ?? "").trim();
+  const intent = String(formData.get("intent") ?? "save");
+  const isPreview = intent === "preview";
+
+  if (!isUuid(customerId)) {
+    return { error: "Select an active customer." };
+  }
+  if (!isPreview && !isUuid(requestKey)) {
+    return { error: "Invalid invoice request. Please reload and try again." };
+  }
+  if (dueOnRaw && !dateSchema.safeParse(dueOnRaw).success) {
+    return { error: "Enter a valid calendar due date." };
+  }
+
+  let snapshotParsed: ReturnType<typeof directInvoiceSnapshotSchema.safeParse>;
+  let linesParsed: ReturnType<typeof directInvoiceLinesSchema.safeParse>;
+
+  try {
+    snapshotParsed = directInvoiceSnapshotSchema.safeParse(
+      safeJson(formData.get("snapshotJson")),
+    );
+    linesParsed = directInvoiceLinesSchema.safeParse(safeJson(formData.get("linesJson")));
+  } catch {
+    return { error: "The invoice form is incomplete. Please review your entries." };
+  }
+
+  if (!snapshotParsed.success) {
+    return {
+      error: snapshotParsed.error.issues[0]?.message ?? "Review the document details.",
+    };
+  }
+  if (!linesParsed.success) {
+    const issue = linesParsed.error.issues[0];
+    const linePrefix =
+      typeof issue?.path[0] === "number" ? `Line ${issue.path[0] + 1}: ` : "";
+    return { error: `${linePrefix}${issue?.message ?? "Review the invoice line items."}` };
+  }
+
+  const rpcSnapshot = toDirectInvoiceRpcSnapshot(snapshotParsed.data);
+  const rpcLines = toDirectInvoiceRpcLines(linesParsed.data);
+
+  let createdInvoiceId: string | null = null;
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    if (isPreview) {
+      const { data, error } = await supabase.rpc("preview_direct_invoice", {
+        p_customer_id: customerId,
+        p_snapshot: rpcSnapshot,
+        p_lines: rpcLines,
+      });
+
+      if (error) {
+        if (error.code === "42501") {
+          return { error: "Customer unavailable or insufficient permissions." };
+        }
+        if (error.code === "22023") {
+          return { error: error.message };
+        }
+        return { error: "Could not calculate invoice preview. Please try again." };
+      }
+
+      return { preview: data as DirectInvoiceCalculation, previewed: true };
+    }
+
+    const { data, error } = await supabase.rpc("create_direct_invoice", {
+      p_request_key: requestKey,
+      p_customer_id: customerId,
+      p_due_on: dueOnRaw || null,
+      p_snapshot: rpcSnapshot,
+      p_lines: rpcLines,
+    });
+
+    if (error) {
+      if (error.code === "42501") {
+        return {
+          error:
+            "This customer is unavailable or you do not have permission to issue invoices.",
+        };
+      }
+      if (error.code === "22003") {
+        return {
+          error:
+            "The invoice numbering period has run out of numbers. Configure another period in Settings.",
+        };
+      }
+      if (error.code === "22023") {
+        if (error.message.includes("numbering period")) {
+          return {
+            error:
+              "No invoice numbering period covers today's date. Configure one in Settings before issuing.",
+          };
+        }
+        if (error.message.includes("Due date")) {
+          return { error: "Due date cannot be before the invoice date." };
+        }
+        return { error: error.message };
+      }
+      if (error.code === "40001") {
+        return { error: "The numbering period changed while issuing. Please retry." };
+      }
+      if (error.code === "23514") {
+        return { error: "This request conflicts with an existing invoice. Please reload." };
+      }
+      return { error: "We couldn't issue this invoice. Please try again." };
+    }
+
+    const result = data as { invoice_id?: string; created?: boolean } | null;
+    if (!result?.invoice_id || !isUuid(result.invoice_id)) {
+      return {
+        error: "Invoice creation could not be confirmed. Please check your invoices list.",
+      };
+    }
+
+    createdInvoiceId = result.invoice_id;
+  } catch (error) {
+    return {
+      error: reportSafeFailure(
+        "invoice.direct.create",
+        error,
+        "Direct invoice creation is temporarily unavailable. Please try again.",
+      ),
+    };
+  }
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${createdInvoiceId}`);
+  redirect(`/invoices/${createdInvoiceId}`);
 }

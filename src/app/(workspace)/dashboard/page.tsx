@@ -91,9 +91,14 @@ export default async function DashboardPage({
               <Users aria-hidden="true" /> Add customer
             </Link>
           </Button>
-          <Button asChild className="flex-1 sm:flex-none">
+          <Button asChild className="flex-1 sm:flex-none" variant="outline">
             <Link href="/quotations/new">
               <Plus aria-hidden="true" /> New quotation
+            </Link>
+          </Button>
+          <Button asChild className="flex-1 sm:flex-none">
+            <Link href="/invoices/new">
+              <Plus aria-hidden="true" /> Create invoice
             </Link>
           </Button>
         </div>
@@ -192,6 +197,12 @@ export default async function DashboardPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-1 sm:p-5">
+            <Button asChild className="justify-start" variant="outline">
+              <Link href="/invoices/new">
+                <Plus aria-hidden="true" /> Create direct invoice
+                <ArrowUpRight aria-hidden="true" className="ml-auto" />
+              </Link>
+            </Button>
             <Button asChild className="justify-start" variant="outline">
               <Link href="/quotations">
                 <FileText aria-hidden="true" /> Review quotations

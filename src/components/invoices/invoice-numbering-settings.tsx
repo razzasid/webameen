@@ -22,6 +22,35 @@ const emptyValues: InvoiceNumberPeriodValues = {
 const inputClass =
   "mt-1.5 min-h-11 w-full rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#94a3b8] focus:ring-0";
 
+function computeNextPeriodValues(
+  periods: InvoiceNumberPeriod[],
+): InvoiceNumberPeriodValues {
+  const latest = periods[0];
+  const today = new Date().toISOString().slice(0, 10);
+  let maxEndsBefore = today;
+  for (const p of periods) {
+    if (p.ends_before > maxEndsBefore) maxEndsBefore = p.ends_before;
+  }
+  const startsOn = maxEndsBefore >= today ? maxEndsBefore : today;
+  const year = Number(startsOn.slice(0, 4));
+  const nextEnds = `${year + 1}-03-31`;
+  const endsBefore = nextEnds > startsOn ? nextEnds : `${year + 1}-12-31`;
+  const nextKey = `FY${String(year).slice(-2)}-${String(year + 1).slice(-2)}`;
+  const nextNumber = latest?.last_issued_number
+    ? (BigInt(latest.last_issued_number) + BigInt(1)).toString()
+    : "1";
+
+  return {
+    periodKey: nextKey,
+    prefix: latest?.prefix || "INV",
+    startsOn,
+    endsBefore,
+    formatTemplate: latest?.format_template || "{prefix}/{period}/{number}",
+    minimumDigits: latest ? String(latest.minimum_digits) : "4",
+    startingNumber: nextNumber,
+  };
+}
+
 export function InvoiceNumberingSettings({
   periods,
   action,
@@ -34,10 +63,21 @@ export function InvoiceNumberingSettings({
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   useSubmissionErrorToast(state);
-  const [values, setValues] = useState(state.values ?? emptyValues);
+  const [values, setValues] = useState<InvoiceNumberPeriodValues>(() => {
+    if (state.values) return state.values;
+    if (periods.length > 0) return computeNextPeriodValues(periods);
+    return emptyValues;
+  });
+
   useEffect(() => {
-    if (state.values) setValues(state.values);
+    if (state.values) {
+      setValues(state.values);
+    }
   }, [state.values]);
+
+  function handlePrefillNextPeriod() {
+    setValues(computeNextPeriodValues(periods));
+  }
 
   function input(
     field: keyof InvoiceNumberPeriodValues,
@@ -175,19 +215,32 @@ export function InvoiceNumberingSettings({
           className="space-y-4 rounded-xl border border-[#d5ece2] bg-[#f4faf7] p-4 sm:p-5"
           noValidate
         >
-          <div className="flex items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-[var(--brand)]">
-              <RefreshCw aria-hidden="true" className="size-4" />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--ink)]">
-                Add or edit numbering period
-              </h3>
-              <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
-                Use the period name your business chooses. The end date is excluded. Include{" "}
-                <code>{"{number}"}</code> exactly once in the format.
-              </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-[var(--brand)]">
+                <RefreshCw aria-hidden="true" className="size-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--ink)]">
+                  Add or edit numbering period
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
+                  Period names must be unique. Dates must not overlap with any locked
+                  sequence.
+                </p>
+              </div>
             </div>
+            {periods.length ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePrefillNextPeriod}
+                className="shrink-0 text-xs bg-white"
+              >
+                Auto-fill next period
+              </Button>
+            ) : null}
           </div>
           {state.error ? (
             <p

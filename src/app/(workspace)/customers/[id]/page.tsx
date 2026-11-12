@@ -114,9 +114,14 @@ export default async function CustomerDetailPage({
               Customer ID: <span className="ml-1 break-all">{customer.id}</span>
             </p>
           </div>
-          <Button asChild className="w-full shrink-0 sm:w-auto">
-            <Link href={`/customers/${customer.id}/edit`}>Edit customer</Link>
-          </Button>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <Button asChild className="flex-1 sm:flex-none" variant="outline">
+              <Link href={`/customers/${customer.id}/edit`}>Edit customer</Link>
+            </Button>
+            <Button asChild className="flex-1 sm:flex-none">
+              <Link href={`/invoices/new?customerId=${customer.id}`}>Create invoice</Link>
+            </Button>
+          </div>
         </div>
       </div>
       {customer.archived_at ? (

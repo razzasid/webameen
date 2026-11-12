@@ -91,6 +91,7 @@ INSERT INTO expected_columns VALUES
 ('quotations','business_id','uuid',true,NULL),
 ('quotations','customer_id','uuid',true,NULL),
 ('quotations','reference','text',true,NULL),
+('quotations','creation_payload_hash','bytea',false,NULL),
 ('quotations','current_version_id','uuid',true,NULL),
 ('quotations','created_by','uuid',true,NULL),
 ('quotations','created_at','timestamptz',true,'clock_timestamp()'),
@@ -158,13 +159,17 @@ INSERT INTO expected_columns VALUES
 ('quotation_versions','seller_upi_id','text',false,NULL),
 ('quotation_versions','payment_instructions','text',false,NULL),
 ('quotation_versions','terms','text',false,NULL),
+('quotation_versions','template_headings','jsonb',true,'''{}''::jsonb'),
+('quotation_versions','item_categories','jsonb',true,'''[]''::jsonb'),
 ('quotation_items','id','uuid',true,'gen_random_uuid()'),
 ('quotation_items','business_id','uuid',true,NULL),
 ('quotation_items','version_id','uuid',true,NULL),
 ('quotation_items','source_catalog_item_id','uuid',false,NULL),
+('quotation_items','category_id','uuid',false,NULL),
+('quotation_items','components','jsonb',true,'''[]''::jsonb'),
 ('quotation_items','position','integer',true,NULL),
 ('quotation_items','description','text',true,NULL),
-('quotation_items','unit_label','text',true,NULL),
+('quotation_items','unit_label','text',false,NULL),
 ('quotation_items','hsn_sac','text',false,NULL),
 ('quotation_items','quantity','numeric(18,6)',true,NULL),
 ('quotation_items','unit_price_minor','bigint',true,NULL),
@@ -203,10 +208,12 @@ INSERT INTO expected_columns VALUES
 ('quotation_responses','responded_at','timestamptz',true,'clock_timestamp()'),
 ('invoices','id','uuid',true,'gen_random_uuid()'),
 ('invoices','business_id','uuid',true,NULL),
-('invoices','quotation_id','uuid',true,NULL),
+('invoices','quotation_id','uuid',false,NULL),
 ('invoices','customer_id','uuid',true,NULL),
-('invoices','source_version_id','uuid',true,NULL),
-('invoices','approved_response_id','uuid',true,NULL),
+('invoices','source_version_id','uuid',false,NULL),
+('invoices','approved_response_id','uuid',false,NULL),
+('invoices','origin','text',true,'''quotation_converted'''),
+('invoices','request_key','uuid',false,NULL),
 ('invoices','numbering_period','text',true,NULL),
 ('invoices','sequence_number','bigint',true,NULL),
 ('invoices','reference','text',true,NULL),
@@ -264,11 +271,12 @@ INSERT INTO expected_columns VALUES
 ('invoice_items','id','uuid',true,'gen_random_uuid()'),
 ('invoice_items','business_id','uuid',true,NULL),
 ('invoice_items','invoice_id','uuid',true,NULL),
-('invoice_items','source_version_id','uuid',true,NULL),
-('invoice_items','source_quotation_item_id','uuid',true,NULL),
+('invoice_items','source_version_id','uuid',false,NULL),
+('invoice_items','source_quotation_item_id','uuid',false,NULL),
+('invoice_items','source_catalog_item_id','uuid',false,NULL),
 ('invoice_items','position','integer',true,NULL),
 ('invoice_items','description','text',true,NULL),
-('invoice_items','unit_label','text',true,NULL),
+('invoice_items','unit_label','text',false,NULL),
 ('invoice_items','hsn_sac','text',false,NULL),
 ('invoice_items','quantity','numeric(18,6)',true,NULL),
 ('invoice_items','unit_price_minor','bigint',true,NULL),
@@ -366,7 +374,7 @@ SELECT pg_temp.assert_ok(NOT EXISTS(
  SELECT FROM information_schema.columns WHERE table_schema='public' AND column_name LIKE '%\_minor' ESCAPE '\' AND data_type<>'bigint'
 ), 'Every monetary amount is bigint integer paise');
 SELECT pg_temp.assert_ok((SELECT count(*) FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace
- WHERE n.nspname='public' AND t.relname IN (SELECT table_name FROM expected_columns) AND c.contype='f')=55, 'All 55 approved foreign keys');
+ WHERE n.nspname='public' AND t.relname IN (SELECT table_name FROM expected_columns) AND c.contype='f')=58, 'All 58 approved foreign keys');
 SELECT pg_temp.assert_ok(NOT EXISTS(
  SELECT FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace
  WHERE n.nspname='public' AND t.relname IN (SELECT table_name FROM expected_columns) AND c.contype='f'

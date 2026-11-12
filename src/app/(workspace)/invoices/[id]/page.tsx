@@ -91,7 +91,9 @@ export default async function InvoiceDetailPage({
   const [paymentSummary, links, quotationWorkflow] = await Promise.all([
     getInvoicePaymentSummary(id),
     listInvoicePublicLinks(id),
-    getQuotationWorkflow(invoice.quotation_id),
+    invoice.quotation_id
+      ? getQuotationWorkflow(invoice.quotation_id)
+      : Promise.resolve(null),
   ]);
   const issuedAt = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
@@ -99,7 +101,7 @@ export default async function InvoiceDetailPage({
     timeZone: invoice.document_time_zone,
   }).format(new Date(invoice.issued_at));
   const status = paymentStatusLabel(paymentSummary.payment_status, paymentSummary.overdue);
-  const sourceVersion = quotationWorkflow.versions.find(
+  const sourceVersion = quotationWorkflow?.versions.find(
     (version) => version.id === invoice.source_version_id,
   );
   const statusTone =
@@ -172,12 +174,14 @@ export default async function InvoiceDetailPage({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem asChild>
-                  <Link href={`/quotations/${invoice.quotation_id}`}>
-                    <ScrollText aria-hidden="true" />
-                    Open source quotation
-                  </Link>
-                </DropdownMenuItem>
+                {invoice.quotation_id ? (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/quotations/${invoice.quotation_id}`}>
+                      <ScrollText aria-hidden="true" />
+                      Open source quotation
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <Link href={`/customers/${invoice.customer_id}`}>
                     <UsersRound aria-hidden="true" />
@@ -222,39 +226,71 @@ export default async function InvoiceDetailPage({
             <Link2 aria-hidden="true" className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-bold text-[var(--ink)]">Approved source</h2>
-              <Button asChild variant="outline" size="sm" className="min-h-9 gap-2">
-                <Link href={`/quotations/${invoice.quotation_id}`}>
-                  <ArrowUpRight aria-hidden="true" />
-                  View quotation
-                </Link>
-              </Button>
-            </div>
-            <p className="mt-1 break-words text-xs leading-5 text-[var(--muted-foreground)]">
-              Quotation {quotationWorkflow.reference} · version{" "}
-              {sourceVersion?.version_number ?? "—"} · {invoice.source_version_id}
-              <span className="hidden sm:inline">
-                {" "}
-                · Approval evidence {invoice.approved_response_id}
-              </span>
-            </p>
-            <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-              <Link
-                className="font-semibold text-[var(--ink)] hover:text-[var(--brand)]"
-                href={`/quotations/${invoice.quotation_id}`}
-              >
-                Open quotation history
-              </Link>
-              <span className="mx-2" aria-hidden="true">
-                ·
-              </span>
-              Number {invoice.sequence_number} from owner-configured period “
-              {invoice.numbering_period}”.
-            </p>
-            <p className="mt-1 break-all text-xs text-[var(--muted-foreground)] sm:hidden">
-              Approval evidence {invoice.approved_response_id}
-            </p>
+            {quotationWorkflow ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="font-bold text-[var(--ink)]">Approved source</h2>
+                  <Button asChild variant="outline" size="sm" className="min-h-9 gap-2">
+                    <Link href={`/quotations/${invoice.quotation_id}`}>
+                      <ArrowUpRight aria-hidden="true" />
+                      View quotation
+                    </Link>
+                  </Button>
+                </div>
+                <p className="mt-1 break-words text-xs leading-5 text-[var(--muted-foreground)]">
+                  Quotation {quotationWorkflow.reference} · version{" "}
+                  {sourceVersion?.version_number ?? "—"} · {invoice.source_version_id}
+                  <span className="hidden sm:inline">
+                    {" "}
+                    · Approval evidence {invoice.approved_response_id}
+                  </span>
+                </p>
+                <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+                  <Link
+                    className="font-semibold text-[var(--ink)] hover:text-[var(--brand)]"
+                    href={`/quotations/${invoice.quotation_id}`}
+                  >
+                    Open quotation history
+                  </Link>
+                  <span className="mx-2" aria-hidden="true">
+                    ·
+                  </span>
+                  Number {invoice.sequence_number} from owner-configured period “
+                  {invoice.numbering_period}”.
+                </p>
+                <p className="mt-1 break-all text-xs text-[var(--muted-foreground)] sm:hidden">
+                  Approval evidence {invoice.approved_response_id}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="font-bold text-[var(--ink)]">Direct invoice</h2>
+                    <span className="inline-block mt-0.5 rounded-full bg-[#e2f2eb] px-2 py-0.5 text-[11px] font-semibold text-[var(--brand)]">
+                      Created directly
+                    </span>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="min-h-9 gap-2">
+                    <Link href={`/customers/${invoice.customer_id}`}>
+                      <UsersRound aria-hidden="true" />
+                      View customer
+                    </Link>
+                  </Button>
+                </div>
+                <p className="mt-2 break-words text-xs leading-5 text-[var(--muted-foreground)]">
+                  Issued directly for customer{" "}
+                  <span className="font-semibold text-[var(--ink)]">
+                    {invoice.buyer_display_name}
+                  </span>
+                  .
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  Number {invoice.sequence_number} from owner-configured period “
+                  {invoice.numbering_period}”.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -274,8 +310,9 @@ export default async function InvoiceDetailPage({
       <p className="flex min-w-0 items-start gap-2 rounded-xl border border-[#d7e7f4] bg-[#eff6fc] px-4 py-3 text-xs leading-5 text-[#355c7d]">
         <FileText aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
         <span>
-          This issued invoice is an immutable copy of the approved quotation. Corrections to
-          recorded payments are retained in the payment history.
+          {invoice.quotation_id
+            ? "This issued invoice is an immutable copy of the approved quotation. Corrections to recorded payments are retained in the payment history."
+            : "This issued invoice is an immutable sales document. Corrections to recorded payments are retained in the payment history."}
         </span>
       </p>
     </section>

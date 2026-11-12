@@ -153,9 +153,9 @@ SELECT pg_temp.assert_ok(
 );
 SELECT pg_temp.assert_ok(
   (SELECT
-     (to_jsonb(i) - ARRAY['id','business_id','quotation_id','customer_id','source_version_id','approved_response_id','numbering_period','sequence_number','reference','issued_at','invoice_date','due_on','created_by'])
+     (to_jsonb(i) - ARRAY['id','business_id','quotation_id','customer_id','source_version_id','approved_response_id','origin','request_key','numbering_period','sequence_number','reference','issued_at','invoice_date','due_on','created_by'])
      =
-     (to_jsonb(v) - ARRAY['id','business_id','quotation_id','version_number','previous_version_id','state','edit_sequence','valid_until','response_deadline_at','created_by','created_at','edited_at','shared_by','shared_at','superseded_by','superseded_at'])
+     (to_jsonb(v) - ARRAY['id','business_id','quotation_id','version_number','previous_version_id','state','edit_sequence','valid_until','response_deadline_at','created_by','created_at','edited_at','shared_by','shared_at','superseded_by','superseded_at','item_categories','template_headings'])
    FROM public.invoices i
    JOIN invoice_fixture f ON f.invoice_id=i.id
    JOIN public.quotation_versions v ON v.business_id=i.business_id AND v.id=i.source_version_id),
@@ -164,9 +164,9 @@ SELECT pg_temp.assert_ok(
 SELECT pg_temp.assert_ok(
   (SELECT count(*)=1
       AND bool_and(
-        (to_jsonb(ii) - ARRAY['id','business_id','invoice_id','source_version_id','source_quotation_item_id'])
+        (to_jsonb(ii) - ARRAY['id','business_id','invoice_id','source_version_id','source_quotation_item_id','source_catalog_item_id'])
         =
-        (to_jsonb(qi) - ARRAY['id','business_id','version_id','source_catalog_item_id'])
+        (to_jsonb(qi) - ARRAY['id','business_id','version_id','source_catalog_item_id','category_id','parent_item_id','components'])
       )
    FROM public.invoice_items ii
    JOIN invoice_fixture f ON f.invoice_id=ii.invoice_id

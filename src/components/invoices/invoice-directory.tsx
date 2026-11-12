@@ -212,8 +212,8 @@ export function InvoiceDirectory({ invoices }: { invoices: InvoiceListRow[] }) {
             Invoices
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-[var(--muted-foreground)]">
-            Issued invoices are immutable copies of approved quotations. Track due dates and
-            payments here.
+            Create direct invoices or view invoices converted from quotations. Track due
+            dates and payments here.
           </p>
         </div>
         <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
@@ -224,7 +224,7 @@ export function InvoiceDirectory({ invoices }: { invoices: InvoiceListRow[] }) {
             </Link>
           </Button>
           <Button asChild className="w-full">
-            <Link href="/quotations">
+            <Link href="/invoices/new">
               <Plus aria-hidden="true" />
               Create invoice
             </Link>
@@ -542,7 +542,7 @@ export function InvoiceDirectory({ invoices }: { invoices: InvoiceListRow[] }) {
             <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
               {invoices.length
                 ? "Try changing your search or filters."
-                : "Invoices are issued from approved quotations after numbering is configured."}
+                : "Create an invoice directly or issue one from an approved quotation after numbering is configured."}
             </p>
             {!invoices.length ? (
               <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
@@ -550,7 +550,7 @@ export function InvoiceDirectory({ invoices }: { invoices: InvoiceListRow[] }) {
                   <Link href="/settings">Numbering settings</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/quotations">
+                  <Link href="/invoices/new">
                     <Plus aria-hidden="true" />
                     Create invoice
                   </Link>

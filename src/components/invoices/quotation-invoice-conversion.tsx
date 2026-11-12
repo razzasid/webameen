@@ -67,6 +67,13 @@ export function QuotationInvoiceConversion({
           <InvoiceIssueForm quotationId={quotationId} />
         </>
       )}
+      <p className="mt-4 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted-foreground)]">
+        To invoice a customer directly without a quotation, go to{" "}
+        <Link className="font-semibold text-[var(--brand)] underline" href="/invoices/new">
+          Create direct invoice
+        </Link>
+        .
+      </p>
     </section>
   );
 }

@@ -18,10 +18,11 @@ export type InvoiceNumberPeriod = {
 
 export type InvoiceSummary = {
   id: string;
-  quotation_id: string;
+  origin?: "quotation_converted" | "direct";
+  quotation_id: string | null;
   customer_id: string;
-  source_version_id: string;
-  approved_response_id: string;
+  source_version_id: string | null;
+  approved_response_id: string | null;
   numbering_period: string;
   sequence_number: string;
   reference: string;
@@ -35,7 +36,8 @@ export type InvoiceSummary = {
 
 export type InvoiceItem = {
   id: string;
-  source_quotation_item_id: string;
+  source_quotation_item_id: string | null;
+  source_catalog_item_id?: string | null;
   position: number;
   description: string;
   unit_label: string | null;
@@ -133,7 +135,7 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id,quotation_id,customer_id,source_version_id,approved_response_id,numbering_period,sequence_number,reference,issued_at,invoice_date,due_on,buyer_display_name,total_minor,currency_code",
+      "id,origin,quotation_id,customer_id,source_version_id,approved_response_id,numbering_period,sequence_number,reference,issued_at,invoice_date,due_on,buyer_display_name,total_minor,currency_code",
     )
     .eq("business_id", context.business.id)
     .order("issued_at", { ascending: false });
@@ -157,7 +159,7 @@ export async function findInvoiceForOwner(id: string): Promise<InvoiceDetail | n
   const { data: itemData, error: itemError } = await supabase
     .from("invoice_items")
     .select(
-      "id,source_quotation_item_id,position,description,unit_label,hsn_sac,quantity,unit_price_minor,line_subtotal_minor,gst_category,gst_treatment,gst_rate,taxable_amount_minor,cgst_rate,cgst_amount_minor,sgst_rate,sgst_amount_minor,igst_rate,igst_amount_minor,line_total_minor",
+      "id,source_quotation_item_id,source_catalog_item_id,position,description,unit_label,hsn_sac,quantity,unit_price_minor,line_subtotal_minor,gst_category,gst_treatment,gst_rate,taxable_amount_minor,cgst_rate,cgst_amount_minor,sgst_rate,sgst_amount_minor,igst_rate,igst_amount_minor,line_total_minor",
     )
     .eq("business_id", context.business.id)
     .eq("invoice_id", id)
@@ -202,4 +204,57 @@ export async function getInvoiceForQuotation(
     .maybeSingle();
   if (error) throw new Error("Could not check this quotation's invoice.");
   return data;
+}
+
+export type InvoiceCustomerChoice = {
+  id: string;
+  display_name: string;
+  email: string | null;
+  phone: string | null;
+  state_code: string | null;
+  billing_address?: string | null;
+  contact_name?: string | null;
+  gstin_applicable?: boolean | null;
+  gstin?: string | null;
+};
+
+export type InvoiceCatalogChoice = {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_label: string | null;
+  default_unit_price_minor: string | null;
+  default_gst_category: "taxable" | "exempt" | "no_gst";
+  default_gst_rate: string | null;
+  hsn_sac: string | null;
+};
+
+export async function listInvoiceCustomers(): Promise<InvoiceCustomerChoice[]> {
+  const context = await getBusinessContext();
+  if (context.status !== "ready") return [];
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select(
+      "id,display_name,email,phone,state_code,billing_address,contact_name,gstin_applicable,gstin",
+    )
+    .eq("business_id", context.business.id)
+    .is("archived_at", null)
+    .order("display_name")
+    .limit(500);
+  if (error) throw new Error("Could not load customers for invoice creation.");
+  return data ?? [];
+}
+
+export async function listInvoiceCatalogChoices(): Promise<InvoiceCatalogChoice[]> {
+  const context = await getBusinessContext();
+  if (context.status !== "ready") return [];
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("list_catalog_items", {
+    p_search: "",
+    p_offset: 0,
+    p_limit: 100,
+  });
+  if (error) throw new Error("Could not load catalog defaults for invoice creation.");
+  return (data ?? []) as InvoiceCatalogChoice[];
 }
