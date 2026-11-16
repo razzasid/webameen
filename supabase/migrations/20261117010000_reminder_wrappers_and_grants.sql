@@ -1,9 +1,92 @@
 BEGIN;
 
--- 1. Table Grants for authenticated users (business owners) to manage schedules & occurrences
+-- 1. Table Grants & RLS Policies for authenticated users (business owners) to manage schedules & occurrences
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.invoice_reminder_schedules TO authenticated, webameen_executor;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.invoice_reminder_occurrences TO authenticated, webameen_executor;
 GRANT SELECT, INSERT ON public.invoice_reminder_deliveries TO authenticated, webameen_executor;
+
+DROP POLICY IF EXISTS reminder_schedules_executor_insert ON public.invoice_reminder_schedules;
+CREATE POLICY reminder_schedules_owner_insert ON public.invoice_reminder_schedules
+FOR INSERT TO authenticated, webameen_executor
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_schedules.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+);
+
+DROP POLICY IF EXISTS reminder_schedules_executor_update ON public.invoice_reminder_schedules;
+CREATE POLICY reminder_schedules_owner_update ON public.invoice_reminder_schedules
+FOR UPDATE TO authenticated, webameen_executor
+USING (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_schedules.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_schedules.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+);
+
+DROP POLICY IF EXISTS reminder_occurrences_executor_insert ON public.invoice_reminder_occurrences;
+CREATE POLICY reminder_occurrences_owner_insert ON public.invoice_reminder_occurrences
+FOR INSERT TO authenticated, webameen_executor
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_occurrences.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+);
+
+DROP POLICY IF EXISTS reminder_occurrences_executor_update ON public.invoice_reminder_occurrences;
+CREATE POLICY reminder_occurrences_owner_update ON public.invoice_reminder_occurrences
+FOR UPDATE TO authenticated, webameen_executor
+USING (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_occurrences.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_occurrences.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+);
+
+DROP POLICY IF EXISTS reminder_occurrences_executor_delete ON public.invoice_reminder_occurrences;
+CREATE POLICY reminder_occurrences_owner_delete ON public.invoice_reminder_occurrences
+FOR DELETE TO authenticated, webameen_executor
+USING (
+  EXISTS (
+    SELECT 1 FROM public.business_memberships m
+    WHERE m.user_id = auth.uid()
+      AND m.business_id = invoice_reminder_occurrences.business_id
+      AND m.role = 'owner'
+      AND m.disabled_at IS NULL
+  )
+);
 
 -- 2. Update private function get_authoritative_payment_status to support dynamic contact fallbacks
 CREATE OR REPLACE FUNCTION private.get_authoritative_payment_status(p_invoice_id uuid)
