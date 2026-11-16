@@ -36,6 +36,9 @@ export class ResendEmailProvider implements ReminderChannelProvider {
     }
 
     try {
+      const rawFrom = serverEnvironment.EMAIL_FROM ?? "onboarding@resend.dev";
+      const from = rawFrom.trim().replace(/^["']|["']$/g, "").trim();
+
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -43,7 +46,7 @@ export class ResendEmailProvider implements ReminderChannelProvider {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: serverEnvironment.EMAIL_FROM,
+          from,
           to: [options.recipient],
           subject: options.subject || "Invoice Payment Reminder",
           text: options.body,
