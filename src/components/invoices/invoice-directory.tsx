@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Bell,
   CalendarDays,
   FileText,
   Plus,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ReminderDialog } from "@/components/reminders/reminder-dialog";
 import { Button } from "@/components/ui/button";
 import { formatPaise } from "@/server/modules/catalog/validation";
 import type { InvoiceSummary } from "@/server/modules/invoices/queries";
@@ -425,7 +427,32 @@ export function InvoiceDirectory({ invoices }: { invoices: InvoiceListRow[] }) {
                             {statusLabels[status]}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-right">
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          {status !== "paid" && (
+                            <ReminderDialog
+                              invoiceId={invoice.id}
+                              invoiceReference={invoice.reference}
+                              buyerDisplayName={invoice.buyer_display_name}
+                              buyerEmail={invoice.buyer_email}
+                              buyerPhone={invoice.buyer_phone}
+                              sellerDisplayName={invoice.seller_display_name || "Webameen"}
+                              invoiceDate={invoice.invoice_date}
+                              dueOn={invoice.due_on}
+                              totalMinor={invoice.total_minor}
+                              paidMinor={invoice.payment.paid_minor}
+                              outstandingMinor={invoice.payment.outstanding_minor}
+                              trigger={
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1.5 text-xs mr-2 border-[var(--line)] text-[var(--ink)] hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                                >
+                                  <Bell className="size-3 text-[var(--brand)]" />
+                                  Remind
+                                </Button>
+                              }
+                            />
+                          )}
                           <Button asChild size="sm" variant="ghost">
                             <Link href={`/invoices/${invoice.id}`}>View</Link>
                           </Button>

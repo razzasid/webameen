@@ -18,6 +18,7 @@ import Link from "next/link";
 import { InvoiceSharePanel } from "@/components/invoices/invoice-share-panel";
 import { WorkspaceInvoiceDocument } from "@/components/invoices/workspace-invoice-document";
 import { InvoicePaymentPanel } from "@/components/payments/invoice-payment-panel";
+import { InvoiceReminderPanel } from "@/components/reminders/invoice-reminder-panel";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,11 +26,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getCustomer } from "@/server/modules/customers/queries";
 import { formatPaise } from "@/server/modules/catalog/validation";
 import { toInvoiceDocument } from "@/server/modules/invoices/document-model";
 import { getInvoice, listInvoicePublicLinks } from "@/server/modules/invoices/queries";
 import { getInvoicePaymentSummary } from "@/server/modules/payments/queries";
 import { getQuotationWorkflow } from "@/server/modules/quotations/queries";
+import { getInvoiceReminderSummary } from "@/server/modules/reminders/queries";
 
 function formatInvoiceDate(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
@@ -88,13 +91,16 @@ export default async function InvoiceDetailPage({
 }) {
   const { id } = await params;
   const invoice = await getInvoice(id);
-  const [paymentSummary, links, quotationWorkflow] = await Promise.all([
-    getInvoicePaymentSummary(id),
-    listInvoicePublicLinks(id),
-    invoice.quotation_id
-      ? getQuotationWorkflow(invoice.quotation_id)
-      : Promise.resolve(null),
-  ]);
+  const [paymentSummary, links, quotationWorkflow, reminderSummary, customer] =
+    await Promise.all([
+      getInvoicePaymentSummary(id),
+      listInvoicePublicLinks(id),
+      invoice.quotation_id
+        ? getQuotationWorkflow(invoice.quotation_id)
+        : Promise.resolve(null),
+      getInvoiceReminderSummary(id),
+      getCustomer(invoice.customer_id).catch(() => null),
+    ]);
   const issuedAt = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -306,6 +312,22 @@ export default async function InvoiceDetailPage({
       <WorkspaceInvoiceDocument document={toInvoiceDocument(invoice)} />
 
       <InvoicePaymentPanel invoiceId={invoice.id} summary={paymentSummary} />
+
+      <InvoiceReminderPanel
+        invoiceId={invoice.id}
+        invoiceReference={invoice.reference}
+        buyerDisplayName={invoice.buyer_display_name}
+        buyerContactName={invoice.buyer_contact_name}
+        buyerEmail={customer?.email ?? invoice.buyer_email}
+        buyerPhone={customer?.phone ?? invoice.buyer_phone}
+        sellerDisplayName={invoice.seller_display_name}
+        invoiceDate={invoice.invoice_date}
+        dueOn={invoice.due_on}
+        totalMinor={invoice.total_minor}
+        paidMinor={paymentSummary.paid_minor}
+        outstandingMinor={paymentSummary.outstanding_minor}
+        summary={reminderSummary}
+      />
 
       <p className="flex min-w-0 items-start gap-2 rounded-xl border border-[#d7e7f4] bg-[#eff6fc] px-4 py-3 text-xs leading-5 text-[#355c7d]">
         <FileText aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

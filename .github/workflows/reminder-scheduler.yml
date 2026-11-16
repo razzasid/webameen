@@ -1,0 +1,25 @@
+name: Automated Invoice Reminder Scheduler
+
+on:
+  schedule:
+    # Run every hour at the top of the hour
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # Allow manual execution from GitHub UI
+
+jobs:
+  process-reminders:
+    name: Process Due Invoice Reminders
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Reminder Processing Endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL || 'https://app.webameen.com' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          echo "Triggering payment reminder processor..."
+          curl -s -f -X POST "${APP_URL}/api/reminders/process" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" || exit 1
+          echo "Reminder processing trigger completed."
+

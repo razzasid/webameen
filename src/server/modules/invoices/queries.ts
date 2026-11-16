@@ -30,6 +30,9 @@ export type InvoiceSummary = {
   invoice_date: string;
   due_on: string | null;
   buyer_display_name: string;
+  buyer_email?: string | null;
+  buyer_phone?: string | null;
+  seller_display_name?: string;
   total_minor: string;
   currency_code: string;
 };
@@ -135,7 +138,7 @@ export async function listInvoices(): Promise<InvoiceSummary[]> {
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id,origin,quotation_id,customer_id,source_version_id,approved_response_id,numbering_period,sequence_number,reference,issued_at,invoice_date,due_on,buyer_display_name,total_minor,currency_code",
+      "id,origin,quotation_id,customer_id,source_version_id,approved_response_id,numbering_period,sequence_number,reference,issued_at,invoice_date,due_on,buyer_display_name,buyer_email,buyer_phone,seller_display_name,total_minor,currency_code",
     )
     .eq("business_id", context.business.id)
     .order("issued_at", { ascending: false });

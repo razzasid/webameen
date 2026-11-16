@@ -568,6 +568,21 @@ The dashboard reference includes trends, export and sample activity that the cur
 | D2 — Recovery | Target RPO ≤24 hours and RTO ≤1 business day for the pilot. Recommend a Supabase plan with daily backups and at least 7 days of retention; document a restore runbook and perform a restore drill before accepting real records, then quarterly. | Target only; billing/backup availability and restore are unverified. Supabase currently documents daily backups for Pro with 7 days, while PITR is a separately priced option. |
 | D3 — Disabled owner | Withdraw the public catalog while the owner is disabled. Keep item publication state and data intact; reactivation restores the previously published items. | Migration applied locally; all ten SQL suites pass. Fresh disposable CI replay remains pending. |
 
+### Phase 15 — Automated Invoice Payment Reminder & Scheduling System
+**Status:** ✅ COMPLETE (12 November 2026).
+**Goal:** Allow business owners to configure automated invoice payment reminders via WhatsApp, Email, and SMS with real-time payment status checks, atomic background processing, and complete lifecycle management.
+
+- [x] ✅ COMPLETE — Database migration `20261112230000_automated_invoice_reminders.sql` adding `invoice_reminder_schedules`, `invoice_reminder_occurrences`, and `invoice_reminder_deliveries` with foreign keys, composite tenant isolation, unique index checks, RLS policies, and triggers.
+- [x] ✅ COMPLETE — Concurrency-safe claim procedure `private.claim_due_reminder_occurrences` using `FOR UPDATE SKIP LOCKED`.
+- [x] ✅ COMPLETE — Authoritative payment calculation `private.get_authoritative_payment_status` enforcing payment reversal accounting.
+- [x] ✅ COMPLETE — Automatic payment sync trigger `private.sync_reminder_schedule_on_payment` to stop active schedules and skip pending occurrences when an invoice is fully paid.
+- [x] ✅ COMPLETE — Channel provider abstractions and real implementations: `ResendEmailProvider`, `TwilioWhatsAppProvider`, `TwilioSmsProvider` with honest configuration reporting and error telemetry.
+- [x] ✅ COMPLETE — Server-side background execution route `/api/reminders/process` protected by `CRON_SECRET` / bearer token and standalone GitHub Actions scheduled workflow `.github/workflows/reminder-scheduler.yml`.
+- [x] ✅ COMPLETE — Interactive UI: `ReminderDialog` with live customer contact validation, multi-channel selection, relative due-date offsets, custom calendar dates, recurring intervals, live message preview with INR variables, and automatic sending toggle.
+- [x] ✅ COMPLETE — Invoice detail reminder management panel `InvoiceReminderPanel` with active/paused status, next reminder occurrence, provider configuration diagnostics, Pause/Resume/Cancel actions, manual Run Check trigger, and historical delivery records table.
+- [x] ✅ COMPLETE — Row-level "Remind" action in invoice directory (`/invoices`) for pending and part-paid invoices.
+- [x] ✅ COMPLETE — Automated test suite: 7 test files, 107 passing tests covering validation, templates, schedule calculations, payment status edge cases, background processing, security isolation, and full regressions.
+
 ## 7. Post-MVP Roadmap
 
 These are candidates, not authorization to implement. Each has status and dependencies; define a detailed accepted slice before promoting it to a numbered phase.

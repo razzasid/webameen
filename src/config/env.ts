@@ -47,11 +47,35 @@ export const publicEnvironment = parsePublicEnvironment({
 const serverEnvironmentSchema = z.object({
   SUPABASE_QUOTE_BROKER_KEY: optionalKey,
   SUPABASE_INVOICE_BROKER_KEY: optionalKey,
+  SUPABASE_SERVICE_ROLE_KEY: optionalKey,
+  WEBAMEEN_REMINDER_WORKER_KEY: optionalKey,
+  CRON_SECRET: optionalKey,
+  RESEND_API_KEY: optionalKey,
+  EMAIL_FROM: optionalKey,
+  TWILIO_ACCOUNT_SID: optionalKey,
+  TWILIO_AUTH_TOKEN: optionalKey,
+  TWILIO_WHATSAPP_FROM: optionalKey,
+  TWILIO_WHATSAPP_CONTENT_SID: optionalKey,
+  TWILIO_SMS_FROM: optionalKey,
+  META_WHATSAPP_TOKEN: optionalKey,
+  META_WHATSAPP_PHONE_NUMBER_ID: optionalKey,
 });
 
 export const serverEnvironment = serverEnvironmentSchema.parse({
   SUPABASE_QUOTE_BROKER_KEY: process.env.SUPABASE_QUOTE_BROKER_KEY,
   SUPABASE_INVOICE_BROKER_KEY: process.env.SUPABASE_INVOICE_BROKER_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  WEBAMEEN_REMINDER_WORKER_KEY: process.env.WEBAMEEN_REMINDER_WORKER_KEY,
+  CRON_SECRET: process.env.CRON_SECRET,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
+  TWILIO_WHATSAPP_CONTENT_SID: process.env.TWILIO_WHATSAPP_CONTENT_SID,
+  TWILIO_SMS_FROM: process.env.TWILIO_SMS_FROM,
+  META_WHATSAPP_TOKEN: process.env.META_WHATSAPP_TOKEN,
+  META_WHATSAPP_PHONE_NUMBER_ID: process.env.META_WHATSAPP_PHONE_NUMBER_ID,
 });
 
 export function isSupabaseConfigured(): boolean {

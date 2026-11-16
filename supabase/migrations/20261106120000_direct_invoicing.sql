@@ -474,6 +474,8 @@ GRANT webameen_executor TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
 ALTER FUNCTION private.create_direct_invoice(uuid,uuid,date,jsonb,jsonb) OWNER TO webameen_executor;
 ALTER FUNCTION private.preview_direct_invoice(uuid,jsonb,jsonb) OWNER TO webameen_executor;
 
+SET ROLE webameen_executor;
+
 CREATE OR REPLACE FUNCTION private.guard_invoice_issue() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
 AS $fn$
@@ -587,6 +589,8 @@ ALTER FUNCTION private.guard_invoice_issue() OWNER TO webameen_executor;
 ALTER FUNCTION private.check_invoice_snapshot() OWNER TO webameen_executor;
 REVOKE ALL ON FUNCTION private.guard_invoice_issue() FROM PUBLIC, anon, authenticated, service_role, webameen_quote_broker, webameen_invoice_broker;
 REVOKE ALL ON FUNCTION private.check_invoice_snapshot() FROM PUBLIC, anon, authenticated, service_role, webameen_quote_broker, webameen_invoice_broker;
+
+RESET ROLE;
 
 REVOKE CREATE ON SCHEMA private FROM webameen_executor;
 REVOKE webameen_executor FROM CURRENT_USER;
