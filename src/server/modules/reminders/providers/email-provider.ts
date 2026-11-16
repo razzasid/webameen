@@ -37,7 +37,10 @@ export class ResendEmailProvider implements ReminderChannelProvider {
 
     try {
       const rawFrom = serverEnvironment.EMAIL_FROM ?? "onboarding@resend.dev";
-      const from = rawFrom.trim().replace(/^["']|["']$/g, "").trim();
+      const from = rawFrom
+        .trim()
+        .replace(/^["']|["']$/g, "")
+        .trim();
 
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",

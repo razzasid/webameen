@@ -6,8 +6,8 @@ import { getBusinessContext } from "@/server/modules/business/context";
 import { requireAuthenticatedUser } from "@/server/modules/identity/session";
 import { reportSafeFailure } from "@/server/observability/report-safe-failure";
 import { isUuid } from "@/server/shared/uuid";
-import { getAuthoritativePaymentStatus } from "./payment-check";
 import { createReminderWorkerClient } from "./client";
+import { getAuthoritativePaymentStatus } from "./payment-check";
 import { processDueReminders } from "./processor";
 import { calculateReminderOccurrences } from "./schedule-calculator";
 import type {

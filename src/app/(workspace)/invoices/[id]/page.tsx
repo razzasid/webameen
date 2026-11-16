@@ -26,8 +26,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getCustomer } from "@/server/modules/customers/queries";
 import { formatPaise } from "@/server/modules/catalog/validation";
+import { getCustomer } from "@/server/modules/customers/queries";
 import { toInvoiceDocument } from "@/server/modules/invoices/document-model";
 import { getInvoice, listInvoicePublicLinks } from "@/server/modules/invoices/queries";
 import { getInvoicePaymentSummary } from "@/server/modules/payments/queries";

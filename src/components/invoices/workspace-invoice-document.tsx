@@ -7,6 +7,7 @@ import {
   MapPin,
   ReceiptText,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { formatPaise } from "@/server/modules/catalog/validation";
 import type { InvoiceDocument } from "@/server/modules/invoices/document-model";
@@ -102,6 +103,7 @@ export function WorkspaceInvoiceDocument({ document }: Props) {
         <PartyCard
           title="From"
           name={seller.display_name}
+          logoUrl={seller.logo_url}
           address={seller.address}
           email={seller.email}
           phone={seller.phone}
@@ -373,6 +375,7 @@ export function WorkspaceInvoiceDocument({ document }: Props) {
 function PartyCard({
   title,
   name,
+  logoUrl,
   contactName,
   address,
   email,
@@ -383,6 +386,7 @@ function PartyCard({
 }: {
   title: string;
   name: string;
+  logoUrl?: string | null;
   contactName?: string | null;
   address: string;
   email: string | null;
@@ -396,9 +400,22 @@ function PartyCard({
       <IconTile icon={Building2} tone="green" />
       <div className="min-w-0 flex-1">
         <h3 className="text-xs font-medium text-[var(--muted-foreground)]">{title}</h3>
-        <p className="mt-1 break-words text-sm font-bold text-[var(--ink)]">
-          {name || "—"}
-        </p>
+        {seller && logoUrl ? (
+          <div className="mt-1.5 mb-1">
+            <Image
+              src={logoUrl}
+              alt={`${name} logo`}
+              className="max-h-12 w-auto max-w-[180px] object-contain object-left"
+              width={180}
+              height={48}
+              unoptimized
+            />
+          </div>
+        ) : (
+          <p className="mt-1 break-words text-sm font-bold text-[var(--ink)]">
+            {name || "—"}
+          </p>
+        )}
         {contactName ? (
           <p className="mt-0.5 break-words text-xs text-[var(--ink)]">{contactName}</p>
         ) : null}

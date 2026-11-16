@@ -344,10 +344,11 @@ export function InvoiceReminderPanel({
 
       {feedback && (
         <div
-          className={`p-3 rounded-xl text-xs font-medium border ${feedback.isError
-            ? "bg-red-50 text-red-800 border-red-200"
-            : "bg-emerald-50 text-emerald-800 border-emerald-200"
-            }`}
+          className={`p-3 rounded-xl text-xs font-medium border ${
+            feedback.isError
+              ? "bg-red-50 text-red-800 border-red-200"
+              : "bg-emerald-50 text-emerald-800 border-emerald-200"
+          }`}
         >
           {feedback.message}
         </div>

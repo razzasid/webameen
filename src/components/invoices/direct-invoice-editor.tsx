@@ -12,6 +12,7 @@ import {
   Trash2,
   UserCheck,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -55,6 +56,7 @@ type BusinessProfile = {
   payment_instructions: string | null;
   default_terms: string | null;
   time_zone: string;
+  logo_url?: string | null;
 };
 
 type Props = {
@@ -65,6 +67,7 @@ type Props = {
   periods: InvoiceNumberPeriod[];
   requestKey: string;
   initialCustomerId?: string;
+  logoUrl?: string | null;
 };
 
 function createInitialLine(): DirectInvoiceLineInput {
@@ -89,7 +92,9 @@ export function DirectInvoiceEditor({
   periods,
   requestKey,
   initialCustomerId,
+  logoUrl,
 }: Props) {
+  const resolvedLogoUrl = logoUrl ?? business.logo_url;
   const [state, formAction, isPending] = useActionState<DirectInvoiceActionState, FormData>(
     createDirectInvoiceAction,
     {},
@@ -405,19 +410,32 @@ export function DirectInvoiceEditor({
         <header className="grid grid-cols-1 gap-6 border-b border-[var(--line)] pb-8 sm:grid-cols-12 sm:gap-8">
           {/* Left: Business Branding / Logo & Name */}
           <div className="sm:col-span-6 flex flex-col justify-start">
-            <div className="flex items-center gap-3">
-              <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--ink)] font-bold text-xl text-amber-400 shadow-sm">
-                {business.display_name.slice(0, 2).toUpperCase()}
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-xl font-extrabold uppercase tracking-tight text-[var(--ink)] sm:text-2xl">
-                  {business.display_name}
-                </h2>
-                <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
-                  Business invoice
-                </p>
+            {resolvedLogoUrl ? (
+              <div className="flex items-center min-h-14">
+                <Image
+                  src={resolvedLogoUrl}
+                  alt={`${business.display_name} logo`}
+                  className="max-h-16 w-auto max-w-[240px] object-contain object-left"
+                  width={240}
+                  height={64}
+                  unoptimized
+                />
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--ink)] font-bold text-xl text-amber-400 shadow-sm">
+                  {business.display_name.slice(0, 2).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-xl font-extrabold uppercase tracking-tight text-[var(--ink)] sm:text-2xl">
+                    {business.display_name}
+                  </h2>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+                    Business invoice
+                  </p>
+                </div>
+              </div>
+            )}
 
             {business.gst_registered ? (
               <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[var(--paper)] px-2.5 py-1 text-xs text-[var(--muted-foreground)]">

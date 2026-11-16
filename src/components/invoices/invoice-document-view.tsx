@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { formatPaise } from "@/server/modules/catalog/validation";
 import type { InvoiceDocument } from "@/server/modules/invoices/document-model";
 
@@ -101,7 +102,20 @@ export function InvoiceDocumentView({
       >
         <section style={sectionStyle}>
           <h2 style={{ fontSize: "15px", margin: 0 }}>From</h2>
-          <p style={{ fontWeight: 700, margin: "10px 0 4px" }}>{seller.display_name}</p>
+          {seller.logo_url ? (
+            <div style={{ margin: "10px 0 6px" }}>
+              <Image
+                src={seller.logo_url}
+                alt={`${seller.display_name} logo`}
+                style={{ maxHeight: "48px", maxWidth: "180px", objectFit: "contain" }}
+                width={180}
+                height={48}
+                unoptimized
+              />
+            </div>
+          ) : (
+            <p style={{ fontWeight: 700, margin: "10px 0 4px" }}>{seller.display_name}</p>
+          )}
           <p style={{ whiteSpace: "pre-line", margin: 0 }}>{seller.address}</p>
           <p style={{ ...mutedStyle, margin: "8px 0 0" }}>
             {[seller.email, seller.phone].filter(Boolean).join(" · ")}

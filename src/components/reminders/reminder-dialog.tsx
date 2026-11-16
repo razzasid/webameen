@@ -377,7 +377,9 @@ export function ReminderDialog({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs font-bold text-[var(--ink)]">WhatsApp</p>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-200 text-neutral-600 font-medium">Paused</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-200 text-neutral-600 font-medium">
+                          Paused
+                        </span>
                       </div>
                       <p className="text-[11px] truncate">
                         {buyerPhone || "No phone on file"}
@@ -413,7 +415,9 @@ export function ReminderDialog({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs font-bold text-[var(--ink)]">SMS Text</p>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-200 text-neutral-600 font-medium">Paused</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-200 text-neutral-600 font-medium">
+                          Paused
+                        </span>
                       </div>
                       <p className="text-[11px] truncate">
                         {buyerPhone || "No phone on file"}

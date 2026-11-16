@@ -1,3 +1,4 @@
+import { businessLogoPublicUrl } from "@/server/modules/business/logo-assets";
 import type { PublicInvoice } from "./public-broker";
 import type { InvoiceDetail } from "./queries";
 
@@ -37,6 +38,7 @@ export type InvoiceDocument = {
     state_code: string;
     gst_registered: boolean;
     gstin: string | null;
+    logo_url?: string | null;
   };
   buyer: {
     display_name: string;
@@ -100,6 +102,7 @@ export function toInvoiceDocument(invoice: InvoiceDetail): InvoiceDocument {
       state_code: invoice.seller_state_code,
       gst_registered: invoice.seller_gst_registered,
       gstin: invoice.seller_gstin,
+      logo_url: businessLogoPublicUrl(invoice.seller_logo_asset_key),
     },
     buyer: {
       display_name: invoice.buyer_display_name,

@@ -112,4 +112,3 @@ describe("smart payment status checking logic", () => {
     expect(outstanding).toBe(BigInt(2500000));
   });
 });
-

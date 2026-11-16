@@ -24,7 +24,7 @@ export default async function NewInvoicePage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const initialCustomerId = resolvedSearchParams?.customerId;
 
-  const [customers, catalog, rates, { profile }, periods] = await Promise.all([
+  const [customers, catalog, rates, { profile, logoUrl }, periods] = await Promise.all([
     listInvoiceCustomers(),
     listInvoiceCatalogChoices(),
     listGstRateOptions(),
@@ -83,6 +83,7 @@ export default async function NewInvoicePage({
           catalog={catalog}
           rates={rates.map((r) => r.rate)}
           business={profile}
+          logoUrl={logoUrl}
           periods={periods}
           requestKey={requestKey}
           initialCustomerId={initialCustomerId}
