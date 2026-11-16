@@ -83,7 +83,7 @@ export function WorkspaceInvoiceDocument({ document }: Props) {
             </p>
           </div>
         </div>
-        <div className="flex min-w-0 items-center gap-3 self-start rounded-xl border border-[#d9eee5] bg-[#eaf6f1] px-3 py-2.5 sm:min-w-[190px] sm:justify-between sm:px-4 sm:py-3">
+        <div className="flex min-w-0 items-center justify-between gap-3 w-full sm:w-auto self-start rounded-xl border border-[#d9eee5] bg-[#eaf6f1] px-3.5 py-2.5 sm:min-w-[190px] sm:px-4 sm:py-3">
           <span className="min-w-0">
             <span className="block text-[11px] text-[var(--muted-foreground)]">
               Total due

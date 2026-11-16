@@ -206,7 +206,7 @@ export default async function InvoiceDetailPage({
         </div>
       </header>
 
-      <section className="grid min-w-0 overflow-hidden rounded-2xl border border-[#d9eee5] bg-[#eaf6f1] sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid min-w-0 overflow-hidden rounded-2xl border border-[#d9eee5] bg-[#eaf6f1] grid-cols-2 lg:grid-cols-4 divide-y divide-[#d9eee5] sm:divide-y-0">
         <SummaryItem icon={BadgeCheck} label="Status" value={status} tone={statusTone} />
         <SummaryItem
           icon={CalendarDays}

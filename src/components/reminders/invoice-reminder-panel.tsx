@@ -201,7 +201,7 @@ export function InvoiceReminderPanel({
             <Bell className="size-5" />
           </span>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <h3 className="font-bold text-[var(--ink)] text-base">
                 Automated Payment Reminders
               </h3>

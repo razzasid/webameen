@@ -46,13 +46,22 @@ function NavigationLink({
       className={cn(
         "flex min-h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b3e3d0]",
         active
-          ? "bg-[#dff2e9] text-[#123c34]"
-          : "text-white/85 hover:bg-white/10 hover:text-white",
+          ? "bg-[#d8f0e5] !text-[#104e42] font-semibold"
+          : "!text-white/85 hover:bg-white/10 hover:!text-white",
       )}
       href={href}
     >
-      <Icon aria-hidden="true" className="size-[18px] shrink-0" strokeWidth={1.8} />
-      <span>{label}</span>
+      <Icon
+        aria-hidden="true"
+        className={cn(
+          "size-[18px] shrink-0",
+          active ? "!text-[#104e42]" : "!text-white/85",
+        )}
+        strokeWidth={active ? 2.2 : 1.8}
+      />
+      <span className={cn(active ? "!text-[#104e42] font-semibold" : "!text-white/85")}>
+        {label}
+      </span>
     </Link>
   );
   return closeOnSelect ? <SheetClose asChild>{link}</SheetClose> : link;
@@ -83,7 +92,9 @@ export function MobileNavigation({
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
-                active ? "text-[var(--brand-dark)]" : "text-[var(--muted-foreground)]",
+                active
+                  ? "!text-[var(--brand-dark)] font-semibold"
+                  : "!text-[var(--muted-foreground)]",
               )}
               href={href}
               key={href}
@@ -110,8 +121,8 @@ export function MobileNavigation({
               className={cn(
                 "flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
                 moreIsActive
-                  ? "text-[var(--brand-dark)]"
-                  : "text-[var(--muted-foreground)]",
+                  ? "!text-[var(--brand-dark)] font-semibold"
+                  : "!text-[var(--muted-foreground)]",
               )}
               type="button"
             >

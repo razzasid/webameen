@@ -405,9 +405,9 @@ export function DirectInvoiceEditor({
       ) : null}
 
       {/* Primary Invoice Document Sheet - Styled after Reference Image */}
-      <div className="relative mx-auto w-full max-w-4xl min-w-0 overflow-hidden rounded-2xl border border-[var(--line)] bg-white p-5 shadow-sm sm:p-10">
+      <div className="relative mx-auto w-full max-w-4xl min-w-0 overflow-hidden rounded-2xl border border-[var(--line)] bg-white p-3.5 sm:p-8 sm:p-10 shadow-sm">
         {/* Document Header Section */}
-        <header className="grid grid-cols-1 gap-6 border-b border-[var(--line)] pb-8 sm:grid-cols-12 sm:gap-8">
+        <header className="grid grid-cols-1 gap-6 border-b border-[var(--line)] pb-6 sm:pb-8 sm:grid-cols-12 sm:gap-8">
           {/* Left: Business Branding / Logo & Name */}
           <div className="sm:col-span-6 flex flex-col justify-start">
             {resolvedLogoUrl ? (
@@ -447,7 +447,7 @@ export function DirectInvoiceEditor({
 
           {/* Right: Business Contact Details with Yellow Accent Bar (Reference Image Style) */}
           <div className="sm:col-span-6 flex items-stretch justify-start sm:justify-end">
-            <div className="flex items-start gap-4 border-l-4 border-amber-400 pl-4 sm:pl-5">
+            <div className="flex items-start gap-3 sm:gap-4 border-l-4 border-amber-400 pl-3 sm:pl-5">
               <div className="space-y-1.5 text-xs text-[var(--muted-foreground)]">
                 {business.contact_phone ? (
                   <p className="flex items-center gap-2 font-medium text-[var(--ink)]">
@@ -458,12 +458,12 @@ export function DirectInvoiceEditor({
                 {business.contact_email ? (
                   <p className="flex items-center gap-2">
                     <Mail className="size-3.5 text-amber-500 shrink-0" />
-                    <span>{business.contact_email}</span>
+                    <span className="break-all">{business.contact_email}</span>
                   </p>
                 ) : null}
                 <p className="flex items-start gap-2">
                   <MapPin className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <span className="max-w-[220px]">
+                  <span className="max-w-[260px] break-words">
                     {business.postal_address || "Address not provided"}
                     {business.state_code ? ` · State ${business.state_code}` : ""}
                   </span>
@@ -589,16 +589,16 @@ export function DirectInvoiceEditor({
           <div className="sm:col-span-6 flex flex-col justify-between space-y-4">
             <div className="rounded-xl border border-[var(--ink)] overflow-hidden">
               {/* Reference Image Dark Bar Banner */}
-              <div className="bg-[#17251f] text-white px-4 py-2 flex items-center justify-between">
-                <span className="font-extrabold tracking-widest text-base sm:text-lg">
+              <div className="bg-[#17251f] text-white px-3 sm:px-4 py-2 flex items-center justify-between">
+                <span className="font-extrabold tracking-widest text-sm sm:text-base">
                   INVOICE
                 </span>
-                <span className="text-[11px] font-mono tracking-wider opacity-80">
+                <span className="text-[10px] sm:text-[11px] font-mono tracking-wider opacity-80">
                   {activePeriod ? `PERIOD: ${activePeriod.period_key}` : "UNCONFIGURED"}
                 </span>
               </div>
 
-              <div className="p-4 bg-white space-y-3">
+              <div className="p-3 sm:p-4 bg-white space-y-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-[var(--muted-foreground)] font-medium">
                     INVOICE DATE:
@@ -619,26 +619,26 @@ export function DirectInvoiceEditor({
                     min={todayIso}
                     value={dueOn}
                     onChange={(e) => setDueOn(e.target.value)}
-                    className="h-8 w-36 text-xs text-right font-mono"
+                    className="h-8 w-32 sm:w-36 text-xs text-right font-mono"
                   />
                 </div>
 
-                <div className="pt-3 border-t border-[var(--line)] flex items-baseline justify-between">
+                <div className="pt-3 border-t border-[var(--line)] flex flex-wrap items-baseline justify-between gap-1">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--muted-foreground)]">
                     TOTAL DUE:
                   </span>
                   <span className="text-2xl sm:text-3xl font-black text-[var(--ink)] tabular-nums tracking-tight">
-                    ₹{formatPaise(calculatedTotals.grandTotalPaise.toString())}
+                    {formatPaise(calculatedTotals.grandTotalPaise.toString())}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* GST Auto / Manual Treatment Indicator */}
-            <div className="flex items-center justify-between rounded-lg bg-[var(--paper)] px-3 py-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--paper)] px-3 py-2 text-xs">
               <span className="text-[var(--muted-foreground)]">GST Treatment:</span>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-[var(--ink)] uppercase">
+                <span className="font-semibold text-[var(--ink)] uppercase text-[11px] sm:text-xs">
                   {effectiveTreatment === "cgst_sgst"
                     ? "CGST + SGST (Intra-state)"
                     : effectiveTreatment === "igst"
@@ -691,15 +691,15 @@ export function DirectInvoiceEditor({
           </div>
         </section>
 
-        {/* Invoice Items Table (Reference Image Layout: DESCRIPTION | PRICE | QTY | TOTAL) */}
+        {/* Invoice Items Section (Mobile Cards + Desktop Table) */}
         <section className="pt-6 pb-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between mb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--ink)]">
               Invoice Items
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {catalog.length ? (
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-none">
                   <select
                     aria-label="Add from catalog"
                     value=""
@@ -708,7 +708,7 @@ export function DirectInvoiceEditor({
                         handleAddCatalogItem(e.target.value);
                       }
                     }}
-                    className="h-8 rounded-lg border border-[var(--line)] bg-white px-2.5 text-xs font-medium text-[var(--ink)] hover:bg-[var(--paper)] focus:outline-none"
+                    className="h-8 w-full sm:w-auto rounded-lg border border-[var(--line)] bg-white px-2.5 text-xs font-medium text-[var(--ink)] hover:bg-[var(--paper)] focus:outline-none"
                   >
                     <option value="">+ From catalog...</option>
                     {catalog.map((item) => (
@@ -724,15 +724,178 @@ export function DirectInvoiceEditor({
                 variant="outline"
                 size="sm"
                 onClick={handleAddCustomLine}
-                className="h-8 text-xs gap-1"
+                className="h-8 text-xs gap-1 flex-1 sm:flex-none"
               >
                 <Plus className="size-3" /> Add manual item
               </Button>
             </div>
           </div>
 
-          {/* Table Container */}
-          <div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+          {/* Mobile Items Cards (< md) */}
+          <div className="space-y-3 md:hidden">
+            {lines.map((line, idx) => {
+              const lineCalc = calculatedTotals.calculatedLines[idx];
+              return (
+                <div
+                  key={line.clientId}
+                  className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-3.5 space-y-3"
+                >
+                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                      Item {idx + 1}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold font-mono text-sm text-[var(--ink)]">
+                        {formatPaise(lineCalc?.lineTotal.toString() ?? "0")}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={lines.length <= 1}
+                        onClick={() => handleRemoveLine(idx)}
+                        className="size-7 text-[var(--muted-foreground)] hover:text-[var(--danger)]"
+                      >
+                        <Trash2 className="size-3.5" />
+                        <span className="sr-only">Delete item {idx + 1}</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+                      Description / Item Name
+                    </Label>
+                    <Input
+                      placeholder="Item name / description..."
+                      value={line.description}
+                      onChange={(e) => handleLineChange(idx, "description", e.target.value)}
+                      className="mt-1 h-9 text-xs font-medium text-[var(--ink)] bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+                        Price (₹)
+                      </Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={line.unitPriceRupees}
+                        onChange={(e) =>
+                          handleLineChange(idx, "unitPriceRupees", e.target.value)
+                        }
+                        className="mt-1 h-8 text-xs font-mono bg-white"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+                        Quantity &amp; Unit
+                      </Label>
+                      <div className="mt-1 flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={line.quantity}
+                          onChange={(e) =>
+                            handleLineChange(idx, "quantity", e.target.value)
+                          }
+                          className="h-8 text-xs font-mono text-center bg-white flex-1"
+                          required
+                        />
+                        <Input
+                          placeholder="unit"
+                          value={line.unitLabel}
+                          onChange={(e) =>
+                            handleLineChange(idx, "unitLabel", e.target.value)
+                          }
+                          className="h-8 w-16 text-xs text-center bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[var(--line)] space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+                          HSN/SAC
+                        </Label>
+                        <Input
+                          placeholder="Optional"
+                          value={line.hsnSac}
+                          onChange={(e) => handleLineChange(idx, "hsnSac", e.target.value)}
+                          className="mt-1 h-7 text-[11px] bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+                          GST Treatment
+                        </Label>
+                        <select
+                          aria-label={`Line ${idx + 1} GST Category`}
+                          value={line.gstCategory}
+                          onChange={(e) =>
+                            handleLineChange(
+                              idx,
+                              "gstCategory",
+                              e.target.value as "taxable" | "exempt" | "no_gst",
+                            )
+                          }
+                          className="mt-1 h-7 w-full rounded border border-[var(--line)] bg-white px-2 text-[11px]"
+                        >
+                          <option value="taxable">Taxable</option>
+                          <option value="exempt">Exempt</option>
+                          <option value="no_gst">No GST</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {line.gstCategory === "taxable" ? (
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+                          GST Rate
+                        </span>
+                        <select
+                          aria-label={`Line ${idx + 1} GST Rate`}
+                          value={line.gstRate}
+                          onChange={(e) => handleLineChange(idx, "gstRate", e.target.value)}
+                          className="h-7 rounded border border-[var(--line)] bg-white px-2 text-[11px] font-mono"
+                        >
+                          {rates.map((rate) => (
+                            <option key={rate} value={rate}>
+                              {rate}% GST
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+
+                    {line.gstCategory === "taxable" && lineCalc ? (
+                      <p className="text-[11px] text-[var(--muted-foreground)] text-right">
+                        incl.{" "}
+                        {formatPaise(
+                          (
+                            lineCalc.lineCgst +
+                            lineCalc.lineSgst +
+                            lineCalc.lineIgst
+                          ).toString(),
+                        )}{" "}
+                        tax
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table Container (>= md) */}
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-[var(--line)]">
             <table className="w-full border-collapse text-left text-xs">
               <thead>
                 <tr className="border-b border-[var(--ink)] bg-[var(--paper)] font-bold uppercase tracking-wider text-[var(--ink)]">
@@ -854,11 +1017,11 @@ export function DirectInvoiceEditor({
                       {/* Line Total Column */}
                       <td className="p-3 align-top text-right font-mono">
                         <p className="font-bold text-sm text-[var(--ink)] pt-1">
-                          ₹{formatPaise(lineCalc?.lineTotal.toString() ?? "0")}
+                          {formatPaise(lineCalc?.lineTotal.toString() ?? "0")}
                         </p>
                         {line.gstCategory === "taxable" && lineCalc ? (
                           <p className="text-[10px] text-[var(--muted-foreground)]">
-                            incl. ₹
+                            incl.{" "}
                             {formatPaise(
                               (
                                 lineCalc.lineCgst +
@@ -1001,7 +1164,7 @@ export function DirectInvoiceEditor({
                   Sub-Total:
                 </span>
                 <span className="font-semibold text-[var(--ink)] font-mono">
-                  ₹{formatPaise(calculatedTotals.subtotalPaise.toString())}
+                  {formatPaise(calculatedTotals.subtotalPaise.toString())}
                 </span>
               </div>
 
@@ -1012,7 +1175,7 @@ export function DirectInvoiceEditor({
                       CGST:
                     </span>
                     <span className="font-semibold text-[var(--ink)] font-mono">
-                      ₹{formatPaise(calculatedTotals.cgstPaise.toString())}
+                      {formatPaise(calculatedTotals.cgstPaise.toString())}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-1">
@@ -1020,7 +1183,7 @@ export function DirectInvoiceEditor({
                       SGST:
                     </span>
                     <span className="font-semibold text-[var(--ink)] font-mono">
-                      ₹{formatPaise(calculatedTotals.sgstPaise.toString())}
+                      {formatPaise(calculatedTotals.sgstPaise.toString())}
                     </span>
                   </div>
                 </>
@@ -1028,7 +1191,7 @@ export function DirectInvoiceEditor({
                 <div className="flex items-center justify-between py-1">
                   <span className="text-[var(--muted-foreground)] font-medium">IGST:</span>
                   <span className="font-semibold text-[var(--ink)] font-mono">
-                    ₹{formatPaise(calculatedTotals.igstPaise.toString())}
+                    {formatPaise(calculatedTotals.igstPaise.toString())}
                   </span>
                 </div>
               )}
@@ -1038,7 +1201,7 @@ export function DirectInvoiceEditor({
                   Grand Total:
                 </span>
                 <span className="text-xl font-black text-[var(--ink)] tabular-nums font-mono">
-                  ₹{formatPaise(calculatedTotals.grandTotalPaise.toString())}
+                  {formatPaise(calculatedTotals.grandTotalPaise.toString())}
                 </span>
               </div>
             </div>
@@ -1059,17 +1222,19 @@ export function DirectInvoiceEditor({
       </div>
 
       {/* Floating Action Controls Bar */}
-      <div className="sticky bottom-4 z-10 mx-auto flex max-w-4xl items-center justify-between rounded-xl border border-[var(--line)] bg-white/95 p-4 shadow-lg backdrop-blur">
-        <Button asChild variant="outline" type="button">
+      <div className="sticky bottom-2 sm:bottom-4 z-10 mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--line)] bg-white/95 p-2.5 sm:p-4 shadow-lg backdrop-blur">
+        <Button asChild variant="outline" size="sm" type="button" className="min-h-9">
           <Link href="/invoices">Cancel</Link>
         </Button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
             type="submit"
             name="intent"
             value="preview"
             variant="outline"
+            size="sm"
+            className="min-h-9 text-xs"
             disabled={isPending || !selectedCustomerId}
           >
             Preview totals
@@ -1079,17 +1244,18 @@ export function DirectInvoiceEditor({
             type="submit"
             name="intent"
             value="save"
+            size="sm"
             disabled={isPending || !selectedCustomerId || !hasActivePeriod}
-            className="min-w-[140px] bg-[var(--brand)] hover:bg-[var(--brand-dark)] text-white"
+            className="min-h-9 text-xs bg-[var(--brand)] hover:bg-[var(--brand-dark)] text-white"
           >
             {isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" />
+                <Loader2 className="size-3.5 animate-spin mr-1.5" />
                 Issuing...
               </>
             ) : (
               <>
-                <CheckCircle2 className="size-4 mr-2" />
+                <CheckCircle2 className="size-3.5 mr-1.5" />
                 Create Invoice
               </>
             )}
